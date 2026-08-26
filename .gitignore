@@ -1,5 +1,0 @@
-# Local MongoDB Atlas credentials
-backend/src/main/resources/application-local.properties
-
-# Maven build output
-backend/target/
