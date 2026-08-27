@@ -45,6 +45,24 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler({ProjectAccessDeniedException.class})
+    public ResponseEntity<ErrorResponse> handleProjectAccessDenied(
+            ProjectAccessDeniedException ex, HttpServletRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                ErrorResponse.of(HttpStatus.FORBIDDEN.value(), "Forbidden", ex.getMessage(), request.getRequestURI())
+        );
+    }
+
+    @ExceptionHandler({DuplicateProjectMemberException.class})
+    public ResponseEntity<ErrorResponse> handleDuplicateProjectMember(
+            DuplicateProjectMemberException ex, HttpServletRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErrorResponse.of(HttpStatus.CONFLICT.value(), "Conflict", ex.getMessage(), request.getRequestURI())
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException ex,
