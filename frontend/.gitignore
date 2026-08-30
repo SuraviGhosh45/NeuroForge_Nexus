@@ -22,3 +22,58 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+roles
+Admin, project lead, project Manager, team lead, employee(Developer, tester, junior, senior... etc)
+
+
+test data
+{
+    id: 1,
+    name: "Rahul Sharma",
+    email: "rahul.sharma@example.com",
+    role: "Developer",
+  },
+  {
+    id: 2,
+    name: "Priya Sen",
+    email: "priya.sen@example.com",
+    role: "Project Lead",
+  },
+  {
+    id: 3,
+    name: "Amit Roy",
+    email: "amit.roy@example.com",
+    role: "QA",
+  },
+  {
+    id: 4,
+    name: "Sneha Das",
+    email: "sneha.das@example.com",
+    role: "Tester",
+  },
+  {
+    id: 5,
+    name: "Arjun Mehta",
+    email: "arjun.mehta@example.com",
+    role: "Project Manager",
+  },
+  {
+    id: 6,
+    name: "Neha Gupta",
+    email: "neha.gupta@example.com",
+    role: "Developer",
+  },
+  {
+    id: 7,
+    name: "Rohan Mukherjee",
+    email: "rohan.mukherjee@example.com",
+    role: "Team Lead",
+  },
+  {
+    id: 8,
+    name: "Ananya Bose",
+    email: "ananya.bose@example.com",
+    role: "QA",
+  }
