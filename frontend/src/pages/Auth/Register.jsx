@@ -39,25 +39,28 @@ const Register = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  const validationErrors = validate();
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
 
-    // Actually call the mock auth — this saves the user AND logs them in.
-    register({
-      name: form.fullName,
-      email: form.email,
-      role: form.role,
-      team: form.team,
-    });
+  const result = await register({
+    username: form.fullName,
+    email: form.email,
+    password: form.password,
+  });
 
-    setMessage("Registration validated. Redirecting...");
-    navigate("/user-management"); // was "/login" — but register() already logs them in
-  };
+  if (!result.success) {
+    setMessage(result.message);
+    return;
+  }
+
+  setMessage("Registration successful. Redirecting to login...");
+  navigate("/login");
+};
 
   return (
     <AuthLayout>

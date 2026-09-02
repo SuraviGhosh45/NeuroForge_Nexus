@@ -8,31 +8,53 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Mock "register" — since there's no backend yet, this both creates
-  // the user record and logs them in immediately.
-  const register = (userData) => {
-    const newUser = { id: Date.now(), ...userData };
+  // Real register — calls the Spring Boot backend
+  const register = async (userData) => {
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: userData.username,
+          email: userData.email,
+          password: userData.password,
+        }),
+      });
 
-    const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    localStorage.setItem("users", JSON.stringify([...existingUsers, newUser]));
+      const data = await response.text();
 
-    localStorage.setItem("currentUser", JSON.stringify(newUser));
-    setCurrentUser(newUser);
-    return { success: true };
+      if (!response.ok) {
+        return { success: false, message: data };
+      }
+
+      return { success: true, message: data };
+    } catch (err) {
+      return { success: false, message: "Cannot reach server. Is the backend running?" };
+    }
   };
 
-  // Mock "login" — looks up by email against whatever was registered locally.
-  const login = (email) => {
-    const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    const found = existingUsers.find((u) => u.email === email);
+  // Real login — calls the Spring Boot backend
+  const login = async (email, password) => {
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!found) {
-      return { success: false, message: "No account found. Please register first." };
+      const data = await response.text();
+
+      if (!response.ok) {
+        return { success: false, message: data };
+      }
+
+      const userObj = { email };
+      localStorage.setItem("currentUser", JSON.stringify(userObj));
+      setCurrentUser(userObj);
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: "Cannot reach server. Is the backend running?" };
     }
-
-    localStorage.setItem("currentUser", JSON.stringify(found));
-    setCurrentUser(found);
-    return { success: true };
   };
 
   const logout = () => {

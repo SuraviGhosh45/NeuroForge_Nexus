@@ -28,7 +28,7 @@ const Login = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -36,8 +36,7 @@ const Login = () => {
       return;
     }
 
-    // Actually call the mock auth — this is what was missing.
-    const result = login(form.email);
+    const result = await login(form.email, form.password);
 
     if (!result.success) {
       setMessage(result.message);
@@ -45,7 +44,7 @@ const Login = () => {
     }
 
     setMessage("Login validated. Redirecting...");
-    navigate("/user-management"); // was "/dashboard", a route that doesn't exist
+    navigate("/user-management");
   };
 
   return (
