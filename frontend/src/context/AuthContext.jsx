@@ -8,18 +8,13 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Register new user
   const register = (userData) => {
     const newUser = {
       id: Date.now(),
       name: userData.name,
       email: userData.email,
       password: userData.password,
-
-      // default
-      role: "Admin",
-
-      // Team is assigned later
+      role: "Unassigned",
       team: null,
     };
 
@@ -42,7 +37,6 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   };
 
-  // Login existing user
   const login = (email) => {
     const existingUsers = JSON.parse(
       localStorage.getItem("users") || "[]"
@@ -69,7 +63,6 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   };
 
-  // Logout
   const logout = () => {
     localStorage.removeItem("currentUser");
     setCurrentUser(null);

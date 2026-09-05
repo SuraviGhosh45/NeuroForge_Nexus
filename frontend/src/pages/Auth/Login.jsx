@@ -89,7 +89,6 @@ const Login = () => {
         )}
 
         <form onSubmit={handleSubmit} noValidate>
-          {/* Email */}
           <div className="form-group">
             <label htmlFor="email">
               Work Email
@@ -112,7 +111,6 @@ const Login = () => {
             )}
           </div>
 
-          {/* Password */}
           <div className="form-group">
             <div className="label-row">
               <label htmlFor="password">
@@ -164,7 +162,6 @@ const Login = () => {
             )}
           </div>
 
-          {/* Remember me */}
           <label className="remember-row">
             <input
               type="checkbox"
@@ -176,7 +173,6 @@ const Login = () => {
             <span>Remember me</span>
           </label>
 
-          {/* Login */}
           <button
             type="submit"
             className="primary-button"
