@@ -8,53 +8,59 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Real register — calls the Spring Boot backend
-  const register = async (userData) => {
-    try {
-      const response = await fetch("http://localhost:8080/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: userData.username,
-          email: userData.email,
-          password: userData.password,
-        }),
-      });
+  const register = (userData) => {
+    const newUser = {
+      id: Date.now(),
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
+      role: "Unassigned",
+      team: null,
+    };
 
-      const data = await response.text();
+    const existingUsers = JSON.parse(
+      localStorage.getItem("users") || "[]"
+    );
 
-      if (!response.ok) {
-        return { success: false, message: data };
-      }
+    localStorage.setItem(
+      "users",
+      JSON.stringify([...existingUsers, newUser])
+    );
 
-      return { success: true, message: data };
-    } catch (err) {
-      return { success: false, message: "Cannot reach server. Is the backend running?" };
-    }
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(newUser)
+    );
+
+    setCurrentUser(newUser);
+
+    return { success: true };
   };
 
-  // Real login — calls the Spring Boot backend
-  const login = async (email, password) => {
-    try {
-      const response = await fetch("http://localhost:8080/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+  const login = (email) => {
+    const existingUsers = JSON.parse(
+      localStorage.getItem("users") || "[]"
+    );
 
-      const data = await response.text();
+    const found = existingUsers.find(
+      (user) => user.email === email
+    );
 
-      if (!response.ok) {
-        return { success: false, message: data };
-      }
-
-      const userObj = { email };
-      localStorage.setItem("currentUser", JSON.stringify(userObj));
-      setCurrentUser(userObj);
-      return { success: true };
-    } catch (err) {
-      return { success: false, message: "Cannot reach server. Is the backend running?" };
+    if (!found) {
+      return {
+        success: false,
+        message: "No account found. Please register first.",
+      };
     }
+
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(found)
+    );
+
+    setCurrentUser(found);
+
+    return { success: true };
   };
 
   const logout = () => {
@@ -63,7 +69,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, register, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        register,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
