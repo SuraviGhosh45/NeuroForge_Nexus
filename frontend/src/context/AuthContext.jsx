@@ -8,40 +8,82 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Mock "register" — since there's no backend yet, this both creates
-  // the user record and logs them in immediately.
+  // Register new user
   const register = (userData) => {
-    const newUser = { id: Date.now(), ...userData };
+    const newUser = {
+      id: Date.now(),
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
 
-    const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    localStorage.setItem("users", JSON.stringify([...existingUsers, newUser]));
+      // default
+      role: "Admin",
 
-    localStorage.setItem("currentUser", JSON.stringify(newUser));
+      // Team is assigned later
+      team: null,
+    };
+
+    const existingUsers = JSON.parse(
+      localStorage.getItem("users") || "[]"
+    );
+
+    localStorage.setItem(
+      "users",
+      JSON.stringify([...existingUsers, newUser])
+    );
+
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(newUser)
+    );
+
     setCurrentUser(newUser);
+
     return { success: true };
   };
 
-  // Mock "login" — looks up by email against whatever was registered locally.
+  // Login existing user
   const login = (email) => {
-    const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    const found = existingUsers.find((u) => u.email === email);
+    const existingUsers = JSON.parse(
+      localStorage.getItem("users") || "[]"
+    );
+
+    const found = existingUsers.find(
+      (user) => user.email === email
+    );
 
     if (!found) {
-      return { success: false, message: "No account found. Please register first." };
+      return {
+        success: false,
+        message: "No account found. Please register first.",
+      };
     }
 
-    localStorage.setItem("currentUser", JSON.stringify(found));
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(found)
+    );
+
     setCurrentUser(found);
+
     return { success: true };
   };
 
+  // Logout
   const logout = () => {
     localStorage.removeItem("currentUser");
     setCurrentUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, register, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        register,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

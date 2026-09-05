@@ -7,36 +7,58 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [form, setForm] = useState({ email: "", password: "", remember: false });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    remember: false,
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
-    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: "",
+    }));
+
     setMessage("");
   };
 
   const validate = () => {
     const newErrors = {};
-    if (!form.email.trim()) newErrors.email = "Email address is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+
+    if (!form.email.trim()) {
+      newErrors.email = "Email address is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = "Enter a valid email address.";
-    if (!form.password) newErrors.password = "Password is required.";
+    }
+
+    if (!form.password) {
+      newErrors.password = "Password is required.";
+    }
+
     return newErrors;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
     const validationErrors = validate();
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
-    // Actually call the mock auth — this is what was missing.
     const result = login(form.email);
 
     if (!result.success) {
@@ -44,8 +66,7 @@ const Login = () => {
       return;
     }
 
-    setMessage("Login validated. Redirecting...");
-    navigate("/user-management"); // was "/dashboard", a route that doesn't exist
+    navigate("/dashboard");
   };
 
   return (
@@ -53,15 +74,27 @@ const Login = () => {
       <section className="auth-card">
         <div className="auth-heading">
           <div className="icon-circle">↪</div>
+
           <h2>Welcome back</h2>
-          <p>Sign in to your NeuroForge Nexus workspace</p>
+
+          <p>
+            Sign in to your NeuroForge Nexus workspace
+          </p>
         </div>
 
-        {message && <div className="success-message">{message}</div>}
+        {message && (
+          <div className="success-message">
+            {message}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} noValidate>
+          {/* Email */}
           <div className="form-group">
-            <label htmlFor="email">Work Email</label>
+            <label htmlFor="email">
+              Work Email
+            </label>
+
             <input
               id="email"
               name="email"
@@ -71,16 +104,29 @@ const Login = () => {
               onChange={handleChange}
               className={errors.email ? "input-error" : ""}
             />
-            {errors.email && <small className="error-text">{errors.email}</small>}
+
+            {errors.email && (
+              <small className="error-text">
+                {errors.email}
+              </small>
+            )}
           </div>
 
+          {/* Password */}
           <div className="form-group">
             <div className="label-row">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">
+                Password
+              </label>
+
               <button
                 type="button"
                 className="forgot-button"
-                onClick={() => setMessage("Password recovery will be integrated later.")}
+                onClick={() =>
+                  setMessage(
+                    "Password recovery will be integrated later."
+                  )
+                }
               >
                 Forgot password?
               </button>
@@ -94,42 +140,71 @@ const Login = () => {
                 placeholder="Enter your password"
                 value={form.password}
                 onChange={handleChange}
-                className={errors.password ? "input-error" : ""}
+                className={
+                  errors.password ? "input-error" : ""
+                }
               />
+
               <button
                 type="button"
                 className="password-toggle"
-                onClick={() => setShowPassword((prev) => !prev)}
+                onClick={() =>
+                  setShowPassword((prev) => !prev)
+                }
                 aria-label="Toggle password visibility"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
-            {errors.password && <small className="error-text">{errors.password}</small>}
+
+            {errors.password && (
+              <small className="error-text">
+                {errors.password}
+              </small>
+            )}
           </div>
 
+          {/* Remember me */}
           <label className="remember-row">
-            <input type="checkbox" name="remember" checked={form.remember} onChange={handleChange} />
+            <input
+              type="checkbox"
+              name="remember"
+              checked={form.remember}
+              onChange={handleChange}
+            />
+
             <span>Remember me</span>
           </label>
 
-          <button type="submit" className="primary-button">
+          {/* Login */}
+          <button
+            type="submit"
+            className="primary-button"
+          >
             Sign In <span>→</span>
           </button>
         </form>
 
-        <div className="divider"><span>OR</span></div>
+        <div className="divider">
+          <span>OR</span>
+        </div>
 
         <p className="switch-auth">
-          Don't have an account?
-          <Link to="/register">Create an account</Link>
+          Don't have an account?{" "}
+          <Link to="/register">
+            Create an account
+          </Link>
         </p>
 
         <div className="iam-note">
           <span>🔐</span>
+
           <div>
             <strong>Secure authentication</strong>
-            <p>IAM powered by Keycloak</p>
+
+            <p>
+              IAM powered by Keycloak
+            </p>
           </div>
         </div>
       </section>
