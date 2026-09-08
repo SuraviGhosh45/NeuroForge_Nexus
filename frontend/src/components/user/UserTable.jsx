@@ -23,7 +23,6 @@ const UserTable = ({
             <tr className="text-left text-sm text-[#e8eef8]/50">
               <th className="px-6 py-4">User</th>
               <th className="px-6 py-4">Email</th>
-              <th className="px-6 py-4">Role</th>
               {showActions && <th className="px-6 py-4 text-right">Actions</th>}
             </tr>
           </thead>
@@ -38,19 +37,13 @@ const UserTable = ({
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e8eef8] font-semibold text-[#07111f]">
-                        {user.name.charAt(0).toUpperCase()}
+                        {user.fullName.charAt(0).toUpperCase()}
                       </div>
-                      <span className="font-medium text-[#e8eef8]">{user.name}</span>
+                      <span className="font-medium text-[#e8eef8]">{user.fullName}</span>
                     </div>
                   </td>
 
                   <td className="px-6 py-4 text-sm text-[#e8eef8]/60">{user.email}</td>
-
-                  <td className="px-6 py-4">
-                    <span className="rounded-full border border-[#e8eef8]/15 px-3 py-1 text-xs text-[#e8eef8]/80">
-                      {user.role}
-                    </span>
-                  </td>
 
                   {showActions && (
                     <td className="px-6 py-4">
@@ -82,7 +75,7 @@ const UserTable = ({
             ) : (
               <tr>
                 <td
-                  colSpan={showActions ? 4 : 3}
+                  colSpan={showActions ? 3 : 2}
                   className="px-6 py-10 text-center text-sm text-[#e8eef8]/40"
                 >
                   No users found

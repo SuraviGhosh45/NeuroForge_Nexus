@@ -1,29 +1,16 @@
-
 import { useState } from "react";
 
 const EditUserForm = ({ user, onCancel, onSave }) => {
-  const [name, setName] = useState(user.name);
+  const [fullName, setFullName] = useState(user.fullName);
   const [email, setEmail] = useState(user.email);
-  const [selectRole, setSelectRole] = useState(user.role);
-
-  const roles = [
-    "Admin",
-    "Project Lead",
-    "Project Manager",
-    "Team Lead",
-    "Developer",
-    "Tester",
-    "QA",
-  ];
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
     const updatedUser = {
       ...user,
-      name,
+      fullName,
       email,
-      role: selectRole,
     };
 
     onSave(updatedUser);
@@ -34,7 +21,6 @@ const EditUserForm = ({ user, onCancel, onSave }) => {
 
       <div className="w-full max-w-lg rounded-xl border border-[#e8eef8]/10 bg-[#07111f] p-6 shadow-2xl">
 
-        {/* Header */}
         <div className="mb-6">
           <h2 className="text-2xl font-semibold text-[#e8eef8]">
             Edit User
@@ -47,7 +33,6 @@ const EditUserForm = ({ user, onCancel, onSave }) => {
 
         <form onSubmit={handleSubmit}>
 
-          {/* Full Name */}
           <div className="mb-5">
             <label
               htmlFor="edit-name"
@@ -59,15 +44,14 @@ const EditUserForm = ({ user, onCancel, onSave }) => {
             <input
               id="edit-name"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               required
               className="w-full rounded-md border border-[#e8eef8]/15 bg-[#07111f] px-4 py-2.5 text-sm text-[#e8eef8] outline-none transition focus:border-[#e8eef8]/40 focus:ring-2 focus:ring-[#e8eef8]/10"
             />
           </div>
 
-          {/* Email */}
-          <div className="mb-5">
+          <div className="mb-6">
             <label
               htmlFor="edit-email"
               className="mb-2 block text-sm font-medium text-[#e8eef8]/80"
@@ -85,31 +69,6 @@ const EditUserForm = ({ user, onCancel, onSave }) => {
             />
           </div>
 
-          {/* Role */}
-          <div className="mb-6">
-            <label
-              htmlFor="edit-role"
-              className="mb-2 block text-sm font-medium text-[#e8eef8]/80"
-            >
-              Role
-            </label>
-
-            <select
-              id="edit-role"
-              value={selectRole}
-              onChange={(e) => setSelectRole(e.target.value)}
-              required
-              className="w-full rounded-md border border-[#e8eef8]/15 bg-[#07111f] px-4 py-2.5 text-sm text-[#e8eef8] outline-none transition focus:border-[#e8eef8]/40 focus:ring-2 focus:ring-[#e8eef8]/10"
-            >
-              {roles.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Buttons */}
           <div className="flex justify-end gap-3">
 
             <button

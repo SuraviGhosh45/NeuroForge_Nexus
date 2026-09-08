@@ -1,15 +1,8 @@
 import { useState } from "react";
-import { useUsers } from "../../context/UsersContext.jsx";
 
 const TEAM_ROLES = ["Manager", "Member"];
 
 const EditMemberForm = ({ member, onCancel, onSave }) => {
-  const { users } = useUsers();
-
-  const user = users.find(
-    (u) => String(u.id) === String(member.userId)
-  );
-
   const [teamRole, setTeamRole] = useState(member.teamRole);
 
   const handleSubmit = (e) => {
@@ -29,7 +22,7 @@ const EditMemberForm = ({ member, onCancel, onSave }) => {
         </h2>
 
         <p className="mt-1 mb-5 text-sm text-[#e8eef8]/50">
-          {user?.name || "Unknown User"}
+          {member.user?.fullName || "Unknown User"}
         </p>
 
         <form onSubmit={handleSubmit}>

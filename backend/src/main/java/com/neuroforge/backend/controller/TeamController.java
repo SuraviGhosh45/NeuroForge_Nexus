@@ -2,6 +2,7 @@ package com.neuroforge.backend.controller;
 
 import com.neuroforge.backend.dto.AddMemberRequest;
 import com.neuroforge.backend.dto.TeamRequest;
+import com.neuroforge.backend.dto.UpdateMemberRoleRequest;
 import com.neuroforge.backend.entity.Team;
 import com.neuroforge.backend.entity.TeamMember;
 import com.neuroforge.backend.service.TeamService;
@@ -34,6 +35,11 @@ public class TeamController {
         return ResponseEntity.ok(teamService.getTeamById(id));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody TeamRequest request) {
+        return ResponseEntity.ok(teamService.updateTeam(id, request));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
         teamService.deleteTeam(id);
@@ -42,12 +48,20 @@ public class TeamController {
 
     @PostMapping("/{teamId}/members")
     public ResponseEntity<TeamMember> addMember(@PathVariable Long teamId, @RequestBody AddMemberRequest request) {
-        return ResponseEntity.ok(teamService.addMember(teamId, request.getUserId()));
+        return ResponseEntity.ok(teamService.addMember(teamId, request.getUserId(), request.getTeamRole()));
     }
 
     @GetMapping("/{teamId}/members")
     public ResponseEntity<List<TeamMember>> getMembers(@PathVariable Long teamId) {
         return ResponseEntity.ok(teamService.getMembers(teamId));
+    }
+
+    @PutMapping("/{teamId}/members/{userId}")
+    public ResponseEntity<TeamMember> updateMemberRole(
+            @PathVariable Long teamId,
+            @PathVariable Long userId,
+            @RequestBody UpdateMemberRoleRequest request) {
+        return ResponseEntity.ok(teamService.updateMemberRole(teamId, userId, request.getTeamRole()));
     }
 
     @DeleteMapping("/{teamId}/members/{userId}")

@@ -40,11 +40,18 @@ public class TeamService {
                 .orElseThrow(() -> new RuntimeException("Team not found with id " + id));
     }
 
+    public Team updateTeam(Long id, TeamRequest request) {
+        Team team = getTeamById(id);
+        team.setName(request.getName());
+        team.setDescription(request.getDescription());
+        return teamRepository.save(team);
+    }
+
     public void deleteTeam(Long id) {
         teamRepository.deleteById(id);
     }
 
-    public TeamMember addMember(Long teamId, Long userId) {
+    public TeamMember addMember(Long teamId, Long userId, String teamRole) {
         Team team = getTeamById(teamId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
@@ -55,6 +62,14 @@ public class TeamService {
         TeamMember member = new TeamMember();
         member.setTeam(team);
         member.setUser(user);
+        member.setTeamRole(teamRole != null ? teamRole : "Member");
+        return teamMemberRepository.save(member);
+    }
+
+    public TeamMember updateMemberRole(Long teamId, Long userId, String teamRole) {
+        TeamMember member = teamMemberRepository.findByTeamIdAndUserId(teamId, userId)
+                .orElseThrow(() -> new RuntimeException("This user is not a member of the team"));
+        member.setTeamRole(teamRole);
         return teamMemberRepository.save(member);
     }
 

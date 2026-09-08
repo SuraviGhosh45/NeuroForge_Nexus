@@ -1,6 +1,9 @@
 import { createContext, useContext, useState } from "react";
+import axios from "axios";
 
 const AuthContext = createContext(null);
+
+const API_BASE = "http://localhost:8080/api/auth";
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -8,59 +11,55 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const register = (userData) => {
-    const newUser = {
-      id: Date.now(),
-      name: userData.name,
-      email: userData.email,
-      password: userData.password,
-      role: "Unassigned",
-      team: null,
-    };
+  const register = async (userData) => {
+    try {
+      const response = await axios.post(`${API_BASE}/signup`, {
+        fullName: userData.name,
+        email: userData.email,
+        password: userData.password,
+      });
 
-    const existingUsers = JSON.parse(
-      localStorage.getItem("users") || "[]"
-    );
+      const user = {
+        id: response.data.id,
+        fullName: response.data.fullName,
+        email: response.data.email,
+        role: "Admin",
+      };
 
-    localStorage.setItem(
-      "users",
-      JSON.stringify([...existingUsers, newUser])
-    );
+      localStorage.setItem("currentUser", JSON.stringify(user));
+      setCurrentUser(user);
 
-    localStorage.setItem(
-      "currentUser",
-      JSON.stringify(newUser)
-    );
-
-    setCurrentUser(newUser);
-
-    return { success: true };
+      return { success: true };
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Registration failed. Please try again.";
+      return { success: false, message };
+    }
   };
 
-  const login = (email) => {
-    const existingUsers = JSON.parse(
-      localStorage.getItem("users") || "[]"
-    );
+  const login = async (email, password) => {
+    try {
+      const response = await axios.post(`${API_BASE}/login`, {
+        email,
+        password,
+      });
 
-    const found = existingUsers.find(
-      (user) => user.email === email
-    );
-
-    if (!found) {
-      return {
-        success: false,
-        message: "No account found. Please register first.",
+      const user = {
+        id: response.data.id,
+        fullName: response.data.fullName,
+        email: response.data.email,
+        role: "Admin",
       };
+
+      localStorage.setItem("currentUser", JSON.stringify(user));
+      setCurrentUser(user);
+
+      return { success: true };
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Invalid email or password.";
+      return { success: false, message };
     }
-
-    localStorage.setItem(
-      "currentUser",
-      JSON.stringify(found)
-    );
-
-    setCurrentUser(found);
-
-    return { success: true };
   };
 
   const logout = () => {

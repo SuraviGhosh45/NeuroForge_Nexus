@@ -42,28 +42,6 @@ const ProjectManagement = () => {
   };
 
   // ---------------------------------------
-  // Get user name from user ID
-  // ---------------------------------------
-  const getUserName = (userId) => {
-    const user = users.find(
-      (user) => String(user.id) === String(userId)
-    );
-
-    return user ? user.name : "-";
-  };
-
-  // ---------------------------------------
-  // Get team name from team ID
-  // ---------------------------------------
-  const getTeamName = (teamId) => {
-    const team = teams.find(
-      (team) => String(team.id) === String(teamId)
-    );
-
-    return team ? team.name : "-";
-  };
-
-  // ---------------------------------------
   // Reset form
   // ---------------------------------------
   const resetForm = () => {
@@ -86,7 +64,7 @@ const ProjectManagement = () => {
   // ---------------------------------------
   // Create / Update project
   // ---------------------------------------
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!form.name.trim()) {
@@ -95,12 +73,17 @@ const ProjectManagement = () => {
     }
 
     if (editingProject) {
-      updateProject({
-        ...editingProject,
-        ...form,
-      });
+      const result = await updateProject({ ...form, id: editingProject.id });
+      if (!result.success) {
+        alert(result.message);
+        return;
+      }
     } else {
-      createProject(form);
+      const result = await createProject(form);
+      if (!result.success) {
+        alert(result.message);
+        return;
+      }
     }
 
     resetForm();
@@ -137,9 +120,9 @@ const ProjectManagement = () => {
       name: project.name || "",
       code: project.code || "",
       description: project.description || "",
-      projectLead: project.projectLead || "",
-      projectManager: project.projectManager || "",
-      teamId: project.teamId || "",
+      projectLead: project.projectLead ? String(project.projectLead.id) : "",
+      projectManager: project.projectManager ? String(project.projectManager.id) : "",
+      teamId: project.team ? String(project.team.id) : "",
       status: project.status || "Not Started",
       startDate: project.startDate || "",
       endDate: project.endDate || "",
@@ -151,13 +134,16 @@ const ProjectManagement = () => {
   // ---------------------------------------
   // Delete project
   // ---------------------------------------
-  const handleDelete = (projectId) => {
+  const handleDelete = async (projectId) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this project?"
     );
 
     if (confirmed) {
-      deleteProject(projectId);
+      const result = await deleteProject(projectId);
+      if (!result.success) {
+        alert(result.message);
+      }
     }
   };
 
@@ -297,18 +283,14 @@ const ProjectManagement = () => {
                     Select Project Lead
                   </option>
 
-                  {users
-                    .filter(
-                      (user) => user.role === "Project Lead"
-                    )
-                    .map((user) => (
-                      <option
-                        key={user.id}
-                        value={user.id}
-                      >
-                        {user.name} ({user.email})
-                      </option>
-                    ))}
+                  {users.map((user) => (
+                    <option
+                      key={user.id}
+                      value={user.id}
+                    >
+                      {user.fullName} ({user.email})
+                    </option>
+                  ))}
                 </select>
 
               </div>
@@ -330,19 +312,14 @@ const ProjectManagement = () => {
                     Select Project Manager
                   </option>
 
-                  {users
-                    .filter(
-                      (user) =>
-                        user.role === "Project Manager"
-                    )
-                    .map((user) => (
-                      <option
-                        key={user.id}
-                        value={user.id}
-                      >
-                        {user.name} ({user.email})
-                      </option>
-                    ))}
+                  {users.map((user) => (
+                    <option
+                      key={user.id}
+                      value={user.id}
+                    >
+                      {user.fullName} ({user.email})
+                    </option>
+                  ))}
                 </select>
 
               </div>
@@ -699,17 +676,17 @@ const ProjectManagement = () => {
 
                     {/* Project Lead */}
                     <td className="px-6 py-4 text-gray-300">
-                      {getUserName(project.projectLead)}
+                      {project.projectLead ? project.projectLead.fullName : "-"}
                     </td>
 
                     {/* Project Manager */}
                     <td className="px-6 py-4 text-gray-300">
-                      {getUserName(project.projectManager)}
+                      {project.projectManager ? project.projectManager.fullName : "-"}
                     </td>
 
                     {/* Team */}
                     <td className="px-6 py-4 text-gray-300">
-                      {getTeamName(project.teamId)}
+                      {project.team ? project.team.name : "-"}
                     </td>
 
                     {/* Status */}
@@ -789,4 +766,3 @@ const ProjectManagement = () => {
 };
 
 export default ProjectManagement;
-
