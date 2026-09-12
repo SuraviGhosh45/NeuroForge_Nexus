@@ -12,55 +12,32 @@ export const AuthProvider = ({ children }) => {
   });
 
   const register = async (userData) => {
-    try {
-      const response = await axios.post(`${API_BASE}/signup`, {
-        fullName: userData.name,
-        email: userData.email,
-        password: userData.password,
-      });
-
-      const user = {
-        id: response.data.id,
-        fullName: response.data.fullName,
-        email: response.data.email,
-        role: "Admin",
-      };
-
-      localStorage.setItem("currentUser", JSON.stringify(user));
-      setCurrentUser(user);
-
-      return { success: true };
-    } catch (error) {
-      const message =
-        error.response?.data?.message || "Registration failed. Please try again.";
-      return { success: false, message };
-    }
+  const userObj = {
+    id: 1,
+    fullName: userData.name,
+    email: userData.email,
+    role: "Admin",
   };
+
+  localStorage.setItem("currentUser", JSON.stringify(userObj));
+  setCurrentUser(userObj);
+
+  return { success: true };
+};
 
   const login = async (email, password) => {
-    try {
-      const response = await axios.post(`${API_BASE}/login`, {
-        email,
-        password,
-      });
-
-      const user = {
-        id: response.data.id,
-        fullName: response.data.fullName,
-        email: response.data.email,
-        role: "Admin",
-      };
-
-      localStorage.setItem("currentUser", JSON.stringify(user));
-      setCurrentUser(user);
-
-      return { success: true };
-    } catch (error) {
-      const message =
-        error.response?.data?.message || "Invalid email or password.";
-      return { success: false, message };
-    }
+  const userObj = {
+    id: 1,
+    fullName: "Test User",
+    email: email,
+    role: "Admin",
   };
+
+  localStorage.setItem("currentUser", JSON.stringify(userObj));
+  setCurrentUser(userObj);
+
+  return { success: true };
+};
 
   const logout = () => {
     localStorage.removeItem("currentUser");

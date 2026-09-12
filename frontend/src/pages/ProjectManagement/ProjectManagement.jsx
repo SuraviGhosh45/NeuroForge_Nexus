@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useProjects } from "../../context/ProjectContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
 import { useTeams } from "../../context/TeamsContext.jsx";
+import KanbanBoard from "../../components/KanbanBoard/KanbanBoard.jsx";
 
 const ProjectManagement = () => {
   const {
@@ -759,7 +760,12 @@ const ProjectManagement = () => {
 
         )}
 
-      </div>
+        </div>
+
+      {/* =====================================
+          SPRINT & KANBAN MANAGEMENT
+      ===================================== */}
+      <KanbanBoard />
 
     </div>
   );
