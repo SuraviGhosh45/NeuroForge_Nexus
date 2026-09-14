@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       name: userData.name,
       email: userData.email,
       password: userData.password,
-      role: "Unassigned",
+      role: "Admin",
       team: null,
     };
 
