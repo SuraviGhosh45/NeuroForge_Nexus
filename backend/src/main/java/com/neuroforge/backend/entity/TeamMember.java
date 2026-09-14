@@ -19,11 +19,12 @@ public class TeamMember {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    private String teamRole = "Member";
+
     private LocalDateTime joinedAt = LocalDateTime.now();
 
     public TeamMember() {}
 
-    // ---- getters & setters ----
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -32,6 +33,9 @@ public class TeamMember {
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+
+    public String getTeamRole() { return teamRole; }
+    public void setTeamRole(String teamRole) { this.teamRole = teamRole; }
 
     public LocalDateTime getJoinedAt() { return joinedAt; }
     public void setJoinedAt(LocalDateTime joinedAt) { this.joinedAt = joinedAt; }

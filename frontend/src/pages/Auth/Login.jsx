@@ -49,7 +49,7 @@ const Login = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const validationErrors = validate();
@@ -59,7 +59,7 @@ const Login = () => {
       return;
     }
 
-    const result = login(form.email);
+    const result = await login(form.email, form.password);
 
     if (!result.success) {
       setMessage(result.message);
@@ -74,26 +74,15 @@ const Login = () => {
       <section className="auth-card">
         <div className="auth-heading">
           <div className="icon-circle">↪</div>
-
           <h2>Welcome back</h2>
-
-          <p>
-            Sign in to your NeuroForge Nexus workspace
-          </p>
+          <p>Sign in to your NeuroForge Nexus workspace</p>
         </div>
 
-        {message && (
-          <div className="success-message">
-            {message}
-          </div>
-        )}
+        {message && <div className="success-message">{message}</div>}
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="email">
-              Work Email
-            </label>
-
+            <label htmlFor="email">Work Email</label>
             <input
               id="email"
               name="email"
@@ -103,27 +92,17 @@ const Login = () => {
               onChange={handleChange}
               className={errors.email ? "input-error" : ""}
             />
-
-            {errors.email && (
-              <small className="error-text">
-                {errors.email}
-              </small>
-            )}
+            {errors.email && <small className="error-text">{errors.email}</small>}
           </div>
 
           <div className="form-group">
             <div className="label-row">
-              <label htmlFor="password">
-                Password
-              </label>
-
+              <label htmlFor="password">Password</label>
               <button
                 type="button"
                 className="forgot-button"
                 onClick={() =>
-                  setMessage(
-                    "Password recovery will be integrated later."
-                  )
+                  setMessage("Password recovery will be integrated later.")
                 }
               >
                 Forgot password?
@@ -138,28 +117,18 @@ const Login = () => {
                 placeholder="Enter your password"
                 value={form.password}
                 onChange={handleChange}
-                className={
-                  errors.password ? "input-error" : ""
-                }
+                className={errors.password ? "input-error" : ""}
               />
-
               <button
                 type="button"
                 className="password-toggle"
-                onClick={() =>
-                  setShowPassword((prev) => !prev)
-                }
+                onClick={() => setShowPassword((prev) => !prev)}
                 aria-label="Toggle password visibility"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
-
-            {errors.password && (
-              <small className="error-text">
-                {errors.password}
-              </small>
-            )}
+            {errors.password && <small className="error-text">{errors.password}</small>}
           </div>
 
           <label className="remember-row">
@@ -169,14 +138,10 @@ const Login = () => {
               checked={form.remember}
               onChange={handleChange}
             />
-
             <span>Remember me</span>
           </label>
 
-          <button
-            type="submit"
-            className="primary-button"
-          >
+          <button type="submit" className="primary-button">
             Sign In <span>→</span>
           </button>
         </form>
@@ -186,21 +151,14 @@ const Login = () => {
         </div>
 
         <p className="switch-auth">
-          Don't have an account?{" "}
-          <Link to="/register">
-            Create an account
-          </Link>
+          Don't have an account? <Link to="/register">Create an account</Link>
         </p>
 
         <div className="iam-note">
           <span>🔐</span>
-
           <div>
             <strong>Secure authentication</strong>
-
-            <p>
-              IAM powered by Keycloak
-            </p>
+            <p>IAM powered by Keycloak</p>
           </div>
         </div>
       </section>

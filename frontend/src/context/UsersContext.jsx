@@ -1,35 +1,58 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
 const UsersContext = createContext(null);
 
+const API_BASE = "http://localhost:8080/api/users";
+
 export const UsersProvider = ({ children }) => {
-  const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem("users");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const persist = (updated) => {
-    localStorage.setItem("users", JSON.stringify(updated));
-    setUsers(updated);
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(API_BASE);
+      setUsers(response.data);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Used by Admin's "Add User" form — also picked up automatically by
-  // Register (since AuthContext.register() writes to this same
-  // localStorage key), so any registered account shows up here too.
-  const createUser = (userData) => {
-    persist([...users, { id: Date.now(), ...userData }]);
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const updateUser = async (updatedUser) => {
+    try {
+      const response = await axios.put(`${API_BASE}/${updatedUser.id}`, {
+        fullName: updatedUser.fullName,
+        email: updatedUser.email,
+      });
+      setUsers((prev) =>
+        prev.map((u) => (u.id === updatedUser.id ? response.data : u))
+      );
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || "Failed to update user.";
+      return { success: false, message };
+    }
   };
 
-  const updateUser = (updatedUser) => {
-    persist(users.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-  };
-
-  const deleteUser = (userId) => {
-    persist(users.filter((u) => u.id !== userId));
+  const deleteUser = async (userId) => {
+    try {
+      await axios.delete(`${API_BASE}/${userId}`);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || "Failed to delete user.";
+      return { success: false, message };
+    }
   };
 
   return (
-    <UsersContext.Provider value={{ users, createUser, updateUser, deleteUser }}>
+    <UsersContext.Provider value={{ users, loading, updateUser, deleteUser, refetchUsers: fetchUsers }}>
       {children}
     </UsersContext.Provider>
   );

@@ -17,12 +17,22 @@ public class Project {
 
     private String description;
 
-    @ManyToOne
-    @JoinColumn(name = "owner_id", nullable = false)
-    private User owner;
+    private String code;
 
-    @Enumerated(EnumType.STRING)
-    private ProjectStatus status = ProjectStatus.PLANNING;
+    @ManyToOne
+    @JoinColumn(name = "project_lead_id")
+    private User projectLead;
+
+    @ManyToOne
+    @JoinColumn(name = "project_manager_id")
+    private User projectManager;
+
+    @ManyToOne
+    @JoinColumn(name = "team_id")
+    private Team team;
+
+    @Column(nullable = false)
+    private String status = "Not Started";
 
     private LocalDate startDate;
     private LocalDate endDate;
@@ -41,11 +51,20 @@ public class Project {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public User getOwner() { return owner; }
-    public void setOwner(User owner) { this.owner = owner; }
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
 
-    public ProjectStatus getStatus() { return status; }
-    public void setStatus(ProjectStatus status) { this.status = status; }
+    public User getProjectLead() { return projectLead; }
+    public void setProjectLead(User projectLead) { this.projectLead = projectLead; }
+
+    public User getProjectManager() { return projectManager; }
+    public void setProjectManager(User projectManager) { this.projectManager = projectManager; }
+
+    public Team getTeam() { return team; }
+    public void setTeam(Team team) { this.team = team; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }

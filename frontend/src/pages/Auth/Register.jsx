@@ -68,7 +68,7 @@ const Register = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const validationErrors = validate();
@@ -78,16 +78,14 @@ const Register = () => {
       return;
     }
 
-    const result = register({
+    const result = await register({
       name: form.fullName.trim(),
       email: form.email.trim(),
       password: form.password,
     });
 
     if (!result.success) {
-      setMessage(
-        result.message || "Unable to create your account."
-      );
+      setMessage(result.message || "Unable to create your account.");
       return;
     }
 
@@ -99,27 +97,15 @@ const Register = () => {
       <section className="auth-card">
         <div className="auth-heading">
           <div className="icon-circle">+</div>
-
           <h2>Create your account</h2>
-
-          <p>
-            Join your NeuroForge Nexus workspace
-          </p>
+          <p>Join your NeuroForge Nexus workspace</p>
         </div>
 
-        {message && (
-          <div className="success-message">
-            {message}
-          </div>
-        )}
+        {message && <div className="success-message">{message}</div>}
 
         <form onSubmit={handleSubmit} noValidate>
-          {/* Full Name */}
           <div className="form-group">
-            <label htmlFor="fullName">
-              Full Name
-            </label>
-
+            <label htmlFor="fullName">Full Name</label>
             <input
               id="fullName"
               name="fullName"
@@ -127,24 +113,13 @@ const Register = () => {
               placeholder="Enter your full name"
               value={form.fullName}
               onChange={handleChange}
-              className={
-                errors.fullName ? "input-error" : ""
-              }
+              className={errors.fullName ? "input-error" : ""}
             />
-
-            {errors.fullName && (
-              <small className="error-text">
-                {errors.fullName}
-              </small>
-            )}
+            {errors.fullName && <small className="error-text">{errors.fullName}</small>}
           </div>
 
-          {/* Email */}
           <div className="form-group">
-            <label htmlFor="email">
-              Work Email
-            </label>
-
+            <label htmlFor="email">Work Email</label>
             <input
               id="email"
               name="email"
@@ -152,24 +127,13 @@ const Register = () => {
               placeholder="you@company.com"
               value={form.email}
               onChange={handleChange}
-              className={
-                errors.email ? "input-error" : ""
-              }
+              className={errors.email ? "input-error" : ""}
             />
-
-            {errors.email && (
-              <small className="error-text">
-                {errors.email}
-              </small>
-            )}
+            {errors.email && <small className="error-text">{errors.email}</small>}
           </div>
 
-          {/* Password */}
           <div className="form-group">
-            <label htmlFor="password">
-              Password
-            </label>
-
+            <label htmlFor="password">Password</label>
             <div className="password-wrapper">
               <input
                 id="password"
@@ -178,77 +142,46 @@ const Register = () => {
                 placeholder="Create a password"
                 value={form.password}
                 onChange={handleChange}
-                className={
-                  errors.password ? "input-error" : ""
-                }
+                className={errors.password ? "input-error" : ""}
               />
-
               <button
                 type="button"
                 className="password-toggle"
-                onClick={() =>
-                  setShowPassword((prev) => !prev)
-                }
+                onClick={() => setShowPassword((prev) => !prev)}
                 aria-label="Toggle password visibility"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
-
-            {errors.password && (
-              <small className="error-text">
-                {errors.password}
-              </small>
-            )}
+            {errors.password && <small className="error-text">{errors.password}</small>}
           </div>
 
-          {/* Confirm Password */}
           <div className="form-group">
-            <label htmlFor="confirmPassword">
-              Confirm Password
-            </label>
-
+            <label htmlFor="confirmPassword">Confirm Password</label>
             <div className="password-wrapper">
               <input
                 id="confirmPassword"
                 name="confirmPassword"
-                type={
-                  showConfirmPassword
-                    ? "text"
-                    : "password"
-                }
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm your password"
                 value={form.confirmPassword}
                 onChange={handleChange}
-                className={
-                  errors.confirmPassword
-                    ? "input-error"
-                    : ""
-                }
+                className={errors.confirmPassword ? "input-error" : ""}
               />
-
               <button
                 type="button"
                 className="password-toggle"
-                onClick={() =>
-                  setShowConfirmPassword(
-                    (prev) => !prev
-                  )
-                }
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
                 aria-label="Toggle password visibility"
               >
                 {showConfirmPassword ? "Hide" : "Show"}
               </button>
             </div>
-
             {errors.confirmPassword && (
-              <small className="error-text">
-                {errors.confirmPassword}
-              </small>
+              <small className="error-text">{errors.confirmPassword}</small>
             )}
           </div>
 
-          {/* Terms */}
           <label className="remember-row">
             <input
               type="checkbox"
@@ -256,23 +189,11 @@ const Register = () => {
               checked={form.terms}
               onChange={handleChange}
             />
-
-            <span>
-              I agree to the terms and conditions
-            </span>
+            <span>I agree to the terms and conditions</span>
           </label>
+          {errors.terms && <small className="error-text">{errors.terms}</small>}
 
-          {errors.terms && (
-            <small className="error-text">
-              {errors.terms}
-            </small>
-          )}
-
-          {/* Register */}
-          <button
-            type="submit"
-            className="primary-button"
-          >
+          <button type="submit" className="primary-button">
             Create Account <span>→</span>
           </button>
         </form>
@@ -282,21 +203,14 @@ const Register = () => {
         </div>
 
         <p className="switch-auth">
-          Already have an account?{" "}
-          <Link to="/login">
-            Sign in
-          </Link>
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
 
         <div className="iam-note">
           <span>🔐</span>
-
           <div>
             <strong>Secure authentication</strong>
-
-            <p>
-              IAM powered by Keycloak
-            </p>
+            <p>IAM powered by Keycloak</p>
           </div>
         </div>
       </section>

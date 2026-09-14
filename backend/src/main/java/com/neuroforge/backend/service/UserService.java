@@ -1,11 +1,14 @@
 package com.neuroforge.backend.service;
 
 import com.neuroforge.backend.dto.SignupRequest;
+import com.neuroforge.backend.dto.UpdateUserRequest;
 import com.neuroforge.backend.entity.User;
 import com.neuroforge.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class UserService {
@@ -38,5 +41,32 @@ public class UserService {
         }
 
         return user;
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id " + id));
+    }
+
+    public User updateUser(Long id, UpdateUserRequest request) {
+        User user = getUserById(id);
+
+        if (request.getFullName() != null) {
+            user.setFullName(request.getFullName());
+        }
+
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+        }
+
+        return userRepository.save(user);
+    }
+
+    public void deleteUser(Long id) {
+        userRepository.deleteById(id);
     }
 }
