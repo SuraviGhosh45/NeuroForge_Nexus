@@ -8,13 +8,17 @@ const API_BASE = "http://localhost:8080/api/projects";
 export const ProjectProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fetchProjects = async () => {
+    setLoading(true);
+    setError("");
     try {
       const response = await axios.get(API_BASE);
       setProjects(response.data);
     } catch (error) {
       console.error("Failed to fetch projects:", error);
+      setError(error.response?.data?.message || "Projects could not be loaded.");
     } finally {
       setLoading(false);
     }
@@ -80,6 +84,7 @@ export const ProjectProvider = ({ children }) => {
       value={{
         projects,
         loading,
+        error,
         createProject,
         updateProject,
         deleteProject,

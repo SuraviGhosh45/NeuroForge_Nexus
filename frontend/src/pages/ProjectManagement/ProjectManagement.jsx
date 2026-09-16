@@ -7,13 +7,14 @@ import KanbanBoard from "../../components/KanbanBoard/KanbanBoard.jsx";
 const ProjectManagement = () => {
   const {
     projects,
+    error: projectsError,
     createProject,
     updateProject,
     deleteProject,
   } = useProjects();
 
-  const { users } = useUsers();
-  const { teams } = useTeams();
+  const { users, loading: usersLoading, error: usersError } = useUsers();
+  const { teams, loading: teamsLoading, error: teamsError } = useTeams();
 
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
@@ -121,9 +122,9 @@ const ProjectManagement = () => {
       name: project.name || "",
       code: project.code || "",
       description: project.description || "",
-      projectLead: project.projectLead ? String(project.projectLead.id) : "",
-      projectManager: project.projectManager ? String(project.projectManager.id) : "",
-      teamId: project.team ? String(project.team.id) : "",
+      projectLead: String(project.projectLead?.id ?? project.projectLeadId ?? ""),
+      projectManager: String(project.projectManager?.id ?? project.projectManagerId ?? ""),
+      teamId: String(project.team?.id ?? project.teamId ?? ""),
       status: project.status || "Not Started",
       startDate: project.startDate || "",
       endDate: project.endDate || "",
@@ -293,6 +294,8 @@ const ProjectManagement = () => {
                     </option>
                   ))}
                 </select>
+                {usersLoading && <p className="mt-2 text-xs text-gray-400">Loading users...</p>}
+                {usersError && <p className="mt-2 text-xs text-red-400">{usersError}</p>}
 
               </div>
 
@@ -322,6 +325,7 @@ const ProjectManagement = () => {
                     </option>
                   ))}
                 </select>
+                {usersLoading && <p className="mt-2 text-xs text-gray-400">Loading users...</p>}
 
               </div>
 
@@ -358,7 +362,7 @@ const ProjectManagement = () => {
 
               {teams.length === 0 && (
                 <p className="text-xs text-yellow-500 mt-2">
-                  No teams available. Create a team first.
+                  {teamsLoading ? "Loading teams..." : teamsError || "No teams available. Create a team first."}
                 </p>
               )}
 
@@ -468,6 +472,7 @@ const ProjectManagement = () => {
       {/* =====================================
           PROJECT STATISTICS
       ===================================== */}
+        {projectsError && <p className="mb-4 text-sm text-red-400">{projectsError}</p>}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
         {/* Total */}
@@ -765,7 +770,7 @@ const ProjectManagement = () => {
       {/* =====================================
           SPRINT & KANBAN MANAGEMENT
       ===================================== */}
-      <KanbanBoard />
+      <KanbanBoard projects={projects} />
 
     </div>
   );

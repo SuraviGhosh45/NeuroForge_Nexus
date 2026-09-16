@@ -1,8 +1,18 @@
 package com.neuroforge.backend.entity;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "projects")
@@ -14,6 +24,12 @@ public class Project {
 
     @Column(nullable = false)
     private String name;
+
+    @Column(name = "project_key", length = 10, unique = true)
+    private String projectKey;
+
+    @Column(name = "task_counter", nullable = false)
+    private Integer taskCounter = 0;
 
     private String description;
 
@@ -39,7 +55,24 @@ public class Project {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
     public Project() {}
+
+    @PrePersist
+    @SuppressWarnings("unused")
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) createdAt = now;
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    @SuppressWarnings("unused")
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     // ---- getters & setters ----
     public Long getId() { return id; }
@@ -47,6 +80,12 @@ public class Project {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getProjectKey() { return projectKey; }
+    public void setProjectKey(String projectKey) { this.projectKey = projectKey; }
+
+    public Integer getTaskCounter() { return taskCounter; }
+    public void setTaskCounter(Integer taskCounter) { this.taskCounter = taskCounter; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
@@ -74,4 +113,7 @@ public class Project {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

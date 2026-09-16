@@ -8,13 +8,17 @@ const API_BASE = "http://localhost:8080/api/tasks";
 export const TasksProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fetchTasks = async () => {
+    setLoading(true);
+    setError("");
     try {
       const response = await axios.get(API_BASE);
       setTasks(response.data);
     } catch (error) {
       console.error("Failed to fetch tasks:", error);
+      setError(error.response?.data?.message || "Tasks could not be loaded.");
     } finally {
       setLoading(false);
     }
@@ -74,6 +78,7 @@ export const TasksProvider = ({ children }) => {
       value={{
         tasks,
         loading,
+        error,
         createTask,
         updateTask,
         deleteTask,

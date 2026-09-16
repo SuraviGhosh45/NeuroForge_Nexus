@@ -89,16 +89,32 @@ const AppRoutes = () => {
 const App = () => {
   return (
     <AuthProvider>
-      <UsersProvider>
-        <TeamsProvider>
-          <ProjectProvider>
-            <TasksProvider>
-              <AppRoutes />
-            </TasksProvider>
-          </ProjectProvider>
-        </TeamsProvider>
-      </UsersProvider>
+      <AuthenticatedApp />
     </AuthProvider>
+  );
+};
+
+const AuthenticatedApp = () => {
+  const { currentUser, authReady } = useAuth();
+
+  if (!authReady) {
+    return <div className="min-h-screen bg-[#07111f] p-8 text-[#e8eef8]">Loading workspace...</div>;
+  }
+
+  if (!currentUser) {
+    return <AppRoutes />;
+  }
+
+  return (
+    <UsersProvider>
+      <TeamsProvider>
+        <ProjectProvider>
+          <TasksProvider>
+            <AppRoutes />
+          </TasksProvider>
+        </ProjectProvider>
+      </TeamsProvider>
+    </UsersProvider>
   );
 };
 

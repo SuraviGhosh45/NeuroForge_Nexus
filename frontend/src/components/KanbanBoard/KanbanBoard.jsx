@@ -20,6 +20,10 @@ function KanbanBoard() {
     event.dataTransfer.setData("taskId", String(task.id));
   };
 
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+  };
+
   const handleDragOver = (event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
@@ -27,10 +31,13 @@ function KanbanBoard() {
 
   const handleDrop = async (event, newStatus) => {
     event.preventDefault();
+    event.stopPropagation();
 
-    const taskId = event.dataTransfer.getData("taskId");
+    const taskId =
+      event.dataTransfer.getData("taskId") || draggedTaskId;
 
     if (!taskId) {
+      setDraggedTaskId(null);
       return;
     }
 
@@ -43,8 +50,7 @@ function KanbanBoard() {
       return;
     }
 
-    // Do nothing if the task is dropped
-    // into the same column.
+    // Do nothing if the task is dropped into the same column.
     if (task.status === newStatus) {
       setDraggedTaskId(null);
       return;
@@ -84,7 +90,6 @@ function KanbanBoard() {
   }, [tasks]);
 
   const totalTasks = tasks.length;
-
   const completedTasks = tasksByStatus["Done"].length;
 
   return (
@@ -138,6 +143,7 @@ function KanbanBoard() {
             tasks={tasksByStatus[column.id]}
             draggedTaskId={draggedTaskId}
             onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
           />

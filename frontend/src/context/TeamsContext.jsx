@@ -8,19 +8,28 @@ const API_BASE = "http://localhost:8080/api/teams";
 export const TeamsProvider = ({ children }) => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fetchTeams = async () => {
+    setLoading(true);
+    setError("");
     try {
       const response = await axios.get(API_BASE);
       const teamsWithMembers = await Promise.all(
         response.data.map(async (team) => {
-          const membersResponse = await axios.get(`${API_BASE}/${team.id}/members`);
-          return { ...team, members: membersResponse.data };
+          try {
+            const membersResponse = await axios.get(`${API_BASE}/${team.id}/members`);
+            return { ...team, members: membersResponse.data };
+          } catch (memberError) {
+            console.error(`Failed to fetch members for team ${team.id}:`, memberError);
+            return { ...team, members: [] };
+          }
         })
       );
       setTeams(teamsWithMembers);
     } catch (error) {
       console.error("Failed to fetch teams:", error);
+      setError(error.response?.data?.message || "Teams could not be loaded.");
     } finally {
       setLoading(false);
     }
@@ -109,6 +118,7 @@ export const TeamsProvider = ({ children }) => {
       value={{
         teams,
         loading,
+        error,
         createTeam,
         updateTeam,
         deleteTeam,

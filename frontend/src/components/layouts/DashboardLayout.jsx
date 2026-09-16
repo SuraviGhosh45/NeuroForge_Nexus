@@ -1,11 +1,24 @@
 import { PiList } from "react-icons/pi";
 import { FaRegBell } from "react-icons/fa6";
 import { CgProfile } from "react-icons/cg";
+import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import Sidebar from "./Sidebar.jsx";
 
 const DashboardLayout = ({ children }) => {
   const { currentUser, logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const saved = sessionStorage.getItem("sidebarOpen");
+    return saved === null ? true : saved === "true";
+  });
+
+  const toggleSidebar = () => {
+    setSidebarOpen((open) => {
+      const nextOpen = !open;
+      sessionStorage.setItem("sidebarOpen", String(nextOpen));
+      return nextOpen;
+    });
+  };
 
   // ProtectedRoute already guards against this, but stay safe
   // in case this layout is ever reused elsewhere.
@@ -16,10 +29,15 @@ const DashboardLayout = ({ children }) => {
       {/* Header */}
       <header className="flex items-center justify-between border-b border-[#e8eef8]/10 bg-[#07111f] px-6 py-4">
         <div className="flex items-center gap-4">
-          <PiList
-            size={24}
-            className="cursor-pointer text-[#e8eef8]/70 transition hover:text-[#e8eef8]"
-          />
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-label={sidebarOpen ? "Hide navigation" : "Show navigation"}
+            title={sidebarOpen ? "Hide navigation" : "Show navigation"}
+            className="text-[#e8eef8]/70 transition hover:text-[#e8eef8]"
+          >
+            <PiList size={24} />
+          </button>
           <h1 className="text-xl font-semibold text-[#e8eef8]">NeuroForge Nexus</h1>
         </div>
 
@@ -42,7 +60,7 @@ const DashboardLayout = ({ children }) => {
 
       {/* Sidebar + page content */}
       <div className="flex">
-        <Sidebar role={currentUser.role} />
+        {sidebarOpen && <Sidebar role={currentUser.role} />}
         <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">{children}</main>
       </div>
     </div>
