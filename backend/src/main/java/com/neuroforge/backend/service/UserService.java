@@ -1,14 +1,15 @@
 package com.neuroforge.backend.service;
 
-import com.neuroforge.backend.dto.SignupRequest;
-import com.neuroforge.backend.dto.UpdateUserRequest;
-import com.neuroforge.backend.entity.User;
-import com.neuroforge.backend.repository.UserRepository;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.neuroforge.backend.dto.SignupRequest;
+import com.neuroforge.backend.dto.UpdateUserRequest;
+import com.neuroforge.backend.entity.User;
+import com.neuroforge.backend.repository.UserRepository;
 
 @Service
 public class UserService {
@@ -26,6 +27,7 @@ public class UserService {
 
         User user = new User();
         user.setFullName(request.getFullName());
+        user.setLegacyName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
@@ -57,6 +59,7 @@ public class UserService {
 
         if (request.getFullName() != null) {
             user.setFullName(request.getFullName());
+            user.setLegacyName(request.getFullName());
         }
 
         if (request.getEmail() != null) {

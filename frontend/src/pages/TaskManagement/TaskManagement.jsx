@@ -5,9 +5,9 @@ import { useProjects } from "../../context/ProjectContext.jsx";
 import TaskDetails from "../../components/task/TaskDetails.jsx";
 
 const TaskManagement = () => {
-  const { tasks, createTask, updateTask, deleteTask } = useTasks();
-  const { users } = useUsers();
-  const { projects } = useProjects();
+  const { tasks, error: tasksError, createTask, updateTask, deleteTask } = useTasks();
+  const { users, loading: usersLoading, error: usersError } = useUsers();
+  const { projects, loading: projectsLoading, error: projectsError } = useProjects();
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -39,6 +39,17 @@ const TaskManagement = () => {
     e.preventDefault();
 
     if (!title.trim() || !projectId || !assigneeId || !priority || !dueDate) {
+      alert("Complete the task title, project, assignee, priority, and due date.");
+      return;
+    }
+
+    if (usersLoading || projectsLoading) {
+      alert("Users and projects are still loading. Try again in a moment.");
+      return;
+    }
+
+    if (usersError || projectsError) {
+      alert(usersError || projectsError);
       return;
     }
 
@@ -139,6 +150,11 @@ const TaskManagement = () => {
           {showAddForm || editingTaskId ? "Cancel" : "+ Add Task"}
         </button>
       </div>
+
+      {tasksError && <p className="mb-4 text-sm text-red-400">{tasksError}</p>}
+      {(usersError || projectsError) && (
+        <p className="mb-4 text-sm text-red-400">{usersError || projectsError}</p>
+      )}
 
       {(showAddForm || editingTaskId) && (
         <div className="mb-6 rounded-xl border border-[#e8eef8]/10 bg-[#181b23] p-6">

@@ -1,240 +1,251 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import KanbanColumn from "./KanbanColumn";
 
-const COLUMNS = [
-  {
-    id: "todo",
-    title: "To Do",
-  },
-  {
-    id: "in-progress",
-    title: "In Progress",
-  },
-  {
-    id: "in-review",
-    title: "In Review",
-  },
-  {
-    id: "done",
-    title: "Done",
-  },
+const API_BASE = "http://localhost:8080/api";
+
+const EMPTY_COLUMNS = [
+  { status: "TODO", title: "To Do", cards: [] },
+  { status: "IN_PROGRESS", title: "In Progress", cards: [] },
+  { status: "IN_REVIEW", title: "In Review", cards: [] },
+  { status: "DONE", title: "Done", cards: [] },
 ];
 
-const INITIAL_TASKS = [
-  {
-    id: "PAY-124",
-    title: "Payment API Integration",
-    description: "Integrate payment service with the application.",
-    priority: "High",
-    assignee: "Rahul",
-    storyPoints: 8,
-    sprint: "Sprint 12",
-    dueDate: "18 Jun",
-    status: "todo",
-    blocked: false,
-    dependency: null,
-  },
+function KanbanBoard({ projects = [] }) {
+  const [projectId, setProjectId] = useState("");
+  const [board, setBoard] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [sprintForm, setSprintForm] = useState({
+    name: "",
+    goal: "",
+    startDate: "",
+    endDate: "",
+  });
+  const [creatingSprint, setCreatingSprint] = useState(false);
 
-  {
-    id: "PAY-125",
-    title: "Payment Validation",
-    description: "Add validation for payment requests.",
-    priority: "Medium",
-    assignee: "Priya",
-    storyPoints: 5,
-    sprint: "Sprint 12",
-    dueDate: "19 Jun",
-    status: "todo",
-    blocked: false,
-    dependency: "PAY-124",
-  },
+  const activeProjectId = projectId || (projects[0] ? String(projects[0].id) : "");
 
-  {
-    id: "PAY-126",
-    title: "Transaction Service",
-    description: "Develop transaction processing service.",
-    priority: "High",
-    assignee: "Aman",
-    storyPoints: 8,
-    sprint: "Sprint 12",
-    dueDate: "20 Jun",
-    status: "in-progress",
-    blocked: true,
-    dependency: "PAY-124",
-  },
+  useEffect(() => {
+    if (!activeProjectId) {
+      return undefined;
+    }
 
-  {
-    id: "PAY-127",
-    title: "Payment Database",
-    description: "Create database tables for payment transactions.",
-    priority: "Medium",
-    assignee: "Neha",
-    storyPoints: 5,
-    sprint: "Sprint 12",
-    dueDate: "17 Jun",
-    status: "in-progress",
-    blocked: false,
-    dependency: null,
-  },
+    let cancelled = false;
+    const loadBoard = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await axios.get(`${API_BASE}/projects/${activeProjectId}/board`);
+        if (!cancelled) setBoard(response.data);
+      } catch (requestError) {
+        if (cancelled) return;
+        setBoard(null);
+        setError(
+          requestError.response?.status === 404
+            ? "This project has no active sprint yet. Activate a sprint to open its board."
+            : requestError.response?.data?.message || requestError.response?.data?.detail || "Unable to load the project board."
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
-  {
-    id: "PAY-128",
-    title: "Payment Unit Tests",
-    description: "Write unit tests for payment services.",
-    priority: "Low",
-    assignee: "Rohit",
-    storyPoints: 3,
-    sprint: "Sprint 12",
-    dueDate: "21 Jun",
-    status: "in-review",
-    blocked: false,
-    dependency: "PAY-126",
-  },
+    loadBoard();
 
-  {
-    id: "PAY-129",
-    title: "Payment UI",
-    description: "Complete payment screen and user interactions.",
-    priority: "Medium",
-    assignee: "Anjali",
-    storyPoints: 5,
-    sprint: "Sprint 12",
-    dueDate: "16 Jun",
-    status: "done",
-    blocked: false,
-    dependency: null,
-  },
-];
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProjectId]);
 
-function KanbanBoard() {
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
+  const refreshBoard = async () => {
+    if (!activeProjectId) return;
+    const response = await axios.get(`${API_BASE}/projects/${activeProjectId}/board`);
+    setBoard(response.data);
+  };
 
-  const [draggedTask, setDraggedTask] = useState(null);
+  const createAndActivateSprint = async (event) => {
+    event.preventDefault();
+    if (!activeProjectId || !sprintForm.name.trim()) return;
+    if (sprintForm.startDate && sprintForm.endDate && sprintForm.endDate < sprintForm.startDate) {
+      setError("End date cannot be before start date.");
+      return;
+    }
+
+    setCreatingSprint(true);
+    setError("");
+    try {
+      const response = await axios.post(`${API_BASE}/projects/${activeProjectId}/sprints`, {
+        ...sprintForm,
+        name: sprintForm.name.trim(),
+        startDate: sprintForm.startDate || null,
+        endDate: sprintForm.endDate || null,
+      });
+      await axios.patch(`${API_BASE}/sprints/${response.data.id}/activate`);
+      setSprintForm({ name: "", goal: "", startDate: "", endDate: "" });
+      await refreshBoard();
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || requestError.response?.data?.detail || "Unable to create and activate the sprint.");
+    } finally {
+      setCreatingSprint(false);
+    }
+  };
 
   const handleDragStart = (event, task) => {
-    setDraggedTask(task);
-
+    setDraggedTaskId(String(task.id));
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("taskId", task.id);
-  };
-
-  const handleDragOver = (event) => {
-    event.preventDefault();
-
     event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.setData("text/plain", String(task.id));
+    event.dataTransfer.setData("taskId", String(task.id));
   };
 
-  const handleDrop = (event, newStatus) => {
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+  };
+
+  const handleDrop = async (event, newStatus) => {
     event.preventDefault();
+    event.stopPropagation();
+    const taskId =
+      event.dataTransfer.getData("text/plain") ||
+      event.dataTransfer.getData("taskId") ||
+      draggedTaskId;
+    const task = (board?.columns || EMPTY_COLUMNS)
+      .flatMap((column) => column.cards)
+      .find((card) => String(card.id) === String(taskId));
+    setDraggedTaskId(null);
 
-    const taskId = event.dataTransfer.getData("taskId");
+    const sourceStatus = String(task?.boardStatus || "").toUpperCase();
+    const targetStatus = String(newStatus || "").toUpperCase();
+    if (!task || !taskId || sourceStatus === targetStatus) return;
 
-    setTasks((previousTasks) =>
-      previousTasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: newStatus,
-            }
-          : task
-      )
+    const previousBoard = board;
+    const columns = (board?.columns || EMPTY_COLUMNS).map((column) => ({
+      ...column,
+      cards: [...column.cards],
+    }));
+    const source = columns.find(
+      (column) => String(column.status).toUpperCase() === sourceStatus
     );
+    const destination = columns.find(
+      (column) => String(column.status).toUpperCase() === targetStatus
+    );
+    if (!source || !destination) return;
 
-    setDraggedTask(null);
+    source.cards = source.cards.filter((card) => String(card.id) !== String(taskId));
+    destination.cards = [
+      ...destination.cards,
+      { ...task, boardStatus: targetStatus, position: destination.cards.length },
+    ];
+    setBoard({ ...board, columns });
+    setError("");
+
+    try {
+      await axios.patch(`${API_BASE}/tasks/${taskId}/board`, {
+        boardStatus: targetStatus,
+        position: destination.cards.length - 1,
+      });
+      await refreshBoard();
+    } catch (requestError) {
+      setBoard(previousBoard);
+      setError(
+        requestError.response?.data?.message ||
+        requestError.response?.data?.detail ||
+        requestError.response?.data?.error ||
+        "The task could not be moved."
+      );
+    }
   };
 
-  const getTasksByStatus = (status) => {
-    return tasks.filter((task) => task.status === status);
-  };
+  if (projects.length === 0) {
+    return <section className="kanban-board-section"><p>Create a project to use sprint management.</p></section>;
+  }
 
-  const totalTasks = tasks.length;
-
-  const completedTasks = getTasksByStatus("done").length;
-
-  const totalStoryPoints = tasks.reduce(
-    (total, task) => total + task.storyPoints,
-    0
-  );
-
-  const completedStoryPoints = tasks
-    .filter((task) => task.status === "done")
-    .reduce((total, task) => total + task.storyPoints, 0);
+  const columns = board?.columns || EMPTY_COLUMNS;
+  const metrics = board?.metrics;
 
   return (
     <section className="kanban-board-section">
-
       <div className="kanban-header">
-
         <div>
-          <span className="section-label">
-            SPRINT MANAGEMENT
-          </span>
-
-          <h2>Sprint 12</h2>
-
-          <p>
-            Goal: Payment Service
-          </p>
+          <span className="section-label">SPRINT MANAGEMENT</span>
+          <div className="kanban-project-picker">
+            <label htmlFor="kanban-project">Project</label>
+            <select id="kanban-project" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
+              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+          </div>
+          <h2>{board?.name || "Active sprint board"}</h2>
+          <p>{board?.goal || "Select a project with an active sprint."}</p>
         </div>
-
-        <div className="sprint-status">
-          <span className="status-dot"></span>
-          Active Sprint
-        </div>
-
+        {board && <div className="sprint-status"><span className="status-dot"></span>{board.status}</div>}
       </div>
 
+      {!board && !loading && (
+        <form className="sprint-setup" onSubmit={createAndActivateSprint}>
+          <div>
+            <h3>Create an active sprint</h3>
+            <p>New tasks can be added to this project sprint after it is activated.</p>
+          </div>
+          <div className="sprint-setup-grid">
+            <input
+              aria-label="Sprint name"
+              placeholder="Sprint name"
+              value={sprintForm.name}
+              onChange={(event) => setSprintForm({ ...sprintForm, name: event.target.value })}
+              required
+            />
+            <input
+              aria-label="Sprint goal"
+              placeholder="Sprint goal"
+              value={sprintForm.goal}
+              onChange={(event) => setSprintForm({ ...sprintForm, goal: event.target.value })}
+            />
+            <input
+              aria-label="Start date"
+              type="date"
+              value={sprintForm.startDate}
+              onChange={(event) => setSprintForm({ ...sprintForm, startDate: event.target.value })}
+            />
+            <input
+              aria-label="End date"
+              type="date"
+              value={sprintForm.endDate}
+              onChange={(event) => setSprintForm({ ...sprintForm, endDate: event.target.value })}
+            />
+            <button type="submit" disabled={creatingSprint}>
+              {creatingSprint ? "Creating..." : "Create & Activate"}
+            </button>
+          </div>
+        </form>
+      )}
 
-      <div className="sprint-summary">
-
-        <div className="summary-card">
-          <span>Total Tasks</span>
-          <strong>{totalTasks}</strong>
+      {metrics && (
+        <div className="sprint-summary">
+          <div className="summary-card"><span>Total Tasks</span><strong>{metrics.totalTasks}</strong></div>
+          <div className="summary-card"><span>Completed</span><strong>{metrics.completedTasks}</strong></div>
         </div>
+      )}
 
-        <div className="summary-card">
-          <span>Story Points</span>
-          <strong>{totalStoryPoints}</strong>
+      {loading && <p className="kanban-message">Loading the project board...</p>}
+      {error && <p className="kanban-error">{error}</p>}
+
+      {board && !loading && (
+        <div className="kanban-board">
+          {columns.map((column) => (
+            <KanbanColumn
+              key={column.status}
+              column={{ id: column.status, title: column.title }}
+              tasks={column.cards}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={handleDrop}
+            />
+          ))}
         </div>
-
-        <div className="summary-card">
-          <span>Completed</span>
-          <strong>{completedTasks}</strong>
-        </div>
-
-        <div className="summary-card">
-          <span>Completed Points</span>
-          <strong>{completedStoryPoints}</strong>
-        </div>
-
-        <div className="summary-card">
-          <span>Velocity</span>
-          <strong>67</strong>
-        </div>
-
-        <div className="summary-card">
-          <span>Burndown</span>
-          <strong>67 / 80</strong>
-        </div>
-
-      </div>
-
-
-      <div className="kanban-board">
-
-        {COLUMNS.map((column) => (
-          <KanbanColumn
-            key={column.id}
-            column={column}
-            tasks={getTasksByStatus(column.id)}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          />
-        ))}
-
-      </div>
-
+      )}
     </section>
   );
 }

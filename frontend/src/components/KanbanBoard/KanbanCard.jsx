@@ -1,18 +1,20 @@
-import React from "react";
 import "./Kanban.css";
 
-function KanbanCard({ task, onDragStart }) {
+function KanbanCard({ task, onDragStart, onDragEnd }) {
+  const priority = task.priority || "Medium";
+
   return (
     <div
       className="kanban-card"
       draggable
       onDragStart={(event) => onDragStart(event, task)}
+      onDragEnd={onDragEnd}
     >
       <div className="task-card-top">
-        <span className="task-id">{task.id}</span>
+        <span className="task-id">{task.taskKey || task.id}</span>
 
-        <span className={`priority ${task.priority.toLowerCase()}`}>
-          {task.priority}
+        <span className={`priority ${priority.toLowerCase()}`}>
+          {priority}
         </span>
       </div>
 
@@ -21,8 +23,7 @@ function KanbanCard({ task, onDragStart }) {
       <p className="task-description">{task.description}</p>
 
       <div className="task-info">
-        <span>👤 {task.assignee}</span>
-        <span>⭐ {task.storyPoints} pts</span>
+        <span>👤 {task.assigneeName || "Unassigned"}</span>
       </div>
 
       {task.blocked && (
@@ -31,15 +32,15 @@ function KanbanCard({ task, onDragStart }) {
         </div>
       )}
 
-      {task.dependency && (
+      {task.dependsOn?.length > 0 && (
         <div className="dependency">
-          🔗 Depends on {task.dependency}
+          🔗 Depends on {task.dependsOn.join(", ")}
         </div>
       )}
 
       <div className="task-footer">
-        <span>{task.sprint}</span>
-        <span>Due: {task.dueDate}</span>
+        <span>{task.sprintName || "Backlog"}</span>
+        <span>Due: {task.dueDate || "-"}</span>
       </div>
     </div>
   );

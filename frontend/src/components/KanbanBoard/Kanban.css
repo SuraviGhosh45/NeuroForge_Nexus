@@ -638,3 +638,72 @@
   }
 
 }
+
+.kanban-project-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 10px;
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.kanban-project-picker select,
+.sprint-setup input {
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid #344054;
+  border-radius: 8px;
+  background: #11141b;
+  color: #ffffff;
+}
+
+.sprint-setup {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #344054;
+  border-radius: 12px;
+  background: #11141b;
+}
+
+.sprint-setup h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.sprint-setup p {
+  margin: 4px 0 0;
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.sprint-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sprint-setup button {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sprint-setup button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 900px) {
+  .sprint-setup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

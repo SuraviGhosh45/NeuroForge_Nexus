@@ -9,12 +9,12 @@ const ProjectProgressList = () => {
     // Get tasks belonging to this project
     const projectTasks = tasks.filter(
       (task) =>
-        String(task.projectId) === String(project.id)
+        String(task.project?.id ?? task.projectId) === String(project.id)
     );
 
     // Count completed tasks
     const done = projectTasks.filter(
-      (task) => task.status === "Done"
+      (task) => ["DONE", "Done"].includes(task.boardStatus || task.status)
     ).length;
 
     // Calculate progress

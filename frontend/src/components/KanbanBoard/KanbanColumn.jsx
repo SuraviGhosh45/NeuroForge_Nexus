@@ -1,4 +1,3 @@
-import React from "react";
 import KanbanCard from "./KanbanCard";
 import "./Kanban.css";
 
@@ -6,6 +5,7 @@ function KanbanColumn({
   column,
   tasks,
   onDragStart,
+  onDragEnd,
   onDrop,
   onDragOver,
 }) {
@@ -26,12 +26,17 @@ function KanbanColumn({
         </span>
       </div>
 
-      <div className="column-content">
+      <div
+        className="column-content"
+        onDragOver={onDragOver}
+        onDrop={(event) => onDrop(event, column.id)}
+      >
         {tasks.map((task) => (
           <KanbanCard
             key={task.id}
             task={task}
             onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
           />
         ))}
 

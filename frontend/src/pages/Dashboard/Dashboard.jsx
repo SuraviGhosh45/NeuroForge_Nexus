@@ -30,16 +30,18 @@ const Dashboard = () => {
 
   const totalTasks = tasks.length;
 
+  const taskStatus = (task) => task.boardStatus || task.status;
+
   const todoTasks = tasks.filter(
-    (task) => task.status === "To Do"
+    (task) => ["TODO", "To Do"].includes(taskStatus(task))
   ).length;
 
   const inProgressTasks = tasks.filter(
-    (task) => task.status === "In Progress"
+    (task) => ["IN_PROGRESS", "In Progress"].includes(taskStatus(task))
   ).length;
 
   const completedTasks = tasks.filter(
-    (task) => task.status === "Done"
+    (task) => ["DONE", "Done"].includes(taskStatus(task))
   ).length;
 
   // --------------------------------------------------
@@ -48,15 +50,15 @@ const Dashboard = () => {
 
   const myTasks = tasks.filter(
     (task) =>
-      String(task.assigneeId) === String(currentUser.id)
+      String(task.assignee?.id ?? task.assigneeId) === String(currentUser.id)
   );
 
   const myCompletedTasks = myTasks.filter(
-    (task) => task.status === "Done"
+    (task) => ["DONE", "Done"].includes(taskStatus(task))
   ).length;
 
   const myInProgressTasks = myTasks.filter(
-    (task) => task.status === "In Progress"
+    (task) => ["IN_PROGRESS", "In Progress"].includes(taskStatus(task))
   ).length;
 
   return (
@@ -68,7 +70,7 @@ const Dashboard = () => {
         </h2>
 
         <p className="mt-1 text-sm text-[#e8eef8]/50">
-          Welcome back, {currentUser.name}
+          Welcome back, {currentUser.fullName || currentUser.name || "User"}
         </p>
       </div>
 
