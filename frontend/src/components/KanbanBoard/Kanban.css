@@ -348,6 +348,12 @@
   transform: scale(0.99);
 }
 
+.kanban-card.dragging {
+  opacity: 0.6;
+  transform: rotate(1deg);
+  cursor: grabbing;
+}
+
 
 /* =========================================================
    CARD TOP
@@ -569,15 +575,6 @@
   font-size: 11px;
 
   text-align: center;
-}
-
-
-/* =========================================================
-   DRAG OVER EFFECT
-========================================================= */
-
-.kanban-column:has(.empty-column) {
-  /* Keeps empty columns visually ready for dropped tasks */
 }
 
 

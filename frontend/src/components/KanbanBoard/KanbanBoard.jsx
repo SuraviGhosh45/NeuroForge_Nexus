@@ -1,240 +1,148 @@
-import React, { useState } from "react";
-import KanbanColumn from "./KanbanColumn";
+import React, { useMemo, useState } from "react";
+import KanbanColumn from "./KanbanColumn.jsx";
+import { useTasks } from "../../context/TasksContext.jsx";
 
 const COLUMNS = [
-  {
-    id: "todo",
-    title: "To Do",
-  },
-  {
-    id: "in-progress",
-    title: "In Progress",
-  },
-  {
-    id: "in-review",
-    title: "In Review",
-  },
-  {
-    id: "done",
-    title: "Done",
-  },
-];
-
-const INITIAL_TASKS = [
-  {
-    id: "PAY-124",
-    title: "Payment API Integration",
-    description: "Integrate payment service with the application.",
-    priority: "High",
-    assignee: "Rahul",
-    storyPoints: 8,
-    sprint: "Sprint 12",
-    dueDate: "18 Jun",
-    status: "todo",
-    blocked: false,
-    dependency: null,
-  },
-
-  {
-    id: "PAY-125",
-    title: "Payment Validation",
-    description: "Add validation for payment requests.",
-    priority: "Medium",
-    assignee: "Priya",
-    storyPoints: 5,
-    sprint: "Sprint 12",
-    dueDate: "19 Jun",
-    status: "todo",
-    blocked: false,
-    dependency: "PAY-124",
-  },
-
-  {
-    id: "PAY-126",
-    title: "Transaction Service",
-    description: "Develop transaction processing service.",
-    priority: "High",
-    assignee: "Aman",
-    storyPoints: 8,
-    sprint: "Sprint 12",
-    dueDate: "20 Jun",
-    status: "in-progress",
-    blocked: true,
-    dependency: "PAY-124",
-  },
-
-  {
-    id: "PAY-127",
-    title: "Payment Database",
-    description: "Create database tables for payment transactions.",
-    priority: "Medium",
-    assignee: "Neha",
-    storyPoints: 5,
-    sprint: "Sprint 12",
-    dueDate: "17 Jun",
-    status: "in-progress",
-    blocked: false,
-    dependency: null,
-  },
-
-  {
-    id: "PAY-128",
-    title: "Payment Unit Tests",
-    description: "Write unit tests for payment services.",
-    priority: "Low",
-    assignee: "Rohit",
-    storyPoints: 3,
-    sprint: "Sprint 12",
-    dueDate: "21 Jun",
-    status: "in-review",
-    blocked: false,
-    dependency: "PAY-126",
-  },
-
-  {
-    id: "PAY-129",
-    title: "Payment UI",
-    description: "Complete payment screen and user interactions.",
-    priority: "Medium",
-    assignee: "Anjali",
-    storyPoints: 5,
-    sprint: "Sprint 12",
-    dueDate: "16 Jun",
-    status: "done",
-    blocked: false,
-    dependency: null,
-  },
+  { id: "To Do", title: "To Do" },
+  { id: "In Progress", title: "In Progress" },
+  { id: "Done", title: "Done" },
 ];
 
 function KanbanBoard() {
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
+  const { tasks, updateTask } = useTasks();
 
-  const [draggedTask, setDraggedTask] = useState(null);
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
 
   const handleDragStart = (event, task) => {
-    setDraggedTask(task);
+    setDraggedTaskId(task.id);
 
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("taskId", task.id);
+    event.dataTransfer.setData("taskId", String(task.id));
   };
 
   const handleDragOver = (event) => {
     event.preventDefault();
-
     event.dataTransfer.dropEffect = "move";
   };
 
-  const handleDrop = (event, newStatus) => {
+  const handleDrop = async (event, newStatus) => {
     event.preventDefault();
 
     const taskId = event.dataTransfer.getData("taskId");
 
-    setTasks((previousTasks) =>
-      previousTasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: newStatus,
-            }
-          : task
-      )
+    if (!taskId) {
+      return;
+    }
+
+    const task = tasks.find(
+      (item) => String(item.id) === String(taskId)
     );
 
-    setDraggedTask(null);
+    if (!task) {
+      setDraggedTaskId(null);
+      return;
+    }
+
+    // Do nothing if the task is dropped
+    // into the same column.
+    if (task.status === newStatus) {
+      setDraggedTaskId(null);
+      return;
+    }
+
+    const result = await updateTask({
+      ...task,
+      status: newStatus,
+    });
+
+    if (!result.success) {
+      console.error(
+        "Failed to update task status:",
+        result.message
+      );
+    }
+
+    setDraggedTaskId(null);
   };
 
-  const getTasksByStatus = (status) => {
-    return tasks.filter((task) => task.status === status);
-  };
+  const tasksByStatus = useMemo(() => {
+    const groupedTasks = {
+      "To Do": [],
+      "In Progress": [],
+      "Done": [],
+    };
+
+    tasks.forEach((task) => {
+      const status = task.status || "To Do";
+
+      if (groupedTasks[status]) {
+        groupedTasks[status].push(task);
+      }
+    });
+
+    return groupedTasks;
+  }, [tasks]);
 
   const totalTasks = tasks.length;
 
-  const completedTasks = getTasksByStatus("done").length;
-
-  const totalStoryPoints = tasks.reduce(
-    (total, task) => total + task.storyPoints,
-    0
-  );
-
-  const completedStoryPoints = tasks
-    .filter((task) => task.status === "done")
-    .reduce((total, task) => total + task.storyPoints, 0);
+  const completedTasks = tasksByStatus["Done"].length;
 
   return (
     <section className="kanban-board-section">
-
       <div className="kanban-header">
-
         <div>
           <span className="section-label">
-            SPRINT MANAGEMENT
+            KANBAN BOARD
           </span>
 
-          <h2>Sprint 12</h2>
+          <h2>Task Board</h2>
 
           <p>
-            Goal: Payment Service
+            Manage tasks by moving them between statuses.
           </p>
         </div>
 
         <div className="sprint-status">
           <span className="status-dot"></span>
-          Active Sprint
+          Active Board
         </div>
-
       </div>
 
-
       <div className="sprint-summary">
-
         <div className="summary-card">
           <span>Total Tasks</span>
           <strong>{totalTasks}</strong>
         </div>
 
         <div className="summary-card">
-          <span>Story Points</span>
-          <strong>{totalStoryPoints}</strong>
+          <span>To Do</span>
+          <strong>{tasksByStatus["To Do"].length}</strong>
+        </div>
+
+        <div className="summary-card">
+          <span>In Progress</span>
+          <strong>{tasksByStatus["In Progress"].length}</strong>
         </div>
 
         <div className="summary-card">
           <span>Completed</span>
           <strong>{completedTasks}</strong>
         </div>
-
-        <div className="summary-card">
-          <span>Completed Points</span>
-          <strong>{completedStoryPoints}</strong>
-        </div>
-
-        <div className="summary-card">
-          <span>Velocity</span>
-          <strong>67</strong>
-        </div>
-
-        <div className="summary-card">
-          <span>Burndown</span>
-          <strong>67 / 80</strong>
-        </div>
-
       </div>
 
-
       <div className="kanban-board">
-
         {COLUMNS.map((column) => (
           <KanbanColumn
             key={column.id}
             column={column}
-            tasks={getTasksByStatus(column.id)}
+            tasks={tasksByStatus[column.id]}
+            draggedTaskId={draggedTaskId}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
           />
         ))}
-
       </div>
-
     </section>
   );
 }

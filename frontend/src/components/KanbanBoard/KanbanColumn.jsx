@@ -1,4 +1,3 @@
-import React from "react";
 import KanbanCard from "./KanbanCard";
 import "./Kanban.css";
 
@@ -8,6 +7,7 @@ function KanbanColumn({
   onDragStart,
   onDrop,
   onDragOver,
+  draggedTaskId,
 }) {
   return (
     <div
@@ -32,6 +32,7 @@ function KanbanColumn({
             key={task.id}
             task={task}
             onDragStart={onDragStart}
+            isDragging={String(task.id) === String(draggedTaskId)}
           />
         ))}
 
