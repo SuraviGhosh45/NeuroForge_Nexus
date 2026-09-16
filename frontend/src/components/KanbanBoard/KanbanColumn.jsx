@@ -8,6 +8,7 @@ function KanbanColumn({
   onDragEnd,
   onDrop,
   onDragOver,
+  draggedTaskId,
 }) {
   return (
     <div
@@ -37,6 +38,7 @@ function KanbanColumn({
             task={task}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
+            isDragging={String(task.id) === String(draggedTaskId)}
           />
         ))}
 

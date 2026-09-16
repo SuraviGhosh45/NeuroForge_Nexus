@@ -4,6 +4,7 @@ import axios from "axios";
 const AuthContext = createContext(null);
 
 const API_BASE = "http://localhost:8080/api/auth";
+
 axios.defaults.withCredentials = true;
 axios.defaults.xsrfCookieName = "XSRF-TOKEN";
 axios.defaults.xsrfHeaderName = "X-XSRF-TOKEN";
@@ -23,6 +24,7 @@ export const AuthProvider = ({ children }) => {
       if (error.response?.status === 401) {
         setCurrentUser(null);
       }
+
       return Promise.reject(error);
     };
 
@@ -33,11 +35,19 @@ export const AuthProvider = ({ children }) => {
 
     axios
       .get(`${API_BASE}/me`)
-      .then((response) => setCurrentUser(normalizeUser(response.data)))
-      .catch(() => setCurrentUser(null))
-      .finally(() => setAuthReady(true));
+      .then((response) => {
+        setCurrentUser(normalizeUser(response.data));
+      })
+      .catch(() => {
+        setCurrentUser(null);
+      })
+      .finally(() => {
+        setAuthReady(true);
+      });
 
-    return () => axios.interceptors.response.eject(interceptorId);
+    return () => {
+      axios.interceptors.response.eject(interceptorId);
+    };
   }, []);
 
   const register = async (userData) => {
@@ -47,33 +57,51 @@ export const AuthProvider = ({ children }) => {
         email: userData.email,
         password: userData.password,
       });
+
       const userObj = normalizeUser(response.data);
+
       setCurrentUser(userObj);
-      return { success: true };
+
+      return {
+        success: true,
+      };
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Unable to create your account.",
+        message:
+          error.response?.data?.message ||
+          "Unable to create your account.",
       };
     }
   };
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${API_BASE}/login`, { email, password });
+      const response = await axios.post(`${API_BASE}/login`, {
+        email,
+        password,
+      });
+
       const userObj = normalizeUser(response.data);
+
       setCurrentUser(userObj);
-      return { success: true };
+
+      return {
+        success: true,
+      };
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Invalid email or password.",
+        message:
+          error.response?.data?.message ||
+          "Invalid email or password.",
       };
     }
   };
 
   const logout = async () => {
     await axios.post(`${API_BASE}/logout`).catch(() => {});
+
     setCurrentUser(null);
   };
 

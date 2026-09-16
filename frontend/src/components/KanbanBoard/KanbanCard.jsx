@@ -1,17 +1,17 @@
 import "./Kanban.css";
 
-function KanbanCard({ task, onDragStart, onDragEnd }) {
+function KanbanCard({ task, onDragStart, onDragEnd, isDragging }) {
   const priority = task.priority || "Medium";
 
   return (
     <div
-      className="kanban-card"
+      className={`kanban-card ${isDragging ? "dragging" : ""}`}
       draggable
       onDragStart={(event) => onDragStart(event, task)}
       onDragEnd={onDragEnd}
     >
       <div className="task-card-top">
-        <span className="task-id">{task.taskKey || task.id}</span>
+        <span className="task-id">#{task.id}</span>
 
         <span className={`priority ${priority.toLowerCase()}`}>
           {priority}
@@ -20,27 +20,24 @@ function KanbanCard({ task, onDragStart, onDragEnd }) {
 
       <h4>{task.title}</h4>
 
-      <p className="task-description">{task.description}</p>
+      {task.description && (
+        <p className="task-description">
+          {task.description}
+        </p>
+      )}
 
       <div className="task-info">
-        <span>👤 {task.assigneeName || "Unassigned"}</span>
+        <span>
+          👤 {task.assignee?.fullName || "Unassigned"}
+        </span>
       </div>
 
-      {task.blocked && (
-        <div className="blocked-badge">
-          ⚠ Blocked
-        </div>
-      )}
-
-      {task.dependsOn?.length > 0 && (
-        <div className="dependency">
-          🔗 Depends on {task.dependsOn.join(", ")}
-        </div>
-      )}
-
       <div className="task-footer">
-        <span>{task.sprintName || "Backlog"}</span>
-        <span>Due: {task.dueDate || "-"}</span>
+        <span>{task.status || "To Do"}</span>
+
+        <span>
+          Due: {task.dueDate || "Not set"}
+        </span>
       </div>
     </div>
   );

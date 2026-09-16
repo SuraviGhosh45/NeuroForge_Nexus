@@ -15,6 +15,7 @@ import TaskManagement from "./pages/TaskManagement/TaskManagement.jsx";
 import { ProjectProvider } from "./context/ProjectContext.jsx";
 import ProjectManagement from "./pages/ProjectManagement/ProjectManagement.jsx";
 import MyTask from "./pages/Mytask/MyTask.jsx";
+import KanbanBoard from "./components/KanbanBoard/KanbanBoard.jsx";
 import "./App.css";
 
 const protect = (content) => (
@@ -30,20 +31,57 @@ const AppRoutes = () => {
     <Routes>
       <Route
         path="/"
-        element={currentUser ? <Navigate to="/dashboard" replace /> : <Landing />}
+        element={
+          currentUser ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Landing />
+          )
+        }
       />
 
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      <Route path="/dashboard" element={protect(<Dashboard />)} />
-      <Route path="/user-management" element={protect(<UserManagement />)} />
-      <Route path="/teams" element={protect(<TeamManagement />)} />
-      <Route path="/tasks" element={protect(<TaskManagement />)} />
-      <Route path="/projects" element={protect(<ProjectManagement />)} />
-      <Route path="/my-tasks" element={protect(<MyTask />)} />
+      <Route
+        path="/dashboard"
+        element={protect(<Dashboard />)}
+      />
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route
+        path="/user-management"
+        element={protect(<UserManagement />)}
+      />
+
+      <Route
+        path="/teams"
+        element={protect(<TeamManagement />)}
+      />
+
+      <Route
+        path="/tasks"
+        element={protect(<TaskManagement />)}
+      />
+
+      <Route
+        path="/projects"
+        element={protect(<ProjectManagement />)}
+      />
+
+      <Route
+        path="/my-tasks"
+        element={protect(<MyTask />)}
+      />
+
+      <Route
+        path="/kanban"
+        element={protect(<KanbanBoard />)}
+      />
+
+      <Route
+        path="*"
+        element={<Navigate to="/login" replace />}
+      />
     </Routes>
   );
 };

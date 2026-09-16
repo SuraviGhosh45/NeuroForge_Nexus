@@ -4,6 +4,7 @@ import {
   PiListChecks,
   PiUser,
   PiFolder,
+  PiKanban,
 } from "react-icons/pi";
 
 export const sidebarItems = [
@@ -38,6 +39,18 @@ export const sidebarItems = [
     label: "Tasks",
     path: "/tasks",
     icon: PiListChecks,
+    roles: [
+      "Admin",
+      "Project Lead",
+      "Project Manager",
+      "Team Lead",
+    ],
+  },
+
+  {
+    label: "Kanban",
+    path: "/kanban",
+    icon: PiKanban,
     roles: [
       "Admin",
       "Project Lead",
@@ -82,4 +95,3 @@ export const getSidebarItems = (role) =>
   sidebarItems.filter((item) =>
     item.roles.includes(role)
   );
-
