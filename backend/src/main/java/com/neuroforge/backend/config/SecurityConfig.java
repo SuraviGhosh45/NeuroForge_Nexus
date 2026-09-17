@@ -18,32 +18,89 @@ import com.neuroforge.backend.security.AuthSessionFilter;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthSessionFilter authSessionFilter)
-        throws Exception {
-    http
-        .csrf(csrf -> csrf.disable())
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/auth/**", "/error").permitAll()
-            .anyRequest().authenticated())
-        .addFilterBefore(authSessionFilter, UsernamePasswordAuthenticationFilter.class);
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            AuthSessionFilter authSessionFilter) throws Exception {
 
-    return http.build();
+        http
+            .csrf(csrf -> csrf.disable())
+
+            .cors(cors ->
+                cors.configurationSource(corsConfigurationSource())
+            )
+
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(
+                    SessionCreationPolicy.IF_REQUIRED
+                )
+            )
+
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/api/auth/**",
+                    "/api/health",
+                    "/api/sprints/*/board",
+                    "/api/projects/*/board",
+                    "/api/projects/*/backlog",
+                    "/api/tasks/*/board",
+                    "/api/tasks/*/block",
+                    "/api/tasks/*/unblock",
+                    "/error"
+                ).permitAll()
+
+                .anyRequest().authenticated()
+            )
+
+            .addFilterBefore(
+                authSessionFilter,
+                UsernamePasswordAuthenticationFilter.class
+            );
+
+        return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(java.util.List.of(
-            "http://localhost:5173",
-            "http://127.0.0.1:5173"));
-        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-            configuration.setAllowedHeaders(java.util.List.of("Content-Type", "X-Requested-With", "X-XSRF-TOKEN"));
+
+        CorsConfiguration configuration =
+                new CorsConfiguration();
+
+        configuration.setAllowedOrigins(
+            java.util.List.of(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173"
+            )
+        );
+
+        configuration.setAllowedMethods(
+            java.util.List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+            )
+        );
+
+        configuration.setAllowedHeaders(
+            java.util.List.of(
+                "Content-Type",
+                "X-Requested-With",
+                "X-XSRF-TOKEN"
+            )
+        );
+
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+            "/**",
+            configuration
+        );
+
         return source;
     }
 
@@ -52,3 +109,4 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
+
