@@ -2,6 +2,7 @@ package com.neuroforge.backend.controller;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,7 @@ import com.neuroforge.backend.service.TaskDependencyService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
 @RequestMapping("/api/tasks/{taskId}/dependencies")
 @RequiredArgsConstructor
 public class TaskDependencyController {

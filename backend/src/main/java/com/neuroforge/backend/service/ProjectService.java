@@ -1,213 +1,405 @@
 package com.neuroforge.backend.service;
 
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.neuroforge.backend.dto.ProjectDtos;
 import com.neuroforge.backend.dto.ProjectRequest;
+import com.neuroforge.backend.dto.TaskDtos;
+import com.neuroforge.backend.entity.BoardStatus;
+import com.neuroforge.backend.entity.Priority;
 import com.neuroforge.backend.entity.Project;
+import com.neuroforge.backend.entity.ProjectStatus;
+import com.neuroforge.backend.entity.Role;
 import com.neuroforge.backend.entity.Sprint;
 import com.neuroforge.backend.entity.Task;
 import com.neuroforge.backend.entity.Team;
 import com.neuroforge.backend.entity.User;
+import com.neuroforge.backend.exception.BusinessRuleException;
 import com.neuroforge.backend.repository.ProjectRepository;
 import com.neuroforge.backend.repository.SprintRepository;
 import com.neuroforge.backend.repository.TaskDependencyRepository;
 import com.neuroforge.backend.repository.TaskRepository;
+import com.neuroforge.backend.repository.TeamMemberRepository;
 import com.neuroforge.backend.repository.TeamRepository;
 import com.neuroforge.backend.repository.UserRepository;
+import com.neuroforge.backend.security.AuthUser;
+import com.neuroforge.backend.security.CurrentUser;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class ProjectService {
 
-    @Autowired
-    private ProjectRepository projectRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final TeamRepository teamRepository;
+    private final TeamMemberRepository teamMemberRepository;
+    private final TaskRepository taskRepository;
+    private final SprintRepository sprintRepository;
+    private final TaskDependencyRepository taskDependencyRepository;
+    private final AccessService access;
 
-    @Autowired
-    private UserRepository userRepository;
+    // ------------------------------------------------------------------ queries
 
-    @Autowired
-    private TeamRepository teamRepository;
+    /** GET /api/projects - scoped by the caller's role in the query itself. */
+    @Transactional(readOnly = true)
+    public List<ProjectDtos.Summary> list() {
+        AuthUser user = CurrentUser.get();
+        return access.visibleProjects(user).stream()
+                .map(ProjectDtos.Summary::from)
+                .toList();
+    }
 
-    @Autowired
-    private TaskRepository taskRepository;
+    /** GET /api/projects/{id} */
+    @Transactional(readOnly = true)
+    public ProjectDtos.Detail get(Long id) {
+        Project project = find(id);
+        access.assertCanView(CurrentUser.get(), project);
+        return toDetail(project);
+    }
 
-    @Autowired
-    private SprintRepository sprintRepository;
+    // ------------------------------------------------------------------ commands
 
-    @Autowired
-    private TaskDependencyRepository taskDependencyRepository;
+    /** POST /api/projects (Admin / Project Manager). Status is always NOT_STARTED; priority is auto-suggested. */
+    @Transactional
+    public ProjectDtos.Detail create(ProjectRequest request) {
+        AuthUser caller = CurrentUser.get();
+        if (caller.isTeamMember()) {
+            throw new AccessDeniedException("Only Admin or Project Manager can create projects");
+        }
 
-    public Project createProject(ProjectRequest request) {
+        validate(request);
+
+        String code = clean(request.getCode());
+        if (code != null && projectRepository.existsByCodeIgnoreCase(code)) {
+            throw new BusinessRuleException("A project with Project ID '" + code + "' already exists");
+        }
+
         Project project = new Project();
+        project.setName(request.getName().trim());
+        project.setDescription(request.getDescription());
+        project.setCode(code);
+        project.setStartDate(request.getStartDate());
+        project.setEndDate(request.getEndDate());
 
-        applyRequest(project, request);
+        // The client can never choose the status.
+        project.setStatus(ProjectStatus.NOT_STARTED.getLabel());
 
-        project.setProjectKey(
-                nextProjectKey(request.getCode(), request.getName())
-        );
+        // Priority: auto-calculated from the date range, but the PM may override the suggested value.
+        Priority priority = request.getPriority() != null && !request.getPriority().isBlank()
+                ? Priority.parse(request.getPriority())
+                : suggestPriority(request.getStartDate(), request.getEndDate());
+        project.setPriority(priority.getLabel());
 
+        // No manager supplied -> the creator (who is an Admin or PM) manages it.
+        Long managerId = request.getProjectManagerId() != null ? request.getProjectManagerId() : caller.userId();
+        project.setProjectManager(resolveManager(managerId));
+
+        if (request.getMemberIds() != null) {
+            project.getMembers().addAll(resolveUsers(request.getMemberIds()));
+        }
+
+        project.setProjectKey(nextProjectKey(code, request.getName()));
         project.setTaskCounter(0);
 
-        return projectRepository.save(project);
+        return toDetail(projectRepository.save(project));
     }
 
-    public List<Project> getAllProjects() {
-        return projectRepository.findAll();
-    }
-
-    public Project getProjectById(Long id) {
-        return projectRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Project not found with id " + id));
-    }
-
-    public Project updateProject(Long id, ProjectRequest request) {
-        Project project = getProjectById(id);
-
-        applyRequest(project, request);
-
-        return projectRepository.save(project);
-    }
-
+    /** PUT /api/projects/{id} (Admin, or the PM who manages it). */
     @Transactional
-    public void deleteProject(Long id) {
+    public ProjectDtos.Detail update(Long id, ProjectRequest request) {
+        AuthUser caller = CurrentUser.get();
+        Project project = find(id);
+        access.assertCanManage(caller, project);
 
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Project not found with id " + id));
+        validate(request);
+
+        String code = clean(request.getCode());
+        if (code != null && projectRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
+            throw new BusinessRuleException("A project with Project ID '" + code + "' already exists");
+        }
+
+        project.setName(request.getName().trim());
+        project.setDescription(request.getDescription());
+        project.setCode(code);
+        project.setStartDate(request.getStartDate());
+        project.setEndDate(request.getEndDate());
+
+        // Priority stays editable; if not supplied the current value is kept.
+        if (request.getPriority() != null && !request.getPriority().isBlank()) {
+            project.setPriority(Priority.parse(request.getPriority()).getLabel());
+        }
+
+        // Only an Admin may hand the project to a different manager.
+        Long newManagerId = request.getProjectManagerId();
+        Long currentManagerId = project.getProjectManager() == null ? null : project.getProjectManager().getId();
+        if (newManagerId != null && !newManagerId.equals(currentManagerId)) {
+            if (!caller.isAdmin()) {
+                throw new AccessDeniedException("Only an Admin can change the Project Manager");
+            }
+            project.setProjectManager(resolveManager(newManagerId));
+        }
+
+        if (request.getMemberIds() != null) {
+            replaceMembers(project, resolveUsers(request.getMemberIds()));
+        }
+
+        // Status is never taken from the request - re-derive it.
+        project.setStatus(computeStatus(taskRepository.findByProjectId(id)).getLabel());
+
+        return toDetail(projectRepository.save(project));
+    }
+
+    /** DELETE /api/projects/{id} (Admin, or the PM who manages it). */
+    @Transactional
+    public void delete(Long id) {
+        Project project = find(id);
+        access.assertCanManage(CurrentUser.get(), project);
 
         List<Task> tasks = taskRepository.findByProjectId(id);
 
         // Delete all dependency records related to these tasks first.
         for (Task task : tasks) {
             Long taskId = task.getId();
-
             taskDependencyRepository.deleteByTaskId(taskId);
             taskDependencyRepository.deleteByDependsOnId(taskId);
         }
-
-        // Make sure dependency DELETE statements are executed.
         taskDependencyRepository.flush();
 
-        // Delete all tasks belonging to the project.
         for (Task task : tasks) {
             taskRepository.delete(task);
         }
-
-        // Make sure task DELETE statements are executed.
         taskRepository.flush();
 
-        // Find all sprints belonging to the project.
-        List<Sprint> sprints =
-                sprintRepository.findByProjectIdOrderByStartDateDesc(id);
+        // Teams belong to a project: remove their members, then the teams.
+        for (Team team : teamRepository.findByProjectId(id)) {
+            teamMemberRepository.deleteByTeamId(team.getId());
+            teamRepository.delete(team);
+        }
+        teamRepository.flush();
 
-        // Delete all sprints.
+        List<Sprint> sprints = sprintRepository.findByProjectIdOrderByStartDateDesc(id);
         for (Sprint sprint : sprints) {
             sprintRepository.delete(sprint);
         }
-
-        // Make sure sprint DELETE statements are executed.
         sprintRepository.flush();
 
-        // Finally delete the project.
+        // project_members rows are removed automatically (Project owns the join table).
         projectRepository.delete(project);
         projectRepository.flush();
     }
 
-    private void applyRequest(Project project, ProjectRequest request) {
+    // ------------------------------------------------------------------ priority
 
-        project.setName(request.getName());
-        project.setDescription(request.getDescription());
-        project.setCode(request.getCode());
+    /**
+     * Auto priority from the project duration:
+     *   <= 2 weeks (14 days)  -> High
+     *   <= 1 month (30 days)  -> Medium
+     *   longer                -> Low
+     * Missing dates -> Medium.
+     */
+    public static Priority suggestPriority(java.time.LocalDate start, java.time.LocalDate end) {
+        if (start == null || end == null) {
+            return Priority.MEDIUM;
+        }
+        long days = ChronoUnit.DAYS.between(start, end);
+        if (days <= 14) {
+            return Priority.HIGH;
+        }
+        if (days <= 30) {
+            return Priority.MEDIUM;
+        }
+        return Priority.LOW;
+    }
 
-        project.setStatus(
-                request.getStatus() != null
-                        ? request.getStatus()
-                        : "Not Started"
-        );
+    public ProjectDtos.PrioritySuggestion suggestion(java.time.LocalDate start, java.time.LocalDate end) {
+        if (start != null && end != null && end.isBefore(start)) {
+            throw new IllegalArgumentException("End date cannot be before start date");
+        }
+        long days = start == null || end == null ? 0 : ChronoUnit.DAYS.between(start, end);
+        return new ProjectDtos.PrioritySuggestion(suggestPriority(start, end).getLabel(), days);
+    }
 
-        project.setStartDate(request.getStartDate());
-        project.setEndDate(request.getEndDate());
+    // ------------------------------------------------------------------ status (auto-calculated)
 
-        if (request.getProjectLeadId() != null) {
+    /**
+     * Status rule, derived from the tasks:
+     *   no tasks, or every task still To Do -> Not Started
+     *   every task Done                     -> Completed
+     *   anything else                       -> In Progress
+     */
+    public static ProjectStatus computeStatus(List<Task> tasks) {
+        if (tasks.isEmpty()) {
+            return ProjectStatus.NOT_STARTED;
+        }
+        boolean allDone = tasks.stream().allMatch(t -> t.getBoardStatus() == BoardStatus.DONE);
+        if (allDone) {
+            return ProjectStatus.COMPLETED;
+        }
+        boolean anyStarted = tasks.stream().anyMatch(t -> t.getBoardStatus() != BoardStatus.TODO);
+        return anyStarted ? ProjectStatus.IN_PROGRESS : ProjectStatus.NOT_STARTED;
+    }
 
-            User lead = userRepository.findById(
-                    request.getProjectLeadId()
-            ).orElseThrow(() ->
-                    new RuntimeException("Project Lead not found"));
+    /** Called after every task create / update / delete / status change. */
+    @Transactional
+    public void recalculateStatus(Project project) {
+        String label = computeStatus(taskRepository.findByProjectId(project.getId())).getLabel();
+        if (!label.equals(project.getStatus())) {
+            project.setStatus(label);
+            projectRepository.save(project);
+        }
+    }
 
-            project.setProjectLead(lead);
+    @Transactional
+    public void recalculateStatusByTaskId(Long taskId) {
+        taskRepository.findById(taskId).ifPresent(task -> recalculateStatus(task.getProject()));
+    }
 
-        } else {
-            project.setProjectLead(null);
+    /** Run once at startup so projects that had a manually chosen status get a derived one. */
+    @Transactional
+    public void recalculateAllStatuses() {
+        projectRepository.findAll().forEach(this::recalculateStatus);
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    private Project find(Long id) {
+        return projectRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found with id " + id));
+    }
+
+    private void validate(ProjectRequest request) {
+        if (request == null || request.getName() == null || request.getName().isBlank()) {
+            throw new IllegalArgumentException("Project name is required");
+        }
+        if (request.getStartDate() != null && request.getEndDate() != null
+                && request.getEndDate().isBefore(request.getStartDate())) {
+            throw new IllegalArgumentException("End date cannot be before start date");
+        }
+    }
+
+    private String clean(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    /** The project manager must be an existing, active user whose role is Project Manager or Admin. */
+    private User resolveManager(Long managerId) {
+        User manager = userRepository.findById(managerId)
+                .orElseThrow(() -> new IllegalArgumentException("Project Manager not found with id " + managerId));
+        if (manager.getRole() != Role.PROJECT_MANAGER && manager.getRole() != Role.ADMIN) {
+            throw new IllegalArgumentException("Project Manager must be a user with the Project Manager or Admin role");
+        }
+        if (!manager.isActive()) {
+            throw new IllegalArgumentException("The selected Project Manager is inactive");
+        }
+        return manager;
+    }
+
+    private Set<User> resolveUsers(List<Long> ids) {
+        Set<Long> distinct = ids.stream().filter(id -> id != null).collect(Collectors.toCollection(LinkedHashSet::new));
+        if (distinct.isEmpty()) {
+            return new LinkedHashSet<>();
+        }
+        List<User> users = userRepository.findAllById(distinct);
+        if (users.size() != distinct.size()) {
+            throw new IllegalArgumentException("One or more selected members do not exist");
+        }
+        return new LinkedHashSet<>(users);
+    }
+
+    /** Replaces the member set; refuses to drop someone who still has unfinished tasks in this project. */
+    private void replaceMembers(Project project, Set<User> newMembers) {
+        Set<Long> newIds = newMembers.stream().map(User::getId).collect(Collectors.toSet());
+
+        List<User> removed = project.getMembers().stream()
+                .filter(member -> !newIds.contains(member.getId()))
+                .toList();
+
+        for (User user : removed) {
+            if (taskRepository.existsByProjectIdAndAssigneeIdAndBoardStatusNot(
+                    project.getId(), user.getId(), BoardStatus.DONE)) {
+                throw new BusinessRuleException(user.getFullName()
+                        + " still has unfinished tasks in this project. Reassign them before removing the member.");
+            }
         }
 
-        if (request.getProjectManagerId() != null) {
-
-            User manager = userRepository.findById(
-                    request.getProjectManagerId()
-            ).orElseThrow(() ->
-                    new RuntimeException("Project Manager not found"));
-
-            project.setProjectManager(manager);
-
-        } else {
-            project.setProjectManager(null);
+        // A removed member also leaves this project's teams.
+        for (Team team : teamRepository.findByProjectId(project.getId())) {
+            for (User user : removed) {
+                teamMemberRepository.findByTeamIdAndUserId(team.getId(), user.getId())
+                        .ifPresent(teamMemberRepository::delete);
+            }
         }
 
-        if (request.getTeamId() != null) {
+        project.getMembers().clear();
+        project.getMembers().addAll(newMembers);
+    }
 
-            Team team = teamRepository.findById(
-                    request.getTeamId()
-            ).orElseThrow(() ->
-                    new RuntimeException("Team not found"));
+    private ProjectDtos.Detail toDetail(Project project) {
+        List<Task> tasks = new ArrayList<>(taskRepository.findByProjectId(project.getId()));
+        tasks.sort(Comparator.comparing(Task::getId));
 
-            project.setTeam(team);
+        int total = tasks.size();
+        int completed = (int) tasks.stream().filter(t -> t.getBoardStatus() == BoardStatus.DONE).count();
+        int percent = total == 0 ? 0 : Math.round(completed * 100f / total);
 
-        } else {
-            project.setTeam(null);
-        }
+        List<ProjectDtos.PersonInfo> members = project.getMembers().stream()
+                .sorted(Comparator.comparing(User::getFullName, String.CASE_INSENSITIVE_ORDER))
+                .map(ProjectDtos.PersonInfo::from)
+                .toList();
+
+        return new ProjectDtos.Detail(
+                project.getId(),
+                project.getName(),
+                project.getCode(),
+                project.getProjectKey(),
+                project.getDescription(),
+                project.getStartDate(),
+                project.getEndDate(),
+                project.getStatus(),
+                project.getPriority(),
+                ProjectDtos.PersonInfo.from(project.getProjectManager()),
+                members,
+                total,
+                completed,
+                percent,
+                tasks.stream().map(TaskDtos.TaskResponse::from).toList(),
+                project.getCreatedAt());
     }
 
     private String nextProjectKey(String code, String name) {
 
-        String source =
-                code != null && !code.isBlank()
-                        ? code
-                        : name;
+        String source = code != null && !code.isBlank() ? code : name;
 
-        String letters =
-                source == null
-                        ? ""
-                        : source.replaceAll("[^A-Za-z]", "");
+        String letters = source == null ? "" : source.replaceAll("[^A-Za-z]", "");
 
-        String prefix =
-                (letters + "NEX")
-                        .substring(
-                                0,
-                                Math.min(3, letters.length() + 3)
-                        )
-                        .toUpperCase();
+        String prefix = (letters + "NEX")
+                .substring(0, Math.min(3, letters.length() + 3))
+                .toUpperCase();
 
         if (!projectRepository.existsByProjectKeyIgnoreCase(prefix)) {
             return prefix;
         }
 
         for (char suffix = 'A'; suffix <= 'Z'; suffix++) {
-
-            String candidate =
-                    prefix.substring(0, 2) + suffix;
-
+            String candidate = prefix.substring(0, 2) + suffix;
             if (!projectRepository.existsByProjectKeyIgnoreCase(candidate)) {
                 return candidate;
             }
         }
 
-        throw new IllegalStateException(
-                "Unable to generate a unique project key"
-        );
+        throw new IllegalStateException("Unable to generate a unique project key");
     }
 }

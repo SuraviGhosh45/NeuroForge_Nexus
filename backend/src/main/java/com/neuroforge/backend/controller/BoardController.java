@@ -3,6 +3,7 @@ package com.neuroforge.backend.controller;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,18 +15,21 @@ import com.neuroforge.backend.dto.sprint.BoardCard;
 import com.neuroforge.backend.dto.sprint.MoveTaskRequest;
 import com.neuroforge.backend.dto.sprint.SprintBoardResponse;
 import com.neuroforge.backend.service.BoardService;
+import com.neuroforge.backend.service.ProjectService;
 import com.neuroforge.backend.service.SprintService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class BoardController {
 
 	private final BoardService boardService;
 	private final SprintService sprintService;
+	private final ProjectService projectService;
 
 	@GetMapping("/sprints/{sprintId}/board")
 	public SprintBoardResponse board(@PathVariable Long sprintId) {
@@ -44,7 +48,10 @@ public class BoardController {
 
 	@PatchMapping("/tasks/{taskId}/board")
 	public BoardCard move(@PathVariable Long taskId, @Valid @RequestBody MoveTaskRequest request) {
-		return boardService.move(taskId, request);
+		BoardCard card = boardService.move(taskId, request);
+		// Project status is derived from task statuses, so refresh it after a move.
+		projectService.recalculateStatusByTaskId(taskId);
+		return card;
 	}
 
 	@PatchMapping("/tasks/{taskId}/block")

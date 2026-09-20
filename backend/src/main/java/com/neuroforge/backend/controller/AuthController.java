@@ -1,88 +1,72 @@
 package com.neuroforge.backend.controller;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.neuroforge.backend.dto.AuthResponse;
 import com.neuroforge.backend.dto.LoginRequest;
 import com.neuroforge.backend.dto.SignupRequest;
 import com.neuroforge.backend.entity.User;
+import com.neuroforge.backend.security.AuthUser;
+import com.neuroforge.backend.security.CurrentUser;
+import com.neuroforge.backend.security.JwtService;
 import com.neuroforge.backend.service.UserService;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@RequiredArgsConstructor
 public class AuthController {
 
-    public static final String AUTH_USER_ID = "AUTH_USER_ID";
+    private final UserService userService;
+    private final JwtService jwtService;
 
-    @Autowired
-    private UserService userService;
-
+    /** POST /api/auth/signup - always creates a TEAM_MEMBER; returns the JWT so the user is logged in. */
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody SignupRequest request, HttpServletRequest httpRequest) {
-        try {
-            User user = userService.registerUser(request);
-            httpRequest.getSession(true).setAttribute(AUTH_USER_ID, user.getId());
-            return ResponseEntity.ok(toResponse(user, "Account created successfully"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
+    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
+        User user = userService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                AuthResponse.of("Account created successfully",
+                        jwtService.generateToken(user), jwtService.getExpirationSeconds(), user));
     }
 
+    /** POST /api/auth/login - Email or User ID + password. */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        try {
-            User user = userService.validateLogin(request.getEmail(), request.getPassword());
-            httpRequest.getSession(true).setAttribute(AUTH_USER_ID, user.getId());
-            return ResponseEntity.ok(toResponse(user, "Login successful"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(401).body(Map.of("message", e.getMessage()));
-        }
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        User user = userService.authenticate(request.getIdentifier(), request.getPassword());
+        return ResponseEntity.ok(
+                AuthResponse.of("Login successful",
+                        jwtService.generateToken(user), jwtService.getExpirationSeconds(), user));
     }
 
+    /** GET /api/auth/me - who the current token belongs to (role shown = role enforced = role in the JWT). */
     @GetMapping("/me")
-    public ResponseEntity<?> me(HttpServletRequest httpRequest) {
-        HttpSession session = httpRequest.getSession(false);
-        if (session == null || session.getAttribute(AUTH_USER_ID) == null) {
-            return ResponseEntity.status(401).body(Map.of("message", "Not authenticated"));
-        }
-
+    public ResponseEntity<AuthResponse> me() {
+        AuthUser caller = CurrentUser.get();
         try {
-            User user = userService.getUserById((Long) session.getAttribute(AUTH_USER_ID));
-            return ResponseEntity.ok(toResponse(user, "Authenticated"));
-        } catch (RuntimeException e) {
-            session.invalidate();
-            return ResponseEntity.status(401).body(Map.of("message", "Not authenticated"));
+            User user = userService.getUserById(caller.userId());
+            if (!user.isActive()) {
+                throw new DisabledException("Your account is inactive. Please contact an administrator.");
+            }
+            return ResponseEntity.ok(AuthResponse.me(user, caller.role()));
+        } catch (EntityNotFoundException e) {
+            throw new BadCredentialsException("Account no longer exists");
         }
     }
 
+    /** Stateless JWT: nothing to invalidate server side. The frontend just discards the token. */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
-        HttpSession session = httpRequest.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
+    public ResponseEntity<Void> logout() {
         return ResponseEntity.noContent().build();
-    }
-
-    private Map<String, Object> toResponse(User user, String message) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", message);
-        response.put("id", user.getId());
-        response.put("fullName", user.getFullName());
-        response.put("email", user.getEmail());
-        return response;
     }
 }

@@ -1,559 +1,415 @@
-
 package com.neuroforge.backend.service;
 
+import java.util.Comparator;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.neuroforge.backend.dto.TaskDtos.TaskResponse;
 import com.neuroforge.backend.dto.TaskRequest;
 import com.neuroforge.backend.entity.BoardStatus;
+import com.neuroforge.backend.entity.Priority;
 import com.neuroforge.backend.entity.Project;
 import com.neuroforge.backend.entity.Sprint;
 import com.neuroforge.backend.entity.SprintStatus;
 import com.neuroforge.backend.entity.Task;
+import com.neuroforge.backend.entity.TaskDependency;
 import com.neuroforge.backend.entity.User;
+import com.neuroforge.backend.exception.BusinessRuleException;
 import com.neuroforge.backend.repository.ProjectRepository;
 import com.neuroforge.backend.repository.SprintRepository;
 import com.neuroforge.backend.repository.TaskDependencyRepository;
 import com.neuroforge.backend.repository.TaskRepository;
 import com.neuroforge.backend.repository.UserRepository;
+import com.neuroforge.backend.security.AuthUser;
+import com.neuroforge.backend.security.CurrentUser;
 
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Task rules:
+ *  - list/detail are scoped by role (Admin: all, PM: tasks of projects they manage/belong to,
+ *    Team Member: only tasks assigned to them)
+ *  - create/update/delete: Admin or the PM who manages the task's project
+ *  - the assignee must be a MEMBER of the selected project (validated here, not just in the frontend)
+ *  - status changes go through updateStatus (Kanban drag & drop); a Team Member may only move their own tasks
+ *  - project status is re-derived after every change
+ */
 @Service
+@RequiredArgsConstructor
 public class TaskService {
 
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final TaskKeyService taskKeyService;
+    private final SprintRepository sprintRepository;
+    private final TaskDependencyRepository taskDependencyRepository;
+    private final AccessService access;
+    private final ProjectService projectService;
+    private final BoardService boardService;
 
-    @Autowired
-    private ProjectRepository projectRepository;
+    // ------------------------------------------------------------------ queries
 
-    @Autowired
-    private UserRepository userRepository;
+    /** GET /api/tasks */
+    @Transactional(readOnly = true)
+    public List<TaskResponse> list() {
+        AuthUser user = CurrentUser.get();
 
-    @Autowired
-    private TaskKeyService taskKeyService;
+        List<Task> tasks = switch (user.role()) {
+            case ADMIN -> taskRepository.findAll();
+            case PROJECT_MANAGER -> {
+                List<Long> projectIds = access.visibleProjects(user).stream().map(Project::getId).toList();
+                yield projectIds.isEmpty() ? List.<Task>of() : taskRepository.findByProjectIdIn(projectIds);
+            }
+            case TEAM_MEMBER -> taskRepository.findByAssigneeId(user.userId());
+        };
 
-    @Autowired
-    private SprintRepository sprintRepository;
+        return tasks.stream()
+                .sorted(Comparator.comparing(Task::getId))
+                .map(TaskResponse::from)
+                .toList();
+    }
 
-    @Autowired
-    private TaskDependencyRepository taskDependencyRepository;
+    /** GET /api/tasks/{id} */
+    @Transactional(readOnly = true)
+    public TaskResponse get(Long id) {
+        AuthUser user = CurrentUser.get();
+        Task task = find(id);
+        assertCanView(user, task);
+        return TaskResponse.from(task);
+    }
+
+    // ------------------------------------------------------------------ commands
 
     /**
-     * Create a new task.
-     *
-     * A task can be:
-     * 1. Created directly in the backlog.
-     * 2. Created and assigned to a specific sprint.
-     *
-     * If no sprint is provided, the task will automatically be added
-     * to the currently active sprint, if one exists.
+     * POST /api/tasks.
+     * New tasks always start in "To Do" (status is not accepted at creation).
+     * With no sprintId the task joins the project's ACTIVE sprint, if there is one (existing behaviour).
      */
     @Transactional
-    public Task createTask(TaskRequest request) {
+    public TaskResponse create(TaskRequest request) {
+        AuthUser user = CurrentUser.get();
 
         validateTaskRequest(request);
 
-        Task task = new Task();
-
-        // Set basic task information
-        applyBasicTaskInformation(task, request);
-
-        // Set project
         Project project = getProject(request.getProjectId());
+        access.assertCanManage(user, project);
+
+        Task task = new Task();
+        applyBasicTaskInformation(task, request);
         task.setProject(project);
-
-        // Set assignee
-        setAssignee(task, request.getAssigneeId());
-
-        // Generate task key
+        setAssignee(task, request.getAssigneeId(), project, false);
         task.setTaskKey(taskKeyService.nextKey(project));
+        task.setStoryPoints(request.getStoryPoints() != null ? request.getStoryPoints() : 0);
 
-        // Set story points
-        task.setStoryPoints(
-                request.getStoryPoints() != null
-                        ? request.getStoryPoints()
-                        : 0
-        );
-
-        /*
-         * New tasks always start in TODO.
-         * Kanban movement is handled by BoardService.
-         */
         task.setBoardStatus(BoardStatus.TODO);
         task.setStatus(BoardStatus.TODO.getLabel());
         task.setBoardPosition(0);
 
-        /*
-         * If sprintId is provided, add the task to that sprint.
-         *
-         * Otherwise, automatically add it to the active sprint.
-         */
         Sprint sprint = findSprintForNewTask(request, project);
-
         if (sprint != null) {
-
             validateSprintBelongsToProject(sprint, project);
-
-            int position = getNextBoardPosition(
-                    sprint.getId(),
-                    BoardStatus.TODO
-            );
-
             task.setSprint(sprint);
-            task.setBoardPosition(position);
+            task.setBoardPosition(getNextBoardPosition(sprint.getId(), BoardStatus.TODO));
         }
 
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+        projectService.recalculateStatus(project);
+        return TaskResponse.from(saved);
     }
 
-    /**
-     * Get all tasks.
-     */
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
-    }
-
-    /**
-     * Get a task by ID.
-     */
-    public Task getTaskById(Long id) {
-
-        if (id == null) {
-            throw new IllegalArgumentException("Task ID cannot be null");
-        }
-
-        return taskRepository.findById(id)
-                .orElseThrow(
-                        () -> new RuntimeException(
-                                "Task not found with id " + id
-                        )
-                );
-    }
-
-    /**
-     * Update an existing task.
-     *
-     * This updates task information such as:
-     * - title
-     * - description
-     * - project
-     * - assignee
-     * - priority
-     * - due date
-     * - story points
-     *
-     * Sprint and Kanban movement are handled separately.
-     */
+    /** PUT /api/tasks/{id} (Admin / managing PM). */
     @Transactional
-    public Task updateTask(Long id, TaskRequest request) {
+    public TaskResponse update(Long id, TaskRequest request) {
+        AuthUser user = CurrentUser.get();
 
         validateTaskRequest(request);
 
-        Task task = getTaskById(id);
+        Task task = find(id);
+        Project oldProject = task.getProject();
+        access.assertCanManage(user, oldProject);
 
-        /*
-         * Store the current sprint before updating.
-         * This allows us to correctly handle a sprint change.
-         */
+        Project project = getProject(request.getProjectId());
+        boolean projectChanged = !oldProject.getId().equals(project.getId());
+        if (projectChanged) {
+            access.assertCanManage(user, project);
+        }
+
         Sprint currentSprint = task.getSprint();
 
         applyBasicTaskInformation(task, request);
 
-        // Update project
-        Project project = getProject(request.getProjectId());
-
-        /*
-         * If the project changes, generate a new task key.
-         */
-        if (task.getProject() == null
-                || !task.getProject().getId().equals(project.getId())) {
-
+        // If the project changes: new task key, and the old sprint (which belongs to the old project) is dropped.
+        if (projectChanged) {
             task.setProject(project);
-
-            task.setTaskKey(
-                    taskKeyService.nextKey(project)
-            );
+            task.setTaskKey(taskKeyService.nextKey(project));
+            task.setSprint(null);
+            task.setBoardPosition(0);
+            currentSprint = null;
         }
 
-        // Update assignee
-        setAssignee(task, request.getAssigneeId());
+        // Assignee must be a member of the (possibly new) project. An unchanged legacy assignee is left alone.
+        setAssignee(task, request.getAssigneeId(), project, !projectChanged);
 
-        // Update story points
         if (request.getStoryPoints() != null) {
             task.setStoryPoints(request.getStoryPoints());
         }
 
-        /*
-         * Status can still be received from the existing frontend.
-         *
-         * However, the actual Kanban movement should preferably
-         * be performed through BoardService.
-         */
-        if (request.getStatus() != null
-                && !request.getStatus().isBlank()) {
-
-            BoardStatus boardStatus =
-                    toBoardStatus(request.getStatus());
-
-            task.setBoardStatus(boardStatus);
-            task.setStatus(boardStatus.getLabel());
-        }
-
-        /*
-         * Sprint change.
-         *
-         * If sprintId is provided:
-         * - Find the requested sprint.
-         * - Verify it belongs to the same project.
-         * - Add the task to that sprint.
-         *
-         * If sprintId is null:
-         * - Keep the existing sprint.
-         *
-         * This prevents normal task edits from accidentally
-         * removing a task from its sprint.
-         */
-        if (request.getSprintId() != null) {
-
-            Sprint requestedSprint = sprintRepository
-                    .findById(request.getSprintId())
-                    .orElseThrow(
-                            () -> new RuntimeException(
-                                    "Sprint not found with id "
-                                            + request.getSprintId()
-                            )
-                    );
-
-            validateSprintBelongsToProject(
-                    requestedSprint,
-                    project
-            );
-
-            /*
-             * If the task is being moved to another sprint,
-             * put it at the end of the current Kanban column.
-             */
-            if (currentSprint == null
-                    || !currentSprint.getId()
-                    .equals(requestedSprint.getId())) {
-
-                task.setSprint(requestedSprint);
-
-                int position = getNextBoardPosition(
-                        requestedSprint.getId(),
-                        task.getBoardStatus()
-                );
-
-                task.setBoardPosition(position);
+        // Status is still accepted here for existing clients (PM/Admin only); Kanban uses updateStatus.
+        boolean statusChanged = false;
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            BoardStatus target = toBoardStatus(request.getStatus());
+            if (target != task.getBoardStatus()) {
+                applyStatus(task, target);
+                statusChanged = true;
             }
         }
 
-        return taskRepository.save(task);
+        // sprintId: null keeps the existing sprint so a normal edit never removes a task from its sprint.
+        if (request.getSprintId() != null) {
+            Sprint requestedSprint = sprintRepository.findById(request.getSprintId())
+                    .orElseThrow(() -> new EntityNotFoundException("Sprint not found with id " + request.getSprintId()));
+
+            validateSprintBelongsToProject(requestedSprint, project);
+
+            if (currentSprint == null || !currentSprint.getId().equals(requestedSprint.getId())) {
+                task.setSprint(requestedSprint);
+                task.setBoardPosition(getNextBoardPosition(requestedSprint.getId(), task.getBoardStatus()));
+            }
+        }
+
+        Task saved = taskRepository.save(task);
+
+        // Only a real status change can (un)block dependent tasks; an ordinary edit must not clear a manual block.
+        if (statusChanged) {
+            boardService.recalculateBlocked(saved);
+            taskDependencyRepository.findByDependsOnId(id)
+                    .forEach(dependency -> boardService.recalculateBlocked(dependency.getTask()));
+        }
+
+        projectService.recalculateStatus(project);
+        if (projectChanged) {
+            projectService.recalculateStatus(oldProject);
+        }
+        return TaskResponse.from(saved);
     }
 
     /**
-     * Delete a task.
-     *
-     * Dependencies must be deleted first because the dependency
-     * table references the task.
+     * PATCH /api/tasks/{id}/status - Kanban drag & drop.
+     *  Admin: any task. PM: tasks of projects they manage. Team Member: ONLY tasks assigned to them.
      */
     @Transactional
-    public void deleteTask(Long id) {
+    public TaskResponse updateStatus(Long id, String rawStatus) {
+        AuthUser user = CurrentUser.get();
 
-        Task task = getTaskById(id);
+        Task task = find(id);
+        BoardStatus target = toBoardStatus(rawStatus);
 
-        /*
-         * Delete dependencies where this task is the main task.
-         */
+        assertCanMove(user, task);
+
+        if (task.getBoardStatus() != target) {
+            applyStatus(task, target);
+            taskRepository.save(task);
+
+            // Blocked flags of this task and of the tasks waiting on it may change.
+            boardService.recalculateBlocked(task);
+            taskDependencyRepository.findByDependsOnId(id)
+                    .forEach(dependency -> boardService.recalculateBlocked(dependency.getTask()));
+
+            projectService.recalculateStatus(task.getProject());
+        }
+
+        return TaskResponse.from(task);
+    }
+
+    /** DELETE /api/tasks/{id} (Admin / managing PM). */
+    @Transactional
+    public void delete(Long id) {
+        AuthUser user = CurrentUser.get();
+
+        Task task = find(id);
+        Project project = task.getProject();
+        access.assertCanManage(user, project);
+
         taskDependencyRepository.deleteByTaskId(id);
-
-        /*
-         * Delete dependencies where this task is a dependency
-         * of another task.
-         */
         taskDependencyRepository.deleteByDependsOnId(id);
 
         taskRepository.delete(task);
+        taskRepository.flush();
+
+        projectService.recalculateStatus(project);
     }
 
-    /**
-     * Get tasks belonging to a project.
-     */
-    public List<Task> getTasksByProject(Long projectId) {
+    // ------------------------------------------------------------------ authorisation helpers
 
-        if (projectId == null) {
-            throw new IllegalArgumentException(
-                    "Project ID cannot be null"
-            );
+    private void assertCanView(AuthUser user, Task task) {
+        boolean allowed = switch (user.role()) {
+            case ADMIN -> true;
+            case PROJECT_MANAGER -> access.canView(user, task.getProject());
+            case TEAM_MEMBER -> isAssignee(user, task);
+        };
+        if (!allowed) {
+            throw new AccessDeniedException("You do not have access to this task");
         }
-
-        return taskRepository.findByProjectId(projectId);
     }
 
-    /**
-     * Get tasks belonging to a sprint.
-     */
-    public List<Task> getTasksBySprint(Long sprintId) {
-
-        if (sprintId == null) {
-            throw new IllegalArgumentException(
-                    "Sprint ID cannot be null"
-            );
+    private void assertCanMove(AuthUser user, Task task) {
+        boolean allowed = switch (user.role()) {
+            case ADMIN -> true;
+            case PROJECT_MANAGER -> access.canManage(user, task.getProject());
+            case TEAM_MEMBER -> isAssignee(user, task);
+        };
+        if (!allowed) {
+            throw new AccessDeniedException(user.isTeamMember()
+                    ? "You can only move tasks that are assigned to you"
+                    : "You do not manage this project");
         }
-
-        return taskRepository
-                .findBySprintIdOrderByBoardStatusAscBoardPositionAsc(
-                        sprintId
-                );
     }
 
-    /**
-     * Get backlog tasks.
-     *
-     * Backlog = project tasks that do not belong to any sprint.
-     */
-    public List<Task> getBacklogTasks(Long projectId) {
+    private boolean isAssignee(AuthUser user, Task task) {
+        return task.getAssignee() != null && task.getAssignee().getId().equals(user.userId());
+    }
 
-        if (projectId == null) {
-            throw new IllegalArgumentException(
-                    "Project ID cannot be null"
-            );
+    // ------------------------------------------------------------------ business helpers
+
+    private Task find(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Task ID cannot be null");
         }
-
-        return taskRepository
-                .findByProjectIdAndSprintIsNullOrderByIdDesc(
-                        projectId
-                );
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found with id " + id));
     }
 
-    /**
-     * Apply basic task information.
-     *
-     * Kanban movement is intentionally not handled here.
-     */
-    private void applyBasicTaskInformation(
-            Task task,
-            TaskRequest request) {
-
-        task.setTitle(request.getTitle());
-        task.setDescription(request.getDescription());
-
-        task.setPriority(
-                request.getPriority() != null
-                        && !request.getPriority().isBlank()
-                        ? request.getPriority()
-                        : "Medium"
-        );
-
-        task.setDueDate(request.getDueDate());
-    }
-
-    /**
-     * Find the sprint that should be used for a new task.
-     *
-     * Priority:
-     * 1. Sprint specified in TaskRequest.
-     * 2. Current active sprint.
-     * 3. No sprint -> backlog.
-     */
-    private Sprint findSprintForNewTask(
-            TaskRequest request,
-            Project project) {
-
-        /*
-         * User explicitly selected a sprint.
-         */
-        if (request.getSprintId() != null) {
-
-            return sprintRepository
-                    .findById(request.getSprintId())
-                    .orElseThrow(
-                            () -> new RuntimeException(
-                                    "Sprint not found with id "
-                                            + request.getSprintId()
-                            )
-                    );
-        }
-
-        /*
-         * No sprint selected.
-         *
-         * Find the project's active sprint.
-         */
-        return sprintRepository
-                .findByProjectIdAndStatus(
-                        project.getId(),
-                        SprintStatus.ACTIVE
-                )
-                .orElse(null);
-    }
-
-    /**
-     * Find the project.
-     */
     private Project getProject(Long projectId) {
-
         if (projectId == null) {
-            throw new IllegalArgumentException(
-                    "Project ID is required"
-            );
+            throw new IllegalArgumentException("Project ID is required");
         }
-
-        return projectRepository
-                .findById(projectId)
-                .orElseThrow(
-                        () -> new RuntimeException(
-                                "Project not found with id "
-                                        + projectId
-                        )
-                );
+        return projectRepository.findById(projectId)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found with id " + projectId));
     }
 
     /**
-     * Set task assignee.
+     * Sets the assignee after checking (server side) that the user is a member of the project.
+     * keepIfUnchanged: when editing a task on the same project, the current assignee is accepted as-is.
      */
-    private void setAssignee(
-            Task task,
-            Long assigneeId) {
+    private void setAssignee(Task task, Long assigneeId, Project project, boolean keepIfUnchanged) {
 
         if (assigneeId == null) {
             task.setAssignee(null);
             return;
         }
 
-        User assignee = userRepository
-                .findById(assigneeId)
-                .orElseThrow(
-                        () -> new RuntimeException(
-                                "Assignee not found with id "
-                                        + assigneeId
-                        )
-                );
+        if (keepIfUnchanged && task.getAssignee() != null && task.getAssignee().getId().equals(assigneeId)) {
+            return;
+        }
+
+        User assignee = userRepository.findById(assigneeId)
+                .orElseThrow(() -> new IllegalArgumentException("Assignee not found with id " + assigneeId));
+
+        if (!access.isMember(project, assigneeId)) {
+            throw new IllegalArgumentException("Assignee must be a member of the selected project");
+        }
 
         task.setAssignee(assignee);
     }
 
-    /**
-     * Validate that a sprint belongs to the same project
-     * as the task.
-     */
-    private void validateSprintBelongsToProject(
-            Sprint sprint,
-            Project project) {
+    /** Moves a task to another column: dependency check, position at the end of the column, legacy status kept in sync. */
+    private void applyStatus(Task task, BoardStatus target) {
+
+        if (target == BoardStatus.DONE) {
+            List<String> open = openDependencyKeys(task.getId());
+            if (!open.isEmpty()) {
+                throw new BusinessRuleException(
+                        task.getTaskKey() + " cannot be completed. Waiting on " + String.join(", ", open));
+            }
+        }
+
+        task.setBoardStatus(target);
+        task.setStatus(target.getLabel());
+        task.setBoardPosition((int) taskRepository.countByProjectIdAndBoardStatus(task.getProject().getId(), target));
+    }
+
+    private List<String> openDependencyKeys(Long taskId) {
+        return taskDependencyRepository.findByTaskId(taskId).stream()
+                .map(TaskDependency::getDependsOn)
+                .filter(dependsOn -> dependsOn.getBoardStatus() != BoardStatus.DONE)
+                .map(Task::getTaskKey)
+                .toList();
+    }
+
+    private void applyBasicTaskInformation(Task task, TaskRequest request) {
+        task.setTitle(request.getTitle().trim());
+        task.setDescription(request.getDescription());
+        // Validates the value (Low / Medium / High) and stores the normalised label.
+        task.setPriority(Priority.parseOrDefault(request.getPriority(), Priority.MEDIUM).getLabel());
+        task.setDueDate(request.getDueDate());
+    }
+
+    private Sprint findSprintForNewTask(TaskRequest request, Project project) {
+
+        if (request.getSprintId() != null) {
+            return sprintRepository.findById(request.getSprintId())
+                    .orElseThrow(() -> new EntityNotFoundException("Sprint not found with id " + request.getSprintId()));
+        }
+
+        return sprintRepository
+                .findByProjectIdAndStatus(project.getId(), SprintStatus.ACTIVE)
+                .orElse(null);
+    }
+
+    private void validateSprintBelongsToProject(Sprint sprint, Project project) {
 
         if (sprint.getProject() == null
                 || sprint.getProject().getId() == null
-                || !sprint.getProject()
-                .getId()
-                .equals(project.getId())) {
-
-            throw new IllegalArgumentException(
-                    "Sprint does not belong to the selected project"
-            );
+                || !sprint.getProject().getId().equals(project.getId())) {
+            throw new IllegalArgumentException("Sprint does not belong to the selected project");
         }
 
-        /*
-         * Completed sprints should not receive new tasks.
-         */
         if (sprint.getStatus() == SprintStatus.COMPLETED) {
-
-            throw new IllegalArgumentException(
-                    "Cannot add a task to a completed sprint"
-            );
+            throw new IllegalArgumentException("Cannot add a task to a completed sprint");
         }
     }
 
-    /**
-     * Calculate the next position inside a Kanban column.
-     */
-    private int getNextBoardPosition(
-            Long sprintId,
-            BoardStatus boardStatus) {
-
+    private int getNextBoardPosition(Long sprintId, BoardStatus boardStatus) {
         return taskRepository
-                .findBySprintIdAndBoardStatusOrderByBoardPositionAsc(
-                        sprintId,
-                        boardStatus
-                )
+                .findBySprintIdAndBoardStatusOrderByBoardPositionAsc(sprintId, boardStatus)
                 .size();
     }
 
-    /**
-     * Validate the task request.
-     */
     private void validateTaskRequest(TaskRequest request) {
 
         if (request == null) {
-            throw new IllegalArgumentException(
-                    "Task request cannot be null"
-            );
+            throw new IllegalArgumentException("Task request cannot be null");
         }
-
-        if (request.getTitle() == null
-                || request.getTitle().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Task title is required"
-            );
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            throw new IllegalArgumentException("Task title is required");
         }
-
         if (request.getProjectId() == null) {
-
-            throw new IllegalArgumentException(
-                    "Project ID is required"
-            );
+            throw new IllegalArgumentException("Project ID is required");
         }
-
-        if (request.getStoryPoints() != null
-                && request.getStoryPoints() < 0) {
-
-            throw new IllegalArgumentException(
-                    "Story points cannot be negative"
-            );
+        if (request.getStoryPoints() != null && request.getStoryPoints() < 0) {
+            throw new IllegalArgumentException("Story points cannot be negative");
         }
     }
 
-    /**
-     * Convert frontend status values into BoardStatus.
-     *
-     * Supported values:
-     * TODO
-     * TO_DO
-     * IN_PROGRESS
-     * IN_REVIEW
-     * DONE
-     */
+    /** "To Do" / TODO / TO_DO, "In Progress" / IN_PROGRESS, "In Review" / IN_REVIEW, "Done" / DONE. */
     private BoardStatus toBoardStatus(String status) {
 
         if (status == null || status.isBlank()) {
-            return BoardStatus.TODO;
+            throw new IllegalArgumentException("Status is required");
         }
 
-        return switch (
-                status.trim()
-                        .toUpperCase()
-                        .replace(' ', '_')
-        ) {
-
-            case "TODO", "TO_DO" ->
-                    BoardStatus.TODO;
-
-            case "IN_PROGRESS" ->
-                    BoardStatus.IN_PROGRESS;
-
-            case "IN_REVIEW" ->
-                    BoardStatus.IN_REVIEW;
-
-            case "DONE" ->
-                    BoardStatus.DONE;
-
-            default ->
-                    throw new IllegalArgumentException(
-                            "Unsupported task status: " + status
-                    );
+        return switch (status.trim().toUpperCase().replace(' ', '_')) {
+            case "TODO", "TO_DO" -> BoardStatus.TODO;
+            case "IN_PROGRESS" -> BoardStatus.IN_PROGRESS;
+            case "IN_REVIEW" -> BoardStatus.IN_REVIEW;
+            case "DONE", "COMPLETED" -> BoardStatus.DONE;
+            default -> throw new IllegalArgumentException(
+                    "Unsupported task status '" + status + "'. Allowed: To Do, In Progress, Done");
         };
     }
 }
