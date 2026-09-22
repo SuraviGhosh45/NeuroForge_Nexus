@@ -198,8 +198,8 @@ button {
   font-weight: 600;
 }
 
-input,
-select {
+.legacy-auth input,
+.legacy-auth select {
   width: 100%;
   height: 46px;
   border: 1px solid #263c54;
@@ -213,17 +213,17 @@ select {
     box-shadow 0.2s;
 }
 
-input::placeholder {
+.legacy-auth input::placeholder {
   color: #536b84;
 }
 
-input:focus,
-select:focus {
+.legacy-auth input:focus,
+.legacy-auth select:focus {
   border-color: #3d91d2;
   box-shadow: 0 0 0 3px rgba(61, 145, 210, 0.12);
 }
 
-select {
+.legacy-auth select {
   appearance: auto;
   color: #dce8f4;
 }
