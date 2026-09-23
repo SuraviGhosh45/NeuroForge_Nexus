@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,12 +29,33 @@ public class User {
     @Column(name = "name", nullable = false)
     private String legacyName;
 
+    /** The "User ID" typed by the user at signup (unique). Can be used to log in instead of the email. */
+    @Column(name = "user_code", nullable = false, unique = true, length = 50)
+    private String userCode;
+
     @Column(nullable = false, unique = true)
     private String email;
 
     @JsonIgnore
     @Column(nullable = false)
     private String password;
+
+    @Column(name = "contact_number", length = 15)
+    private String contactNumber;
+
+    /** Skill tag only - grants no permission. Nullable only for rows created before this column existed. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "skill", length = 30)
+    private Skill skill;
+
+    /** Access role. Always TEAM_MEMBER at signup; changed only by an Admin. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "access_role", nullable = false, length = 30)
+    private Role role = Role.TEAM_MEMBER;
+
+    /** Active / Inactive status shown on the Users page. Inactive users cannot log in. */
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -48,11 +71,26 @@ public class User {
     public String getLegacyName() { return legacyName; }
     public void setLegacyName(String legacyName) { this.legacyName = legacyName; }
 
+    public String getUserCode() { return userCode; }
+    public void setUserCode(String userCode) { this.userCode = userCode; }
+
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public String getContactNumber() { return contactNumber; }
+    public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
+
+    public Skill getSkill() { return skill; }
+    public void setSkill(Skill skill) { this.skill = skill; }
+
+    public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

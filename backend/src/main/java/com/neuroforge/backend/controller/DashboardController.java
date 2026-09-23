@@ -1,39 +1,24 @@
 package com.neuroforge.backend.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.neuroforge.backend.dto.DashboardSummary;
-import com.neuroforge.backend.repository.ProjectRepository;
-import com.neuroforge.backend.repository.TeamRepository;
-import com.neuroforge.backend.repository.UserRepository;
+import com.neuroforge.backend.dto.DashboardResponse;
+import com.neuroforge.backend.service.DashboardService;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/dashboard")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@RequiredArgsConstructor
 public class DashboardController {
 
-    @Autowired
-    private ProjectRepository projectRepository;
+    private final DashboardService dashboardService;
 
-    @Autowired
-    private TeamRepository teamRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @GetMapping("/summary")
-    public ResponseEntity<DashboardSummary> getSummary() {
-        long totalProjects = projectRepository.count();
-        long totalTeams = teamRepository.count();
-        long totalUsers = userRepository.count();
-        long inProgress = projectRepository.countByStatus("In Progress");
-        long completed = projectRepository.countByStatus("Completed");
-
-        return ResponseEntity.ok(new DashboardSummary(totalProjects, totalTeams, totalUsers, inProgress, completed));
+    /** ONE endpoint for every role - the JWT role decides the scope (see DashboardService). */
+    @GetMapping
+    public DashboardResponse dashboard() {
+        return dashboardService.get();
     }
 }

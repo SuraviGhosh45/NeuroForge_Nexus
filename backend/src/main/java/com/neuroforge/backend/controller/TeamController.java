@@ -2,9 +2,9 @@ package com.neuroforge.backend.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,62 +15,64 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.neuroforge.backend.dto.AddMemberRequest;
+import com.neuroforge.backend.dto.TeamDtos;
 import com.neuroforge.backend.dto.TeamRequest;
 import com.neuroforge.backend.dto.UpdateMemberRoleRequest;
-import com.neuroforge.backend.entity.Team;
-import com.neuroforge.backend.entity.TeamMember;
 import com.neuroforge.backend.service.TeamService;
 
+import lombok.RequiredArgsConstructor;
+
+/** Teams are an Admin/PM feature (sidebar + endpoints). Team Members get 403 on every route here. */
 @RestController
 @RequestMapping("/api/teams")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
 public class TeamController {
 
-    @Autowired
-    private TeamService teamService;
-
-    @PostMapping
-    public ResponseEntity<Team> createTeam(@RequestBody TeamRequest request) {
-        return ResponseEntity.ok(teamService.createTeam(request));
-    }
+    private final TeamService teamService;
 
     @GetMapping
-    public ResponseEntity<List<Team>> getAllTeams() {
-        return ResponseEntity.ok(teamService.getAllTeams());
+    public List<TeamDtos.Summary> list() {
+        return teamService.list();
+    }
+
+    @PostMapping
+    public ResponseEntity<TeamDtos.Detail> create(@RequestBody TeamRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(teamService.create(request));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Team> getTeamById(@PathVariable Long id) {
-        return ResponseEntity.ok(teamService.getTeamById(id));
+    public TeamDtos.Detail get(@PathVariable Long id) {
+        return teamService.get(id);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody TeamRequest request) {
-        return ResponseEntity.ok(teamService.updateTeam(id, request));
+    public TeamDtos.Detail update(@PathVariable Long id, @RequestBody TeamRequest request) {
+        return teamService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
-        teamService.deleteTeam(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        teamService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{teamId}/members")
-    public ResponseEntity<TeamMember> addMember(@PathVariable Long teamId, @RequestBody AddMemberRequest request) {
-        return ResponseEntity.ok(teamService.addMember(teamId, request.getUserId(), request.getTeamRole()));
+    @GetMapping("/{teamId}/members")
+    public List<TeamDtos.MemberInfo> members(@PathVariable Long teamId) {
+        return teamService.getMembers(teamId);
     }
 
-    @GetMapping("/{teamId}/members")
-    public ResponseEntity<List<TeamMember>> getMembers(@PathVariable Long teamId) {
-        return ResponseEntity.ok(teamService.getMembers(teamId));
+    @PostMapping("/{teamId}/members")
+    public TeamDtos.MemberInfo addMember(@PathVariable Long teamId, @RequestBody AddMemberRequest request) {
+        return teamService.addMember(teamId, request.getUserId(), request.getTeamRole());
     }
 
     @PutMapping("/{teamId}/members/{userId}")
-    public ResponseEntity<TeamMember> updateMemberRole(
+    public TeamDtos.MemberInfo updateMemberRole(
             @PathVariable Long teamId,
             @PathVariable Long userId,
             @RequestBody UpdateMemberRoleRequest request) {
-        return ResponseEntity.ok(teamService.updateMemberRole(teamId, userId, request.getTeamRole()));
+        return teamService.updateMemberRole(teamId, userId, request.getTeamRole());
     }
 
     @DeleteMapping("/{teamId}/members/{userId}")

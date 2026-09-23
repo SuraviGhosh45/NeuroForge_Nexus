@@ -193,8 +193,12 @@ export const TasksProvider = ({ children }) => {
   const buildPayload = (formData) => ({
     title: formData.title,
     description: formData.description || "",
-    projectId: formData.projectId ? Number(formData.projectId) : null,
-    assigneeId: formData.assigneeId ? Number(formData.assigneeId) : null,
+    projectId: formData.projectId
+      ? Number(formData.projectId)
+      : formData.project?.id ?? null,
+    assigneeId: formData.assigneeId
+      ? Number(formData.assigneeId)
+      : formData.assignee?.id ?? null,
     status: formData.status,
     priority: formData.priority,
     dueDate: formData.dueDate || null,

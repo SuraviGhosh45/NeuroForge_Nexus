@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useProjects } from "../../context/ProjectContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
 import { useTeams } from "../../context/TeamsContext.jsx";
@@ -8,7 +8,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { usePermission } from "../../hooks/usePermission.js";
 import Can from "../../components/common/Can.jsx";
 import { ROLES, normalizeRole } from "../../constants/roles.js";
-import { PiPlus, PiFolder, PiCalendarBlank, PiUsersThree, PiTrash, PiPencilSimple } from "react-icons/pi";
+import { PiPlus, PiFolder, PiTrash, PiPencilSimple } from "react-icons/pi";
 
 const ProjectManagement = () => {
   const navigate = useNavigate();

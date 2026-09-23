@@ -32,9 +32,11 @@ function KanbanBoard() {
   const handleDrop = async (event, newStatus) => {
     event.preventDefault();
     event.stopPropagation();
+    console.log("DROP FIRED", newStatus);
 
     const taskId =
       event.dataTransfer.getData("taskId") || draggedTaskId;
+    console.log("taskId:", taskId);
 
     if (!taskId) {
       setDraggedTaskId(null);
