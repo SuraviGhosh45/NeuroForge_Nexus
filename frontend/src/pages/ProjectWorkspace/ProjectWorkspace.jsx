@@ -304,7 +304,11 @@ const ProjectWorkspace = () => {
     ROLES.TEAM_LEAD,
   ].includes(currentRole);
 
-  const canManageTasks = true;
+  const canManageTasks = [
+    ROLES.ADMIN,
+    ROLES.PROJECT_MANAGER,
+    ROLES.PROJECT_LEAD,
+  ].includes(currentRole);
 
   /* ================= PROJECT FORM ================= */
 

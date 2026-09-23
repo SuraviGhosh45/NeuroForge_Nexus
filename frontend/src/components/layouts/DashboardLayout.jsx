@@ -1,4 +1,4 @@
-import { PiList, PiUserSwitch, PiSignOut } from "react-icons/pi";
+import { PiList, PiSignOut } from "react-icons/pi";
 import { FaRegBell } from "react-icons/fa6";
 import { CgProfile } from "react-icons/cg";
 import { useState } from "react";
@@ -17,7 +17,7 @@ const ROLE_STYLES = {
 };
 
 const DashboardLayout = ({ children }) => {
-  const { currentUser, logout, switchRoleForDemo } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = sessionStorage.getItem("sidebarOpen");
     return saved === null ? true : saved === "true";
@@ -67,25 +67,6 @@ const DashboardLayout = ({ children }) => {
 
         {/* Right tools */}
         <div className="flex items-center gap-4">
-          {/* Quick Persona Switcher for pair programming & testing */}
-          <div className="hidden sm:flex items-center gap-2 rounded-xl border border-[#e8eef8]/10 bg-[#0f1422] px-3 py-1.5">
-            <PiUserSwitch size={16} className="text-blue-400" />
-            <span className="text-xs text-[#e8eef8]/50">Simulate Role:</span>
-            <select
-              value={currentRole}
-              onChange={(e) => switchRoleForDemo(e.target.value)}
-              className="bg-transparent text-xs font-medium text-white outline-none cursor-pointer"
-            >
-              <option value={ROLES.ADMIN} className="bg-[#0f1422] text-white">Admin</option>
-              <option value={ROLES.PROJECT_MANAGER} className="bg-[#0f1422] text-white">Project Manager</option>
-              <option value={ROLES.PROJECT_LEAD} className="bg-[#0f1422] text-white">Project Lead</option>
-              <option value={ROLES.TEAM_LEAD} className="bg-[#0f1422] text-white">Team Lead</option>
-              <option value={ROLES.DEVELOPER} className="bg-[#0f1422] text-white">Developer</option>
-              <option value={ROLES.TESTER} className="bg-[#0f1422] text-white">Tester</option>
-              <option value={ROLES.QA} className="bg-[#0f1422] text-white">QA Specialist</option>
-            </select>
-          </div>
-
           {/* Active Role Badge */}
           <span className={`inline-flex items-center rounded-lg border px-3 py-1 text-xs font-semibold tracking-wide ${badgeStyle}`}>
             {formatRole(currentRole)}

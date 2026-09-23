@@ -1,11 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../../components/Auth/AuthLayout.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, currentUser } = useAuth();
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const [form, setForm] = useState({
     email: "",
@@ -64,7 +70,7 @@ const Login = () => {
     setMessage(null);
 
     try {
-      const result = await login(form.email, form.password);
+      const result = await login(form.email, form.password, form.remember);
 
       if (!result.success) {
         setMessage({
@@ -244,8 +250,66 @@ const Login = () => {
             </Link>
           </p>
 
+          {/* Quick Role Test Logins */}
+          <div className="mt-5 border-t border-[#e8eef8]/10 pt-4">
+            <p className="text-[10px] font-semibold text-[#e8eef8]/50 uppercase tracking-wider mb-2.5 text-center">
+              Quick Role Test Logins
+            </p>
+            <div className="flex flex-wrap gap-1.5 justify-center">
+              <button
+                type="button"
+                onClick={() => setForm({ email: "sophia.martinez@neuroforge.io", password: "password", remember: false })}
+                className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-300 hover:bg-amber-500/20 transition cursor-pointer"
+              >
+                Developer
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ email: "marcus.chen@neuroforge.io", password: "password", remember: false })}
+                className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-medium text-cyan-300 hover:bg-cyan-500/20 transition cursor-pointer"
+              >
+                Project Lead
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ email: "elena.rostova@neuroforge.io", password: "password", remember: false })}
+                className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[11px] font-medium text-blue-300 hover:bg-blue-500/20 transition cursor-pointer"
+              >
+                Project Manager
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ email: "david.kim@neuroforge.io", password: "password", remember: false })}
+                className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer"
+              >
+                Team Lead
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ email: "aria.takahashi@neuroforge.io", password: "password", remember: false })}
+                className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-300 hover:bg-rose-500/20 transition cursor-pointer"
+              >
+                Tester
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ email: "lucas.silva@neuroforge.io", password: "password", remember: false })}
+                className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-medium text-indigo-300 hover:bg-indigo-500/20 transition cursor-pointer"
+              >
+                QA
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ email: "suravighosh45@gmail.com", password: "password", remember: false })}
+                className="rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-[11px] font-medium text-purple-300 hover:bg-purple-500/20 transition cursor-pointer"
+              >
+                Admin
+              </button>
+            </div>
+          </div>
+
           {/* Security Note */}
-          <div className="mt-6 border-t border-[#e8eef8]/10 pt-4 text-center text-[11px] text-[#e8eef8]/40">
+          <div className="mt-4 border-t border-[#e8eef8]/10 pt-3 text-center text-[11px] text-[#e8eef8]/40">
             Enterprise IAM • 256-Bit SSL Encrypted
           </div>
         </section>
