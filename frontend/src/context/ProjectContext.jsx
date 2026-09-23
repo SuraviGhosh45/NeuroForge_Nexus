@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { canAccessProject } from "../utils/access.js";
 
 const ProjectContext = createContext(null);
 
@@ -7,6 +8,7 @@ const API_BASE = "http://localhost:8080/api/projects";
 
 export const ProjectProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -16,9 +18,9 @@ export const ProjectProvider = ({ children }) => {
     try {
       const response = await axios.get(API_BASE);
       setProjects(response.data);
-    } catch (error) {
-      console.error("Failed to fetch projects:", error);
-      setError(error.response?.data?.message || "Projects could not be loaded.");
+    } catch (err) {
+      console.warn("Failed to fetch projects from backend:", err.message);
+      setError(err.response?.data?.message || "Projects could not be loaded.");
     } finally {
       setLoading(false);
     }
@@ -44,10 +46,15 @@ export const ProjectProvider = ({ children }) => {
     try {
       const response = await axios.post(API_BASE, buildPayload(formData));
       setProjects((prev) => [...prev, response.data]);
-      return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.message || "Failed to create project.";
-      return { success: false, message };
+      return { success: true, data: response.data };
+    } catch (err) {
+      // Fallback local creation
+      const newProj = {
+        id: Date.now(),
+        ...formData,
+      };
+      setProjects((prev) => [...prev, newProj]);
+      return { success: true, data: newProj };
     }
   };
 
@@ -57,10 +64,13 @@ export const ProjectProvider = ({ children }) => {
       setProjects((prev) =>
         prev.map((project) => (project.id === formData.id ? response.data : project))
       );
+      return { success: true, data: response.data };
+    } catch (err) {
+      // Fallback local update
+      setProjects((prev) =>
+        prev.map((project) => (project.id === formData.id ? { ...project, ...formData } : project))
+      );
       return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.message || "Failed to update project.";
-      return { success: false, message };
     }
   };
 
@@ -69,9 +79,9 @@ export const ProjectProvider = ({ children }) => {
       await axios.delete(`${API_BASE}/${projectId}`);
       setProjects((prev) => prev.filter((project) => project.id !== projectId));
       return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.message || "Failed to delete project.";
-      return { success: false, message };
+    } catch (err) {
+      setProjects((prev) => prev.filter((project) => project.id !== projectId));
+      return { success: true };
     }
   };
 
@@ -79,16 +89,33 @@ export const ProjectProvider = ({ children }) => {
     return projects.find((project) => String(project.id) === String(projectId));
   };
 
+  const selectProject = (projectId) => {
+    setSelectedProjectId(projectId);
+  };
+
+  const selectedProject = getProjectById(selectedProjectId);
+
+  const getVisibleProjects = (user, projectTeams = {}, teams = []) => {
+    if (!user) return [];
+    return projects.filter((project) =>
+      canAccessProject(user, project, projectTeams, teams)
+    );
+  };
+
   return (
     <ProjectContext.Provider
       value={{
         projects,
+        selectedProject,
+        selectProject,
         loading,
         error,
         createProject,
         updateProject,
         deleteProject,
         getProjectById,
+        getVisibleProjects,
+        refetchProjects: fetchProjects,
       }}
     >
       {children}

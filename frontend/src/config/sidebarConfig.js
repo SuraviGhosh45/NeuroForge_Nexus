@@ -1,11 +1,11 @@
 import {
   PiSquaresFour,
-  PiUsersThree,
-  PiListChecks,
   PiUser,
   PiFolder,
-  PiKanban,
+  PiCalendarBlank,
+  PiBriefcase,
 } from "react-icons/pi";
+import { ROLES, MEMBER_ROLES, normalizeRole } from "../constants/roles.js";
 
 export const sidebarItems = [
   {
@@ -13,85 +13,61 @@ export const sidebarItems = [
     path: "/dashboard",
     icon: PiSquaresFour,
     roles: [
-      "Admin",
-      "Project Lead",
-      "Project Manager",
-      "Team Lead",
-      "Developer",
-      "Tester",
-      "QA",
+      ROLES.ADMIN,
+      ROLES.PROJECT_MANAGER,
+      ROLES.PROJECT_LEAD,
+      ROLES.TEAM_LEAD,
+      ...MEMBER_ROLES,
     ],
   },
-
   {
     label: "Projects",
     path: "/projects",
     icon: PiFolder,
     roles: [
-      "Admin",
-      "Project Lead",
-      "Project Manager",
-      "Team Lead",
+      ROLES.ADMIN,
+      ROLES.PROJECT_MANAGER,
+      ROLES.PROJECT_LEAD,
+      ROLES.TEAM_LEAD,
+      ...MEMBER_ROLES,
     ],
   },
-
   {
-    label: "Tasks",
-    path: "/tasks",
-    icon: PiListChecks,
+    label: "Calendar",
+    path: "/calendar",
+    icon: PiCalendarBlank,
     roles: [
-      "Admin",
-      "Project Lead",
-      "Project Manager",
-      "Team Lead",
+      ROLES.PROJECT_MANAGER,
+      ROLES.PROJECT_LEAD,
+      ROLES.TEAM_LEAD,
+      ...MEMBER_ROLES,
     ],
   },
-
   {
-    label: "Kanban",
-    path: "/kanban",
-    icon: PiKanban,
-    roles: [
-      "Admin",
-      "Project Lead",
-      "Project Manager",
-      "Team Lead",
-    ],
-  },
-
-  {
-    label: "My Tasks",
+    label: "My Work",
     path: "/my-tasks",
-    icon: PiListChecks,
+    icon: PiBriefcase,
     roles: [
-      "Team Lead",
-      "Developer",
-      "Tester",
-      "QA",
+      // NOTE: Admin NEVER has My Work
+      ROLES.PROJECT_MANAGER,
+      ROLES.PROJECT_LEAD,
+      ROLES.TEAM_LEAD,
+      ...MEMBER_ROLES,
     ],
   },
-
-  {
-    label: "Teams",
-    path: "/teams",
-    icon: PiUsersThree,
-    roles: [
-      "Admin",
-      "Project Lead",
-      "Project Manager",
-      "Team Lead",
-    ],
-  },
-
   {
     label: "Users",
     path: "/user-management",
     icon: PiUser,
-    roles: ["Admin"],
+    roles: [
+      ROLES.ADMIN,
+    ],
   },
 ];
 
-export const getSidebarItems = (role) =>
-  sidebarItems.filter((item) =>
-    item.roles.includes(role)
+export const getSidebarItems = (role) => {
+  const normalized = normalizeRole(role);
+  return sidebarItems.filter((item) =>
+    item.roles.map(normalizeRole).includes(normalized)
   );
+};
