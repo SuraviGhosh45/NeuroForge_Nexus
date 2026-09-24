@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PiEye, PiEyeSlash, PiLockKey, PiEnvelope } from "react-icons/pi";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -31,7 +33,10 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
-    if (!formData.email || !formData.password) {
+    const email = formData.email.trim();
+    const password = formData.password;
+
+    if (!email || !password) {
       setError("Please enter your email and password.");
       return;
     }
@@ -39,20 +44,19 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Keep your existing login/authentication logic here.
-      // This section should connect to your backend/API.
+      const result = await login(email, password);
 
-      // Example:
-      // const response = await loginUser(formData);
-      // localStorage.setItem("token", response.token);
-      // localStorage.setItem("user", JSON.stringify(response.user));
+      if (!result?.success) {
+        setError(result?.message || "Invalid email or password.");
+        return;
+      }
 
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(
         err?.response?.data?.message ||
           err?.message ||
-          "Invalid email or password."
+          "Unable to sign in. Please try again."
       );
     } finally {
       setLoading(false);
@@ -62,7 +66,6 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-[#07111f] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        {/* Logo / Heading */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">
             NeuroForge Nexus
@@ -73,10 +76,8 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Login Card */}
         <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1929] p-6 shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
             <div>
               <label
                 htmlFor="email"
@@ -98,12 +99,13 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter your email"
-                  className="w-full rounded-lg border border-[#e8eef8]/10 bg-[#07111f] py-3 pl-10 pr-4 text-sm text-white outline-none transition focus:border-blue-500 placeholder:text-[#65748a]"
+                  autoComplete="email"
+                  disabled={loading}
+                  className="w-full rounded-lg border border-[#e8eef8]/10 bg-[#07111f] py-3 pl-10 pr-4 text-sm text-white outline-none transition focus:border-blue-500 placeholder:text-[#65748a] disabled:opacity-60"
                 />
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label
                 htmlFor="password"
@@ -125,13 +127,16 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Enter your password"
-                  className="w-full rounded-lg border border-[#e8eef8]/10 bg-[#07111f] py-3 pl-10 pr-11 text-sm text-white outline-none transition focus:border-blue-500 placeholder:text-[#65748a]"
+                  autoComplete="current-password"
+                  disabled={loading}
+                  className="w-full rounded-lg border border-[#e8eef8]/10 bg-[#07111f] py-3 pl-10 pr-11 text-sm text-white outline-none transition focus:border-blue-500 placeholder:text-[#65748a] disabled:opacity-60"
                 />
 
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#728198] hover:text-white"
+                  disabled={loading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#728198] hover:text-white disabled:opacity-50"
                   aria-label={
                     showPassword ? "Hide password" : "Show password"
                   }
@@ -145,14 +150,15 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
-              <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+              <div
+                role="alert"
+                className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400"
+              >
                 {error}
               </div>
             )}
 
-            {/* Forgot Password */}
             <div className="flex justify-end">
               <Link
                 to="/forgot-password"
@@ -162,7 +168,6 @@ const Login = () => {
               </Link>
             </div>
 
-            {/* Login Button */}
             <button
               type="submit"
               disabled={loading}
@@ -172,7 +177,6 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Register */}
           <div className="mt-6 text-center text-sm text-[#9aa8bb]">
             Don't have an account?{" "}
             <Link
@@ -183,7 +187,6 @@ const Login = () => {
             </Link>
           </div>
 
-          {/* Security Note */}
           <div className="mt-4 border-t border-[#e8eef8]/10 pt-3 text-center text-[11px] text-[#e8eef8]/40">
             Enterprise IAM • 256-Bit SSL Encrypted
           </div>
