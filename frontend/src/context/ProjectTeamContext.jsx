@@ -1,403 +1,118 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import "../services/api.js";
 
+const API_BASE = "http://localhost:8080/api/projects";
 const ProjectTeamContext = createContext(null);
+export const MEMBER_STATUSES = ["Active", "Inactive", "In Meeting"];
 
-const STORAGE_KEY = "projectTeamMembers";
-
-const MEMBER_STATUSES = ["Active", "Inactive", "In Meeting"];
-
-/*
-  Stored structure:
-
-  {
-    "1": [
-      {
-        userId: 5,
-        projectRole: "Developer",
-        status: "Active"
-      },
-      {
-        userId: 8,
-        projectRole: "Tester",
-        status: "In Meeting"
-      }
-    ]
-  }
-*/
+const normalizeMember = (member) => ({
+  id: member.id,
+  userId: Number(member.userId ?? member.user?.id ?? member.id),
+  projectRole: member.projectRole ?? member.role ?? "Developer",
+  status: MEMBER_STATUSES.includes(member.status) ? member.status : "Active",
+  fullName: member.fullName ?? member.user?.fullName ?? "",
+  email: member.email ?? member.user?.email ?? "",
+});
 
 export const ProjectTeamProvider = ({ children }) => {
-  const [projectTeams, setProjectTeams] = useState(() => {
+  const [projectTeams, setProjectTeams] = useState({});
+
+  const loadProjectMembers = useCallback(async (projectId) => {
+    if (!projectId) return [];
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-
-      if (!stored) {
-        return {};
-      }
-
-      const parsed = JSON.parse(stored);
-
-      if (!parsed || typeof parsed !== "object") {
-        return {};
-      }
-
-      /*
-       * Backward compatibility:
-       *
-       * Existing members may not have a status because
-       * status was not part of the old structure.
-       *
-       * Give them Active by default.
-       */
-      const normalizedTeams = Object.entries(parsed).reduce(
-        (result, [projectId, members]) => {
-          result[projectId] = Array.isArray(members)
-            ? members.map((member) => ({
-                ...member,
-                status: MEMBER_STATUSES.includes(member.status)
-                  ? member.status
-                  : "Active",
-              }))
-            : [];
-
-          return result;
-        },
-        {}
-      );
-
-      return normalizedTeams;
+      const { data } = await axios.get(`${API_BASE}/${projectId}/members`);
+      const normalized = (Array.isArray(data) ? data : []).map(normalizeMember);
+      setProjectTeams((prev) => ({ ...prev, [String(projectId)]: normalized }));
+      return normalized;
     } catch (error) {
-      console.error(
-        "Failed to load project team data:",
-        error
-      );
-
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(projectTeams)
-      );
-    } catch (error) {
-      console.error(
-        "Failed to save project team data:",
-        error
-      );
-    }
-  }, [projectTeams]);
-
-  /* ================= GET PROJECT MEMBERS ================= */
-
-  const getProjectMembers = (projectId) => {
-    if (!projectId) {
+      console.warn("Project members could not be loaded:", error.message);
       return [];
     }
+  }, []);
 
-    return projectTeams[String(projectId)] || [];
-  };
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await axios.get(API_BASE);
+        const projects = Array.isArray(data) ? data : [];
+        await Promise.all(projects.map((p) => loadProjectMembers(p.id)));
+      } catch (error) {
+        console.warn("Project list could not be loaded for team hydration:", error.message);
+      }
+    };
+    load();
+  }, [loadProjectMembers]);
 
-  /* ================= CHECK USER ASSIGNMENT ================= */
-
-  const isUserAssignedToProject = (userId) => {
-    return Object.values(projectTeams).some((members) =>
-      members.some(
-        (member) =>
-          String(member.userId) === String(userId)
-      )
-    );
-  };
-
-  /* ================= GET USER PROJECT ================= */
-
-  const getUserProjectId = (userId) => {
-    const entry = Object.entries(projectTeams).find(
-      ([, members]) =>
-        members.some(
-          (member) =>
-            String(member.userId) === String(userId)
-        )
-    );
-
+  const getProjectMembers = useCallback((projectId) => projectTeams[String(projectId)] || [], [projectTeams]);
+  const isUserAssignedToProject = useCallback((userId) => Object.values(projectTeams).some((members) => members.some((m) => String(m.userId) === String(userId))), [projectTeams]);
+  const getUserProjectId = useCallback((userId) => {
+    const entry = Object.entries(projectTeams).find(([, members]) => members.some((m) => String(m.userId) === String(userId)));
     return entry ? entry[0] : null;
+  }, [projectTeams]);
+
+  const addProjectMember = async (projectId, userId, projectRole) => {
+    try {
+      const { data } = await axios.post(`${API_BASE}/${projectId}/members`, { userId: Number(userId), projectRole, status: "Active" });
+      await loadProjectMembers(projectId);
+      return { success: true, data: normalizeMember(data) };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || "Failed to add project member." };
+    }
   };
 
-  /* ================= ADD MEMBER ================= */
-
-  const addProjectMember = (
-    projectId,
-    userId,
-    projectRole
-  ) => {
-    if (!projectId || !userId || !projectRole) {
-      return {
-        success: false,
-        message:
-          "Project, user and project role are required.",
-      };
+  const updateProjectMember = async (projectId, userId, projectRole) => {
+    try {
+      const { data } = await axios.put(`${API_BASE}/${projectId}/members/${userId}`, { userId: Number(userId), projectRole });
+      await loadProjectMembers(projectId);
+      return { success: true, data: normalizeMember(data) };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || "Failed to update project member." };
     }
-
-    const projectKey = String(projectId);
-    const userKey = String(userId);
-
-    let result = {
-      success: true,
-      message: "",
-    };
-
-    setProjectTeams((prev) => {
-      const existingProjectMembers =
-        prev[projectKey] || [];
-
-      const alreadyInThisProject =
-        existingProjectMembers.some(
-          (member) =>
-            String(member.userId) === userKey
-        );
-
-      if (alreadyInThisProject) {
-        result = {
-          success: false,
-          message:
-            "This user is already a member of the project.",
-        };
-
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [projectKey]: [
-          ...existingProjectMembers,
-          {
-            userId,
-            projectRole,
-            status: "Active",
-          },
-        ],
-      };
-    });
-
-    return result;
   };
 
-  /* ================= UPDATE MEMBER ================= */
-
-  const updateProjectMember = (
-    projectId,
-    userId,
-    projectRole
-  ) => {
-    if (!projectId || !userId || !projectRole) {
-      return {
-        success: false,
-        message:
-          "Project, user and project role are required.",
-      };
+  const updateProjectMemberStatus = async (projectId, userId, status) => {
+    if (!MEMBER_STATUSES.includes(status)) return { success: false, message: "Invalid member status." };
+    try {
+      const { data } = await axios.patch(`${API_BASE}/${projectId}/members/${userId}/status`, { status });
+      await loadProjectMembers(projectId);
+      return { success: true, data: normalizeMember(data) };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || "Failed to update member status." };
     }
-
-    const projectKey = String(projectId);
-    const userKey = String(userId);
-
-    let result = {
-      success: true,
-      message: "",
-    };
-
-    setProjectTeams((prev) => {
-      const existingMembers =
-        prev[projectKey] || [];
-
-      const memberExists = existingMembers.some(
-        (member) =>
-          String(member.userId) === userKey
-      );
-
-      if (!memberExists) {
-        result = {
-          success: false,
-          message:
-            "Project member was not found.",
-        };
-
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [projectKey]: existingMembers.map(
-          (member) =>
-            String(member.userId) === userKey
-              ? {
-                  ...member,
-                  projectRole,
-                }
-              : member
-        ),
-      };
-    });
-
-    return result;
   };
 
-  /* ================= UPDATE MEMBER STATUS ================= */
-
-  const updateProjectMemberStatus = (
-    projectId,
-    userId,
-    status
-  ) => {
-    if (!projectId || !userId || !status) {
-      return {
-        success: false,
-        message:
-          "Project, user and status are required.",
-      };
+  const removeProjectMember = async (projectId, userId) => {
+    try {
+      await axios.delete(`${API_BASE}/${projectId}/members/${userId}`);
+      await loadProjectMembers(projectId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || "Failed to remove project member." };
     }
-
-    if (!MEMBER_STATUSES.includes(status)) {
-      return {
-        success: false,
-        message: "Invalid member status.",
-      };
-    }
-
-    const projectKey = String(projectId);
-    const userKey = String(userId);
-
-    let result = {
-      success: true,
-      message: "",
-    };
-
-    setProjectTeams((prev) => {
-      const existingMembers =
-        prev[projectKey] || [];
-
-      const memberExists = existingMembers.some(
-        (member) =>
-          String(member.userId) === userKey
-      );
-
-      if (!memberExists) {
-        result = {
-          success: false,
-          message:
-            "Project member was not found.",
-        };
-
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [projectKey]: existingMembers.map(
-          (member) =>
-            String(member.userId) === userKey
-              ? {
-                  ...member,
-                  status,
-                }
-              : member
-        ),
-      };
-    });
-
-    return result;
   };
 
-  /* ================= REMOVE MEMBER ================= */
+  const clearProjectTeam = (projectId) => setProjectTeams((prev) => {
+    const next = { ...prev };
+    delete next[String(projectId)];
+    return next;
+  });
 
-  const removeProjectMember = (
-    projectId,
-    userId
-  ) => {
-    if (!projectId || !userId) {
-      return {
-        success: false,
-        message:
-          "Project and user are required.",
-      };
-    }
+  const value = useMemo(() => ({
+    projectTeams,
+    getProjectMembers,
+    isUserAssignedToProject,
+    getUserProjectId,
+    addProjectMember,
+    updateProjectMember,
+    updateProjectMemberStatus,
+    removeProjectMember,
+    clearProjectTeam,
+    MEMBER_STATUSES,
+    loadProjectMembers,
+  }), [projectTeams, getProjectMembers, isUserAssignedToProject, getUserProjectId, loadProjectMembers]);
 
-    const projectKey = String(projectId);
-    const userKey = String(userId);
-
-    let result = {
-      success: true,
-      message: "",
-    };
-
-    setProjectTeams((prev) => {
-      const existingMembers =
-        prev[projectKey] || [];
-
-      const memberExists = existingMembers.some(
-        (member) =>
-          String(member.userId) === userKey
-      );
-
-      if (!memberExists) {
-        result = {
-          success: false,
-          message:
-            "Project member was not found.",
-        };
-
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [projectKey]: existingMembers.filter(
-          (member) =>
-            String(member.userId) !== userKey
-        ),
-      };
-    });
-
-    return result;
-  };
-
-  /* ================= CLEAR PROJECT TEAM ================= */
-
-  const clearProjectTeam = (projectId) => {
-    if (!projectId) {
-      return;
-    }
-
-    const projectKey = String(projectId);
-
-    setProjectTeams((prev) => {
-      const updated = { ...prev };
-
-      delete updated[projectKey];
-
-      return updated;
-    });
-  };
-
-  return (
-    <ProjectTeamContext.Provider
-      value={{
-        projectTeams,
-        getProjectMembers,
-        isUserAssignedToProject,
-        getUserProjectId,
-        addProjectMember,
-        updateProjectMember,
-        updateProjectMemberStatus,
-        removeProjectMember,
-        clearProjectTeam,
-        MEMBER_STATUSES,
-      }}
-    >
-      {children}
-    </ProjectTeamContext.Provider>
-  );
+  return <ProjectTeamContext.Provider value={value}>{children}</ProjectTeamContext.Provider>;
 };
 
-export const useProjectTeam = () =>
-  useContext(ProjectTeamContext);
+export const useProjectTeam = () => useContext(ProjectTeamContext);

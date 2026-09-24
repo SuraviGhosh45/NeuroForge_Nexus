@@ -3,12 +3,8 @@ import { Navigate, Link } from "react-router-dom";
 import {
   PiBriefcase,
   PiUsersThree,
-  PiCheckCircle,
-  PiClockCountdown,
   PiKanban,
   PiCalendarBlank,
-  PiArrowRight,
-  PiCheckSquareOffset,
 } from "react-icons/pi";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
@@ -25,134 +21,300 @@ const priorityColor = {
 
 const MyTask = () => {
   const { currentUser } = useAuth();
-  const { tasks, subtasks = [], updateSubtask, updateTask } = useTasks();
+  const {
+    tasks,
+    subtasks = [],
+    updateSubtask,
+    updateTask,
+  } = useTasks();
+
   const { projects } = useProjects();
   const { teams } = useTeams();
 
   const role = normalizeRole(currentUser?.role);
 
-  // Section 8: Admin is strictly excluded from My Work
   if (role === ROLES.ADMIN) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Active tab: 'my_work', 'team_work' (Team Lead only), or filter status
   const [activeTab, setActiveTab] = useState("all");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  // Items assigned to current user
-  const mySubtasks = useMemo(() => {
-    return subtasks.filter(
-      (s) => String(s.assigneeId) === String(currentUser?.id)
-    );
-  }, [subtasks, currentUser?.id]);
-
+  /*
+   * Parent tasks assigned to the logged-in user.
+   * These come from the backend /api/tasks endpoint.
+   */
   const myParentTasks = useMemo(() => {
     return tasks.filter(
-      (t) => String(t.assigneeId ?? t.assignee?.id) === String(currentUser?.id)
+      (task) =>
+        String(
+          task.assigneeId ?? task.assignee?.id
+        ) === String(currentUser?.id)
     );
   }, [tasks, currentUser?.id]);
 
-  // Team Lead: My Team's Work tab
-  const myTeam = teams.find((t) => String(t.leadId) === String(currentUser?.id)) || teams[0];
+  /*
+   * Subtasks assigned to the logged-in user.
+   */
+  const mySubtasks = useMemo(() => {
+    return subtasks.filter(
+      (subtask) =>
+        String(subtask.assigneeId) ===
+        String(currentUser?.id)
+    );
+  }, [subtasks, currentUser?.id]);
+
+  /*
+   * Team Lead: My Team's Work tab.
+   */
+  const myTeam =
+    teams.find(
+      (team) =>
+        String(team.leadId) ===
+        String(currentUser?.id)
+    ) || teams[0];
+
   const teamSubtasks = useMemo(() => {
     return subtasks.filter(
-      (s) => String(s.teamId) === String(myTeam?.id)
+      (subtask) =>
+        String(subtask.teamId) ===
+        String(myTeam?.id)
     );
   }, [subtasks, myTeam?.id]);
 
   const now = new Date();
 
-  // Status transition handler for my subtask
-  const handleSubtaskStatusChange = async (subtask, newStatus) => {
+  /*
+   * Parent task status update.
+   *
+   * TasksContext handles the correct backend endpoint:
+   * TEAM_MEMBER -> PATCH /api/tasks/{id}/status
+   */
+  const handleParentTaskStatusChange = async (
+    task,
+    newStatus
+  ) => {
+    await updateTask({
+      ...task,
+      status: newStatus,
+    });
+  };
+
+  /*
+   * Subtask status update.
+   */
+  const handleSubtaskStatusChange = async (
+    subtask,
+    newStatus
+  ) => {
     await updateSubtask(subtask.taskId, {
       ...subtask,
       status: newStatus,
     });
   };
 
-  // Determine items to display based on active tab
+  /*
+   * Status helper.
+   */
+  const getStatus = (item) => {
+    return (
+      item.status ||
+      item.boardStatus ||
+      "To Do"
+    );
+  };
+
+  /*
+   * All parent tasks + assigned subtasks.
+   *
+   * Parent tasks are displayed first.
+   */
+  const allMyItems = useMemo(() => {
+    const parentItems = myParentTasks.map(
+      (task) => ({
+        ...task,
+        itemType: "task",
+        itemId: task.id,
+        itemStatus: getStatus(task),
+      })
+    );
+
+    const subtaskItems = mySubtasks.map(
+      (subtask) => ({
+        ...subtask,
+        itemType: "subtask",
+        itemId: subtask.id,
+        itemStatus: getStatus(subtask),
+      })
+    );
+
+    return [
+      ...parentItems,
+      ...subtaskItems,
+    ];
+  }, [myParentTasks, mySubtasks]);
+
+  /*
+   * Filter displayed work items.
+   */
   const displayedItems = useMemo(() => {
     if (activeTab === "team_work") {
-      if (statusFilter === "ALL") return teamSubtasks;
-      return teamSubtasks.filter((s) => s.status === statusFilter);
+      if (statusFilter === "ALL") {
+        return teamSubtasks;
+      }
+
+      return teamSubtasks.filter(
+        (subtask) =>
+          getStatus(subtask) === statusFilter
+      );
     }
 
-    let items = mySubtasks;
+    let items = allMyItems;
+
     if (activeTab === "todo") {
-      items = items.filter((s) => s.status === "To Do");
-    } else if (activeTab === "in_progress") {
-      items = items.filter((s) => s.status === "In Progress");
-    } else if (activeTab === "done") {
-      items = items.filter((s) => s.status === "Done");
-    } else if (activeTab === "overdue") {
-      items = items.filter((s) => s.dueDate && new Date(s.dueDate) < now && s.status !== "Done");
-    } else if (activeTab === "review") {
-      // Tester / QA review tab: Ready for Testing or In QA
       items = items.filter(
-        (s) => s.status === "Ready for Testing" || s.status === "In Testing" || s.status === "In QA"
+        (item) =>
+          getStatus(item) === "To Do"
+      );
+    } else if (activeTab === "in_progress") {
+      items = items.filter(
+        (item) =>
+          getStatus(item) === "In Progress"
+      );
+    } else if (activeTab === "done") {
+      items = items.filter(
+        (item) =>
+          getStatus(item) === "Done"
+      );
+    } else if (activeTab === "overdue") {
+      items = items.filter(
+        (item) =>
+          item.dueDate &&
+          new Date(item.dueDate) < now &&
+          getStatus(item) !== "Done"
+      );
+    } else if (activeTab === "review") {
+      items = items.filter(
+        (item) =>
+          getStatus(item) ===
+            "Ready for Testing" ||
+          getStatus(item) ===
+            "In Testing" ||
+          getStatus(item) === "In QA"
       );
     }
 
     return items;
-  }, [activeTab, statusFilter, mySubtasks, teamSubtasks, now]);
+  }, [
+    activeTab,
+    statusFilter,
+    allMyItems,
+    teamSubtasks,
+    now,
+  ]);
+
+  const todoCount = allMyItems.filter(
+    (item) =>
+      getStatus(item) === "To Do"
+  ).length;
+
+  const inProgressCount = allMyItems.filter(
+    (item) =>
+      getStatus(item) === "In Progress"
+  ).length;
+
+  const completedCount = allMyItems.filter(
+    (item) =>
+      getStatus(item) === "Done"
+  ).length;
+
+  const overdueCount = allMyItems.filter(
+    (item) =>
+      item.dueDate &&
+      new Date(item.dueDate) < now &&
+      getStatus(item) !== "Done"
+  ).length;
 
   return (
     <div className="space-y-8">
+
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
             Personal Workbench • {formatRole(role)}
           </span>
+
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
             My Work Queue
           </h1>
+
           <p className="mt-1 text-sm text-[#e8eef8]/60">
             All work items and deliverables assigned to you across projects.
           </p>
         </div>
 
         <div className="rounded-xl border border-[#e8eef8]/10 bg-[#0d131f] px-4 py-2 text-xs text-[#e8eef8]/60">
-          Logged in as <span className="font-semibold text-white">{currentUser?.fullName}</span>
+          Logged in as{" "}
+          <span className="font-semibold text-white">
+            {currentUser?.fullName}
+          </span>
         </div>
       </div>
 
-      {/* KPI Stats Strip */}
+      {/* KPI Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
         <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d131f] p-4 shadow-sm">
-          <span className="text-xs text-[#e8eef8]/50 uppercase tracking-wider">My Subtasks</span>
-          <p className="mt-2 text-2xl font-bold text-white">{mySubtasks.length}</p>
+          <span className="text-xs text-[#e8eef8]/50 uppercase tracking-wider">
+            My Tasks
+          </span>
+
+          <p className="mt-2 text-2xl font-bold text-white">
+            {allMyItems.length}
+          </p>
+
+          <p className="mt-1 text-xs text-[#e8eef8]/40">
+            {myParentTasks.length} tasks •{" "}
+            {mySubtasks.length} subtasks
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d131f] p-4 shadow-sm">
-          <span className="text-xs text-[#e8eef8]/50 uppercase tracking-wider">In Progress</span>
+          <span className="text-xs text-[#e8eef8]/50 uppercase tracking-wider">
+            In Progress
+          </span>
+
           <p className="mt-2 text-2xl font-bold text-blue-400">
-            {mySubtasks.filter((s) => s.status === "In Progress").length}
+            {inProgressCount}
           </p>
         </div>
 
         <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d131f] p-4 shadow-sm">
-          <span className="text-xs text-[#e8eef8]/50 uppercase tracking-wider">Completed</span>
+          <span className="text-xs text-[#e8eef8]/50 uppercase tracking-wider">
+            Completed
+          </span>
+
           <p className="mt-2 text-2xl font-bold text-emerald-400">
-            {mySubtasks.filter((s) => s.status === "Done").length}
+            {completedCount}
           </p>
         </div>
 
         <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d131f] p-4 shadow-sm">
-          <span className="text-xs text-[#e8eef8]/50 uppercase tracking-wider">Overdue</span>
+          <span className="text-xs text-[#e8eef8]/50 uppercase tracking-wider">
+            Overdue
+          </span>
+
           <p className="mt-2 text-2xl font-bold text-rose-400">
-            {
-              mySubtasks.filter(
-                (s) => s.dueDate && new Date(s.dueDate) < now && s.status !== "Done"
-              ).length
-            }
+            {overdueCount}
           </p>
         </div>
+
       </div>
 
       {/* Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-[#e8eef8]/10 pb-3">
+
         <button
           onClick={() => setActiveTab("all")}
           className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
@@ -161,7 +323,7 @@ const MyTask = () => {
               : "text-[#e8eef8]/60 hover:bg-[#e8eef8]/5 hover:text-white"
           }`}
         >
-          All Items ({mySubtasks.length})
+          All Items ({allMyItems.length})
         </button>
 
         <button
@@ -172,7 +334,7 @@ const MyTask = () => {
               : "text-[#e8eef8]/60 hover:bg-[#e8eef8]/5 hover:text-white"
           }`}
         >
-          To Do ({mySubtasks.filter((s) => s.status === "To Do").length})
+          To Do ({todoCount})
         </button>
 
         <button
@@ -183,7 +345,7 @@ const MyTask = () => {
               : "text-[#e8eef8]/60 hover:bg-[#e8eef8]/5 hover:text-white"
           }`}
         >
-          In Progress ({mySubtasks.filter((s) => s.status === "In Progress").length})
+          In Progress ({inProgressCount})
         </button>
 
         <button
@@ -194,7 +356,7 @@ const MyTask = () => {
               : "text-[#e8eef8]/60 hover:bg-[#e8eef8]/5 hover:text-white"
           }`}
         >
-          Completed ({mySubtasks.filter((s) => s.status === "Done").length})
+          Completed ({completedCount})
         </button>
 
         <button
@@ -205,19 +367,16 @@ const MyTask = () => {
               : "text-rose-400/80 hover:bg-rose-500/10 hover:text-rose-400"
           }`}
         >
-          Overdue (
-          {
-            mySubtasks.filter(
-              (s) => s.dueDate && new Date(s.dueDate) < now && s.status !== "Done"
-            ).length
-          }
-          )
+          Overdue ({overdueCount})
         </button>
 
-        {/* Tester & QA Review Tab */}
-        {(role === ROLES.TESTER || role === ROLES.QA) && (
+        {/* Tester / QA */}
+        {(role === ROLES.TESTER ||
+          role === ROLES.QA) && (
           <button
-            onClick={() => setActiveTab("review")}
+            onClick={() =>
+              setActiveTab("review")
+            }
             className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
               activeTab === "review"
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
@@ -228,31 +387,46 @@ const MyTask = () => {
           </button>
         )}
 
-        {/* Team Lead: My Team's Work Tab */}
+        {/* Team Lead */}
         {role === ROLES.TEAM_LEAD && (
           <button
-            onClick={() => setActiveTab("team_work")}
+            onClick={() =>
+              setActiveTab("team_work")
+            }
             className={`rounded-xl px-4 py-2 text-xs font-semibold transition border ${
               activeTab === "team_work"
                 ? "bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/20"
                 : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
             }`}
           >
-            <PiUsersThree size={16} className="inline mr-1.5" />
+            <PiUsersThree
+              size={16}
+              className="inline mr-1.5"
+            />
             My Team's Work ({teamSubtasks.length})
           </button>
         )}
+
       </div>
 
       {/* Items Table */}
       <div className="overflow-hidden rounded-2xl border border-[#e8eef8]/10 bg-[#0d131f] shadow-xl">
+
         <div className="border-b border-[#e8eef8]/10 px-6 py-4 flex items-center justify-between">
+
           <h2 className="text-base font-semibold text-white">
-            {activeTab === "team_work" ? "Team Deliverables" : "Assigned Subtasks"}
+            {activeTab === "team_work"
+              ? "Team Deliverables"
+              : "My Work Items"}
           </h2>
+
           <span className="text-xs text-[#e8eef8]/40">
-            {displayedItems.length} item{displayedItems.length === 1 ? "" : "s"}
+            {displayedItems.length} item
+            {displayedItems.length === 1
+              ? ""
+              : "s"}
           </span>
+
         </div>
 
         {displayedItems.length === 0 ? (
@@ -261,120 +435,290 @@ const MyTask = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
+
             <table className="w-full">
+
               <thead className="bg-[#0a0e17] border-b border-[#e8eef8]/5 text-left text-xs font-medium text-[#e8eef8]/50">
+
                 <tr>
-                  <th className="px-6 py-3.5">Subtask</th>
-                  <th className="px-6 py-3.5">Parent Task & Project</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5">Priority</th>
-                  <th className="px-6 py-3.5">Due Date</th>
-                  <th className="px-6 py-3.5 text-right">Quick Links</th>
+                  <th className="px-6 py-3.5">
+                    Work Item
+                  </th>
+
+                  <th className="px-6 py-3.5">
+                    Parent Task & Project
+                  </th>
+
+                  <th className="px-6 py-3.5">
+                    Status
+                  </th>
+
+                  <th className="px-6 py-3.5">
+                    Priority
+                  </th>
+
+                  <th className="px-6 py-3.5">
+                    Due Date
+                  </th>
+
+                  <th className="px-6 py-3.5 text-right">
+                    Quick Links
+                  </th>
                 </tr>
+
               </thead>
+
               <tbody className="divide-y divide-[#e8eef8]/5 text-sm">
-                {displayedItems.map((subtask) => {
-                  const parentTask = tasks.find((t) => String(t.id) === String(subtask.taskId));
-                  const project = projects.find(
-                    (p) => String(p.id) === String(parentTask?.projectId)
-                  );
+
+                {displayedItems.map((item) => {
+
+                  const isParentTask =
+                    item.itemType === "task";
+
+                  const parentTask = isParentTask
+                    ? item
+                    : tasks.find(
+                        (task) =>
+                          String(task.id) ===
+                          String(item.taskId)
+                      );
+
+                  const project =
+                    projects.find(
+                      (project) =>
+                        String(project.id) ===
+                        String(
+                          parentTask?.projectId
+                        )
+                    );
+
+                  const itemStatus =
+                    getStatus(item);
+
                   const isOverdue =
-                    subtask.dueDate &&
-                    new Date(subtask.dueDate) < now &&
-                    subtask.status !== "Done";
+                    item.dueDate &&
+                    new Date(item.dueDate) <
+                      now &&
+                    itemStatus !== "Done";
 
                   return (
-                    <tr key={subtask.id} className="transition hover:bg-[#181f2f]/40">
-                      {/* Subtask Title */}
+                    <tr
+                      key={`${item.itemType}-${item.id}`}
+                      className="transition hover:bg-[#181f2f]/40"
+                    >
+
+                      {/* Work Item */}
                       <td className="px-6 py-4">
-                        <span className="font-medium text-white">{subtask.title}</span>
-                        {subtask.description && (
+
+                        <div className="flex items-center gap-2">
+
+                          {isParentTask ? (
+                            <PiBriefcase
+                              size={17}
+                              className="text-blue-400"
+                            />
+                          ) : (
+                            <span className="text-xs text-amber-400">
+                              SUB
+                            </span>
+                          )}
+
+                          <span className="font-medium text-white">
+                            {item.title}
+                          </span>
+
+                        </div>
+
+                        {item.description && (
                           <p className="text-xs text-[#e8eef8]/40 truncate max-w-sm mt-0.5">
-                            {subtask.description}
+                            {item.description}
                           </p>
                         )}
+
                       </td>
 
                       {/* Parent Task & Project */}
                       <td className="px-6 py-4 text-xs text-[#e8eef8]/70">
-                        <p className="font-medium text-white">{parentTask?.title || `Task #${subtask.taskId}`}</p>
-                        <p className="text-[#e8eef8]/40 mt-0.5">{project?.name || "Project"}</p>
+
+                        <p className="font-medium text-white">
+                          {isParentTask
+                            ? "Parent Task"
+                            : parentTask?.title ||
+                              `Task #${item.taskId}`}
+                        </p>
+
+                        <p className="text-[#e8eef8]/40 mt-0.5">
+                          {project?.name ||
+                            item.project?.name ||
+                            "Project"}
+                        </p>
+
                       </td>
 
-                      {/* Status Selector */}
+                      {/* Status */}
                       <td className="px-6 py-4">
+
                         <select
-                          value={subtask.status || "To Do"}
-                          onChange={(e) => handleSubtaskStatusChange(subtask, e.target.value)}
+                          value={
+                            itemStatus ||
+                            "To Do"
+                          }
+                          onChange={(e) => {
+
+                            const newStatus =
+                              e.target.value;
+
+                            if (
+                              isParentTask
+                            ) {
+                              handleParentTaskStatusChange(
+                                item,
+                                newStatus
+                              );
+                            } else {
+                              handleSubtaskStatusChange(
+                                item,
+                                newStatus
+                              );
+                            }
+
+                          }}
                           className="rounded-lg border border-[#e8eef8]/15 bg-[#0a0e17] px-2.5 py-1 text-xs text-white outline-none cursor-pointer focus:border-blue-500"
                         >
-                          <option value="To Do">To Do</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="Ready for Testing">Ready for Testing</option>
-                          <option value="In Testing">In Testing</option>
-                          <option value="In QA">In QA</option>
-                          <option value="Done">Done</option>
+
+                          <option value="To Do">
+                            To Do
+                          </option>
+
+                          <option value="In Progress">
+                            In Progress
+                          </option>
+
+                          <option value="Ready for Testing">
+                            Ready for Testing
+                          </option>
+
+                          <option value="In Testing">
+                            In Testing
+                          </option>
+
+                          <option value="In QA">
+                            In QA
+                          </option>
+
+                          <option value="Done">
+                            Done
+                          </option>
+
                         </select>
+
                       </td>
 
-                      {/* Priority Badge */}
+                      {/* Priority */}
                       <td className="px-6 py-4">
+
                         <span
                           className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
-                            priorityColor[subtask.priority] || "border-gray-500/30 text-gray-300"
+                            priorityColor[
+                              item.priority
+                            ] ||
+                            "border-gray-500/30 text-gray-300"
                           }`}
                         >
-                          {subtask.priority || "Medium"}
+                          {item.priority ||
+                            "Medium"}
                         </span>
+
                       </td>
 
                       {/* Due Date */}
                       <td className="px-6 py-4 text-xs">
-                        <span className={isOverdue ? "text-rose-400 font-semibold" : "text-[#e8eef8]/60"}>
-                          {subtask.dueDate || "No deadline"}
+
+                        <span
+                          className={
+                            isOverdue
+                              ? "text-rose-400 font-semibold"
+                              : "text-[#e8eef8]/60"
+                          }
+                        >
+                          {item.dueDate ||
+                            "No deadline"}
                         </span>
+
                       </td>
 
                       {/* Quick Links */}
                       <td className="px-6 py-4 text-right">
+
                         {parentTask?.projectId ? (
                           <div className="inline-flex items-center gap-2">
-                            <Link
-                              to={`/projects/${parentTask.projectId}/tasks/${parentTask.id}/${subtask.id}`}
-                              title="Subtask Details"
-                              className="rounded-lg p-1.5 text-[#e8eef8]/60 hover:bg-blue-500/10 hover:text-blue-400 transition"
-                            >
-                              <PiBriefcase size={16} />
-                            </Link>
 
-                            <Link
-                              to={`/projects/${parentTask.projectId}/tasks/${parentTask.id}/${subtask.id}/kanban`}
-                              title="Subtask Kanban"
-                              className="rounded-lg p-1.5 text-[#e8eef8]/60 hover:bg-blue-500/10 hover:text-blue-400 transition"
-                            >
-                              <PiKanban size={16} />
-                            </Link>
+                            {isParentTask ? (
+                              <Link
+                                to={`/projects/${parentTask.projectId}/tasks/${parentTask.id}`}
+                                title="Task Details"
+                                className="rounded-lg p-1.5 text-[#e8eef8]/60 hover:bg-blue-500/10 hover:text-blue-400 transition"
+                              >
+                                <PiBriefcase
+                                  size={16}
+                                />
+                              </Link>
+                            ) : (
+                              <>
+                                <Link
+                                  to={`/projects/${parentTask.projectId}/tasks/${parentTask.id}/${item.id}`}
+                                  title="Subtask Details"
+                                  className="rounded-lg p-1.5 text-[#e8eef8]/60 hover:bg-blue-500/10 hover:text-blue-400 transition"
+                                >
+                                  <PiBriefcase
+                                    size={16}
+                                  />
+                                </Link>
 
-                            <Link
-                              to={`/projects/${parentTask.projectId}/tasks/${parentTask.id}/${subtask.id}/calendar`}
-                              title="Subtask Calendar"
-                              className="rounded-lg p-1.5 text-[#e8eef8]/60 hover:bg-blue-500/10 hover:text-blue-400 transition"
-                            >
-                              <PiCalendarBlank size={16} />
-                            </Link>
+                                <Link
+                                  to={`/projects/${parentTask.projectId}/tasks/${parentTask.id}/${item.id}/kanban`}
+                                  title="Subtask Kanban"
+                                  className="rounded-lg p-1.5 text-[#e8eef8]/60 hover:bg-blue-500/10 hover:text-blue-400 transition"
+                                >
+                                  <PiKanban
+                                    size={16}
+                                  />
+                                </Link>
+
+                                <Link
+                                  to={`/projects/${parentTask.projectId}/tasks/${parentTask.id}/${item.id}/calendar`}
+                                  title="Subtask Calendar"
+                                  className="rounded-lg p-1.5 text-[#e8eef8]/60 hover:bg-blue-500/10 hover:text-blue-400 transition"
+                                >
+                                  <PiCalendarBlank
+                                    size={16}
+                                  />
+                                </Link>
+                              </>
+                            )}
+
                           </div>
                         ) : (
-                          <span className="text-xs text-[#e8eef8]/30">-</span>
+                          <span className="text-xs text-[#e8eef8]/30">
+                            -
+                          </span>
                         )}
+
                       </td>
+
                     </tr>
                   );
                 })}
+
               </tbody>
+
             </table>
+
           </div>
         )}
+
       </div>
+
     </div>
   );
 };

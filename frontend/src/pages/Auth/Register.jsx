@@ -16,7 +16,6 @@ const Register = () => {
   const [form, setForm] = useState({
     fullName: "",
     email: "",
-    role: "developer",
     password: "",
     confirmPassword: "",
     terms: false,
@@ -94,7 +93,6 @@ const Register = () => {
         name: form.fullName.trim(),
         email: form.email.trim(),
         password: form.password,
-        role: form.role,
       });
 
       if (!result.success) {
@@ -209,28 +207,15 @@ const Register = () => {
             {/* Role Selection */}
             <div>
               <label
-                htmlFor="role"
                 className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70"
               >
                 Workspace Role
               </label>
-              <select
-                id="role"
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f]/90 px-4 py-2.5 text-sm text-[#e8eef8] outline-none transition hover:border-[#e8eef8]/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-              >
-                <option value="developer" className="bg-[#07111f] text-white">Developer</option>
-                <option value="project_lead" className="bg-[#07111f] text-white">Project Lead</option>
-                <option value="project_manager" className="bg-[#07111f] text-white">Project Manager</option>
-                <option value="team_lead" className="bg-[#07111f] text-white">Team Lead</option>
-                <option value="tester" className="bg-[#07111f] text-white">Tester</option>
-                <option value="qa" className="bg-[#07111f] text-white">QA Specialist</option>
-                <option value="admin" className="bg-[#07111f] text-white">Admin</option>
-              </select>
+              <div className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f]/90 px-4 py-2.5 text-sm text-[#e8eef8]">
+                Developer
+              </div>
               <p className="mt-1 text-[11px] text-[#e8eef8]/40">
-                Your permissions and workspace modules will be automatically scoped to this role.
+                New accounts start as Developer. An administrator can change the role later.
               </p>
             </div>
 

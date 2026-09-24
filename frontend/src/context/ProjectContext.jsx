@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import { canAccessProject } from "../utils/access.js";
+import "../services/api.js";
 
 const ProjectContext = createContext(null);
 
@@ -15,12 +15,32 @@ export const ProjectProvider = ({ children }) => {
   const fetchProjects = async () => {
     setLoading(true);
     setError("");
+
     try {
       const response = await axios.get(API_BASE);
-      setProjects(response.data);
+
+      const data = Array.isArray(response.data)
+        ? response.data
+        : [];
+
+      setProjects(data);
+
+      // Automatically select the first available project
+      if (data.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(data[0].id);
+      }
     } catch (err) {
-      console.warn("Failed to fetch projects from backend:", err.message);
-      setError(err.response?.data?.message || "Projects could not be loaded.");
+      console.warn(
+        "Failed to fetch projects from backend:",
+        err.message
+      );
+
+      setProjects([]);
+
+      setError(
+        err.response?.data?.message ||
+          "Projects could not be loaded."
+      );
     } finally {
       setLoading(false);
     }
@@ -34,9 +54,15 @@ export const ProjectProvider = ({ children }) => {
     name: formData.name,
     description: formData.description,
     code: formData.code,
-    projectLeadId: formData.projectLead ? Number(formData.projectLead) : null,
-    projectManagerId: formData.projectManager ? Number(formData.projectManager) : null,
-    teamId: formData.teamId ? Number(formData.teamId) : null,
+    projectLeadId: formData.projectLead
+      ? Number(formData.projectLead)
+      : null,
+    projectManagerId: formData.projectManager
+      ? Number(formData.projectManager)
+      : null,
+    teamId: formData.teamId
+      ? Number(formData.teamId)
+      : null,
     status: formData.status,
     startDate: formData.startDate || null,
     endDate: formData.endDate || null,
@@ -44,62 +70,119 @@ export const ProjectProvider = ({ children }) => {
 
   const createProject = async (formData) => {
     try {
-      const response = await axios.post(API_BASE, buildPayload(formData));
-      setProjects((prev) => [...prev, response.data]);
-      return { success: true, data: response.data };
-    } catch (err) {
-      // Fallback local creation
-      const newProj = {
-        id: Date.now(),
-        ...formData,
+      const response = await axios.post(
+        API_BASE,
+        buildPayload(formData)
+      );
+
+      setProjects((prev) => [
+        ...prev,
+        response.data,
+      ]);
+
+      return {
+        success: true,
+        data: response.data,
       };
-      setProjects((prev) => [...prev, newProj]);
-      return { success: true, data: newProj };
+    } catch (err) {
+      return {
+        success: false,
+        message:
+          err.response?.data?.message ||
+          "Failed to create project.",
+      };
     }
   };
 
   const updateProject = async (formData) => {
     try {
-      const response = await axios.put(`${API_BASE}/${formData.id}`, buildPayload(formData));
-      setProjects((prev) =>
-        prev.map((project) => (project.id === formData.id ? response.data : project))
+      const response = await axios.put(
+        `${API_BASE}/${formData.id}`,
+        buildPayload(formData)
       );
-      return { success: true, data: response.data };
+
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === formData.id
+            ? response.data
+            : project
+        )
+      );
+
+      return {
+        success: true,
+        data: response.data,
+      };
     } catch (err) {
-      // Fallback local update
-      setProjects((prev) =>
-        prev.map((project) => (project.id === formData.id ? { ...project, ...formData } : project))
-      );
-      return { success: true };
+      return {
+        success: false,
+        message:
+          err.response?.data?.message ||
+          "Failed to update project.",
+      };
     }
   };
 
   const deleteProject = async (projectId) => {
     try {
-      await axios.delete(`${API_BASE}/${projectId}`);
-      setProjects((prev) => prev.filter((project) => project.id !== projectId));
+      await axios.delete(
+        `${API_BASE}/${projectId}`
+      );
+
+      setProjects((prev) =>
+        prev.filter(
+          (project) => project.id !== projectId
+        )
+      );
+
+      if (
+        String(selectedProjectId) ===
+        String(projectId)
+      ) {
+        setSelectedProjectId(null);
+      }
+
       return { success: true };
     } catch (err) {
-      setProjects((prev) => prev.filter((project) => project.id !== projectId));
-      return { success: true };
+      return {
+        success: false,
+        message:
+          err.response?.data?.message ||
+          "Failed to delete project.",
+      };
     }
   };
 
   const getProjectById = (projectId) => {
-    return projects.find((project) => String(project.id) === String(projectId));
+    return projects.find(
+      (project) =>
+        String(project.id) ===
+        String(projectId)
+    );
   };
 
   const selectProject = (projectId) => {
     setSelectedProjectId(projectId);
   };
 
-  const selectedProject = getProjectById(selectedProjectId);
+  const selectedProject =
+    getProjectById(selectedProjectId);
 
-  const getVisibleProjects = (user, projectTeams = {}, teams = []) => {
-    if (!user) return [];
-    return projects.filter((project) =>
-      canAccessProject(user, project, projectTeams, teams)
-    );
+  /*
+   * IMPORTANT:
+   *
+   * The backend already applies project visibility
+   * according to the logged-in user's role.
+   *
+   * Therefore, do not run another frontend
+   * canAccessProject() filter here.
+   *
+   * Example:
+   * TEAM_MEMBER Bob -> backend returns only
+   * Website Redesign.
+   */
+  const getVisibleProjects = () => {
+    return projects;
   };
 
   return (
@@ -107,6 +190,7 @@ export const ProjectProvider = ({ children }) => {
       value={{
         projects,
         selectedProject,
+        selectedProjectId,
         selectProject,
         loading,
         error,
@@ -123,4 +207,5 @@ export const ProjectProvider = ({ children }) => {
   );
 };
 
-export const useProjects = () => useContext(ProjectContext);
+export const useProjects = () =>
+  useContext(ProjectContext);

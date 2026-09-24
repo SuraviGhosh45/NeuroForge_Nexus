@@ -6,6 +6,7 @@ export const ROLES = {
   DEVELOPER: "developer",
   TESTER: "tester",
   QA: "qa",
+  TEAM_MEMBER: "team_member", // legacy backend value
 };
 
 export const MEMBER_ROLES = [
@@ -14,46 +15,53 @@ export const MEMBER_ROLES = [
   ROLES.QA,
 ];
 
-/**
- * Normalizes any role input (e.g. "Admin", "ADMIN", "Project Manager", "project_manager")
- * to the canonical lowercase underscore format (e.g. "admin", "project_manager").
- */
+export const ALL_ROLES = [
+  ROLES.ADMIN,
+  ROLES.PROJECT_MANAGER,
+  ROLES.PROJECT_LEAD,
+  ROLES.TEAM_LEAD,
+  ROLES.DEVELOPER,
+  ROLES.TESTER,
+  ROLES.QA,
+];
+
 export const normalizeRole = (role) => {
   if (!role || typeof role !== "string") return ROLES.DEVELOPER;
+
   const cleaned = role.trim().toLowerCase().replace(/[\s-]+/g, "_");
-  
-  if (cleaned === "admin") return ROLES.ADMIN;
-  if (cleaned === "project_manager" || cleaned === "manager" || cleaned === "pm") return ROLES.PROJECT_MANAGER;
-  if (cleaned === "project_lead" || cleaned === "lead" || cleaned === "pl") return ROLES.PROJECT_LEAD;
-  if (cleaned === "team_lead" || cleaned === "tl") return ROLES.TEAM_LEAD;
-  if (cleaned === "developer" || cleaned === "dev") return ROLES.DEVELOPER;
-  if (cleaned === "tester" || cleaned === "test") return ROLES.TESTER;
-  if (cleaned === "qa") return ROLES.QA;
-  
-  return cleaned;
+
+  switch (cleaned) {
+    case "admin": return ROLES.ADMIN;
+    case "project_manager":
+    case "manager":
+    case "pm": return ROLES.PROJECT_MANAGER;
+    case "project_lead":
+    case "lead":
+    case "pl": return ROLES.PROJECT_LEAD;
+    case "team_lead":
+    case "tl": return ROLES.TEAM_LEAD;
+    case "developer":
+    case "dev": return ROLES.DEVELOPER;
+    case "tester":
+    case "test": return ROLES.TESTER;
+    case "qa":
+    case "qa_specialist":
+    case "quality_assurance": return ROLES.QA;
+    case "team_member":
+    case "member": return ROLES.DEVELOPER;
+    default: return ROLES.DEVELOPER;
+  }
 };
 
-/**
- * Human-readable display label for a role
- */
 export const formatRole = (role) => {
-  const normalized = normalizeRole(role);
-  switch (normalized) {
-    case ROLES.ADMIN:
-      return "Admin";
-    case ROLES.PROJECT_MANAGER:
-      return "Project Manager";
-    case ROLES.PROJECT_LEAD:
-      return "Project Lead";
-    case ROLES.TEAM_LEAD:
-      return "Team Lead";
-    case ROLES.DEVELOPER:
-      return "Developer";
-    case ROLES.TESTER:
-      return "Tester";
-    case ROLES.QA:
-      return "QA Specialist";
-    default:
-      return role || "Member";
+  switch (normalizeRole(role)) {
+    case ROLES.ADMIN: return "Admin";
+    case ROLES.PROJECT_MANAGER: return "Project Manager";
+    case ROLES.PROJECT_LEAD: return "Project Lead";
+    case ROLES.TEAM_LEAD: return "Team Lead";
+    case ROLES.DEVELOPER: return "Developer";
+    case ROLES.TESTER: return "Tester";
+    case ROLES.QA: return "QA Specialist";
+    default: return "Developer";
   }
 };

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import "../services/api.js";
 
 const UsersContext = createContext(null);
 
@@ -23,128 +24,85 @@ export const normalizeUserRole = (role) => {
 
 export const normalizeUser = (user) => {
   const roleKey = normalizeUserRole(user.role);
-  const defaultSkills = ROLE_DEFAULT_SKILLS[roleKey] || ROLE_DEFAULT_SKILLS.developer;
+  const defaultSkills =
+    ROLE_DEFAULT_SKILLS[roleKey] || ROLE_DEFAULT_SKILLS.developer;
+
+  const backendSkills =
+    Array.isArray(user.skills) && user.skills.length > 0
+      ? user.skills
+      : null;
 
   return {
     ...user,
     id: user.id != null ? Number(user.id) : Date.now(),
     fullName: user.fullName || user.name || "User",
     name: user.fullName || user.name || "User",
-    email: user.email || `${(user.fullName || user.name || "user").toLowerCase().replace(/\s+/g, ".")}@neuroforge.io`,
+    email: user.email || "",
     role: user.role || "developer",
-    skills: Array.isArray(user.skills) && user.skills.length > 0 ? user.skills : defaultSkills,
+    skills: backendSkills || defaultSkills,
     status: user.status || "Active",
   };
 };
 
-const DEFAULT_USERS = [
-  {
-    id: 1,
-    fullName: "Suravi Ghosh",
-    email: "suravighosh45@gmail.com",
-    role: "admin",
-    skills: ["System Admin", "Access Control", "Security Compliance", "DevOps"],
-    status: "Active",
-  },
-  {
-    id: 2,
-    fullName: "Elena Rostova",
-    email: "elena.rostova@neuroforge.io",
-    role: "project_manager",
-    skills: ["Agile / Scrum", "Risk Management", "Resource Planning", "Stakeholder Mgmt"],
-    status: "Active",
-  },
-  {
-    id: 3,
-    fullName: "Marcus Chen",
-    email: "marcus.chen@neuroforge.io",
-    role: "project_lead",
-    skills: ["System Architecture", "Sprint Planning", "Technical Strategy", "Mentorship"],
-    status: "Active",
-  },
-  {
-    id: 4,
-    fullName: "David Kim",
-    email: "david.kim@neuroforge.io",
-    role: "team_lead",
-    skills: ["Sprint Leadership", "Code Review", "Task Delegation", "Architecture"],
-    status: "Active",
-  },
-  {
-    id: 5,
-    fullName: "Sophia Martinez",
-    email: "sophia.martinez@neuroforge.io",
-    role: "developer",
-    skills: ["React", "TypeScript", "Tailwind CSS", "REST APIs"],
-    status: "Active",
-  },
-  {
-    id: 6,
-    fullName: "Liam Vance",
-    email: "liam.vance@neuroforge.io",
-    role: "developer",
-    skills: ["Spring Boot", "Java", "PostgreSQL", "Microservices"],
-    status: "Active",
-  },
-  {
-    id: 7,
-    fullName: "Aria Takahashi",
-    email: "aria.takahashi@neuroforge.io",
-    role: "tester",
-    skills: ["Selenium", "Jest", "Test Automation", "Manual Testing"],
-    status: "Active",
-  },
-  {
-    id: 8,
-    fullName: "Lucas Silva",
-    email: "lucas.silva@neuroforge.io",
-    role: "qa",
-    skills: ["Quality Assurance", "Cypress", "Performance Testing", "CI/CD"],
-    status: "Active",
-  },
-];
 
 export const UsersProvider = ({ children }) => {
-  const [users, setUsers] = useState(() => {
-    try {
-      const cached = localStorage.getItem(USERS_STORAGE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(normalizeUser);
-        }
-      }
-    } catch (e) {
-      console.warn("Failed to load cached users:", e);
-    }
-    return DEFAULT_USERS.map(normalizeUser);
-  });
+  const [users, setUsers] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const saveToStorage = (updatedUsers) => {
     try {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
+      localStorage.setItem(
+        USERS_STORAGE_KEY,
+        JSON.stringify(updatedUsers)
+      );
     } catch (e) {
-      console.warn("Failed to cache users in localStorage:", e);
+      console.warn(
+        "Failed to cache users in localStorage:",
+        e
+      );
+    }
+  };
+
+  const getCurrentUserRole = () => {
+    try {
+      const storedUser =
+        sessionStorage.getItem("auth_user") ||
+        localStorage.getItem("auth_user");
+
+      if (!storedUser) {
+        return null;
+      }
+
+      const user = JSON.parse(storedUser);
+
+      return user?.role
+        ? String(user.role).toUpperCase()
+        : null;
+    } catch (e) {
+      return null;
     }
   };
 
   const fetchUsers = async () => {
+    const currentRole = getCurrentUserRole();
     setLoading(true);
     setError("");
+
     try {
-      const response = await axios.get(API_BASE);
-      if (Array.isArray(response.data) && response.data.length > 0) {
-        const normalized = response.data.map(normalizeUser);
-        setUsers(normalized);
-        saveToStorage(normalized);
-      } else {
-        setUsers((prev) => (prev.length > 0 ? prev : DEFAULT_USERS.map(normalizeUser)));
-      }
+      const response = currentRole === "ADMIN"
+        ? await axios.get(API_BASE)
+        : ["PROJECT_MANAGER", "PROJECT_LEAD", "TEAM_LEAD"].includes(currentRole)
+          ? await axios.get(`${API_BASE}/options`)
+          : { data: [] };
+
+      const normalized = Array.isArray(response.data) ? response.data.map(normalizeUser) : [];
+      setUsers(normalized);
+      if (currentRole === "ADMIN") saveToStorage(normalized);
     } catch (error) {
-      console.warn("Backend user fetch failed, using local/cached users:", error.message);
-      setUsers((prev) => (prev.length > 0 ? prev : DEFAULT_USERS.map(normalizeUser)));
+      setError(error.response?.data?.message || "Failed to load users.");
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -155,116 +113,71 @@ export const UsersProvider = ({ children }) => {
   }, []);
 
   const createUser = async (newUser) => {
-    const normalized = normalizeUser({
-      ...newUser,
-      id: Date.now(),
-    });
-
     try {
-      await axios.post(API_BASE, normalized);
+      const response = await axios.post(API_BASE, {
+        fullName: newUser.fullName || newUser.name,
+        email: newUser.email,
+        password: newUser.password || "TempPass@123",
+        role: newUser.role,
+        status: newUser.status || "Active",
+      });
+      const normalized = normalizeUser(response.data);
+      setUsers((prev) => [normalized, ...prev]);
+      return { success: true, data: normalized };
     } catch (e) {
-      console.warn("Backend user create failed, persisting locally:", e.message);
+      return { success: false, message: e.response?.data?.message || "Failed to create user." };
     }
-
-    setUsers((prev) => {
-      const next = [normalized, ...prev];
-      saveToStorage(next);
-      return next;
-    });
-
-    return { success: true, data: normalized };
   };
 
   const updateUser = async (updatedUser, currentUserId) => {
     const existing = users.find((u) => String(u.id) === String(updatedUser.id));
-
-    // Enforce: No member can change other members' status (Active, Inactive, In Meeting) except their own
-    let finalStatus = updatedUser.status;
-    if (
-      existing &&
-      currentUserId &&
-      String(updatedUser.id) !== String(currentUserId) &&
-      updatedUser.status !== existing.status
-    ) {
-      finalStatus = existing.status;
-    }
-
-    const normalized = normalizeUser({
-      ...updatedUser,
-      status: finalStatus,
-    });
+    if (!existing) return { success: false, message: "User not found." };
 
     try {
-      await axios.put(`${API_BASE}/${normalized.id}`, {
-        fullName: normalized.fullName,
-        email: normalized.email,
-        role: normalized.role,
-        skills: normalized.skills,
-        status: normalized.status,
+      let response = await axios.put(`${API_BASE}/${updatedUser.id}`, {
+        fullName: updatedUser.fullName || updatedUser.name,
+        email: updatedUser.email,
       });
+      if (updatedUser.role && String(updatedUser.role).toLowerCase() !== String(existing.role).toLowerCase()) {
+        response = await axios.patch(`${API_BASE}/${updatedUser.id}/role`, { role: updatedUser.role });
+      }
+      if (updatedUser.status && updatedUser.status !== existing.status) {
+        response = await axios.patch(`${API_BASE}/${updatedUser.id}/status`, { status: updatedUser.status });
+      }
+      const normalized = normalizeUser(response.data || { ...existing, ...updatedUser });
+      setUsers((prev) => prev.map((u) => String(u.id) === String(normalized.id) ? normalized : u));
+      return { success: true, data: normalized };
     } catch (error) {
-      console.warn("Backend user update failed, persisting locally:", error.message);
+      return { success: false, message: error.response?.data?.message || "Failed to update user." };
     }
-
-    setUsers((prev) => {
-      const next = prev.map((u) => (String(u.id) === String(normalized.id) ? { ...u, ...normalized } : u));
-      saveToStorage(next);
-      return next;
-    });
-
-    return { success: true, data: normalized };
   };
 
   const updateUserStatus = async (targetUserId, newStatus, currentUserId) => {
-    // Strictly prevent changing other members' status
-    if (currentUserId && String(targetUserId) !== String(currentUserId)) {
-      return { success: false, message: "You can only update your own status." };
+    try {
+      const response = await axios.patch(`${API_BASE}/${targetUserId}/status`, { status: newStatus });
+      const normalized = normalizeUser(response.data);
+      setUsers((prev) => prev.map((u) => String(u.id) === String(targetUserId) ? normalized : u));
+      return { success: true, data: normalized };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || "Failed to update status." };
     }
-
-    const user = users.find((u) => String(u.id) === String(targetUserId));
-    if (!user) return { success: false, message: "User not found" };
-
-    return updateUser({
-      ...user,
-      status: newStatus,
-    });
   };
 
   const toggleUserStatus = async (targetUserId, currentUserId) => {
-    // Strictly prevent changing other members' status
-    if (currentUserId && String(targetUserId) !== String(currentUserId)) {
-      return { success: false, message: "You can only update your own status." };
-    }
-
     const user = users.find((u) => String(u.id) === String(targetUserId));
-    if (!user) return { success: false, message: "User not found" };
-
-    // Cycle through Active -> In Meeting -> Inactive -> Active
-    let nextStatus = "Active";
-    if (user.status === "Active") nextStatus = "In Meeting";
-    else if (user.status === "In Meeting") nextStatus = "Inactive";
-    else nextStatus = "Active";
-
-    return updateUser({
-      ...user,
-      status: nextStatus,
-    });
+    if (!user) return { success: false, message: "User not found." };
+    const nextStatus = user.status === "Active" ? "In Meeting" : user.status === "In Meeting" ? "Inactive" : "Active";
+    return updateUserStatus(targetUserId, nextStatus, currentUserId);
   };
 
   const deleteUser = async (userId) => {
     try {
       await axios.delete(`${API_BASE}/${userId}`);
+      setUsers((prev) => prev.filter((u) => String(u.id) !== String(userId)));
+      return { success: true };
     } catch (error) {
-      console.warn("Backend user delete failed, persisting locally:", error.message);
+      return { success: false, message: error.response?.data?.message || "Failed to delete user." };
     }
-
-    setUsers((prev) => {
-      const next = prev.filter((u) => String(u.id) !== String(userId));
-      saveToStorage(next);
-      return next;
-    });
-
-    return { success: true };
   };
 
   return (
@@ -286,4 +199,5 @@ export const UsersProvider = ({ children }) => {
   );
 };
 
-export const useUsers = () => useContext(UsersContext);
+export const useUsers = () =>
+  useContext(UsersContext);
