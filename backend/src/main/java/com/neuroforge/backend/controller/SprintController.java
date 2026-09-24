@@ -25,7 +25,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
+@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class SprintController {

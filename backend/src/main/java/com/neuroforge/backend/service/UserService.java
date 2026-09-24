@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.neuroforge.backend.dto.SignupRequest;
+import com.neuroforge.backend.dto.CreateUserRequest;
 import com.neuroforge.backend.dto.UpdateUserRequest;
 import com.neuroforge.backend.dto.UserDtos.ProfileProject;
 import com.neuroforge.backend.dto.UserDtos.ProfileResponse;
@@ -27,6 +28,7 @@ import com.neuroforge.backend.entity.Team;
 import com.neuroforge.backend.entity.User;
 import com.neuroforge.backend.exception.BusinessRuleException;
 import com.neuroforge.backend.repository.ProjectRepository;
+import com.neuroforge.backend.repository.ProjectMemberAssignmentRepository;
 import com.neuroforge.backend.repository.TaskRepository;
 import com.neuroforge.backend.repository.TeamMemberRepository;
 import com.neuroforge.backend.repository.UserRepository;
@@ -43,13 +45,14 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProjectRepository projectRepository;
+    private final ProjectMemberAssignmentRepository projectMemberAssignmentRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final TaskRepository taskRepository;
 
     // ------------------------------------------------------------------ auth
 
     /**
-     * Signup. The role is NEVER read from the client: every new account is TEAM_MEMBER.
+     * Signup. The role is NEVER read from the client: every new account is DEVELOPER.
      */
     @Transactional
     public User register(SignupRequest request) {
@@ -60,25 +63,24 @@ public class UserService {
         }
 
         String email = request.getEmail().trim().toLowerCase();
-        String userCode = request.getUserCode().trim();
-
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new BusinessRuleException("An account with this email already exists");
         }
-        if (userRepository.existsByUserCodeIgnoreCase(userCode)) {
-            throw new BusinessRuleException("This User ID is already taken");
-        }
+        String userCode = request.getUserCode();
+        if (userCode == null || userCode.isBlank()) userCode = uniqueUserCodeFromEmail(email);
+        else if (userRepository.existsByUserCodeIgnoreCase(userCode)) throw new BusinessRuleException("This User ID is already taken");
 
         User user = new User();
         user.setFullName(request.getFullName().trim());
         user.setLegacyName(request.getFullName().trim());
         user.setUserCode(userCode);
         user.setEmail(email);
-        user.setContactNumber(request.getContactNumber().trim());
+        user.setContactNumber(request.getContactNumber() == null || request.getContactNumber().isBlank() ? null : request.getContactNumber().trim());
         user.setSkill(request.getSkill());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(Role.TEAM_MEMBER);   // forced - no role is accepted from the client
+        user.setRole(Role.DEVELOPER);   // privileged roles are assigned by Admin only
         user.setActive(true);
+        user.setAvailabilityStatus("Active");
 
         return userRepository.save(user);
     }
@@ -106,7 +108,51 @@ public class UserService {
         return user;
     }
 
+    private String uniqueUserCodeFromEmail(String email) {
+        String base = email.substring(0, email.indexOf('@')).replaceAll("[^A-Za-z0-9._-]", "");
+        if (base.length() < 3) base = "user";
+        base = base.substring(0, Math.min(base.length(), 24));
+        String candidate = base;
+        int suffix = 1;
+        while (userRepository.existsByUserCodeIgnoreCase(candidate)) {
+            String tail = String.valueOf(suffix++);
+            candidate = base.substring(0, Math.min(base.length(), 30 - tail.length())) + tail;
+        }
+        return candidate;
+    }
+
     // ------------------------------------------------------------------ Users page (Admin)
+
+    @Transactional
+    public UserResponse createByAdmin(CreateUserRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmailIgnoreCase(email)) throw new BusinessRuleException("An account with this email already exists");
+        String userCode = request.getUserCode();
+        if (userCode == null || userCode.isBlank()) {
+            String base = email.substring(0, email.indexOf('@')).replaceAll("[^A-Za-z0-9._-]", "");
+            if (base.length() < 3) base = "user";
+            base = base.substring(0, Math.min(base.length(), 24));
+            userCode = base;
+            int suffix = 1;
+            while (userRepository.existsByUserCodeIgnoreCase(userCode)) {
+                String tail = String.valueOf(suffix++);
+                userCode = base.substring(0, Math.min(base.length(), 30 - tail.length())) + tail;
+            }
+        } else if (userRepository.existsByUserCodeIgnoreCase(userCode)) {
+            throw new BusinessRuleException("This User ID is already taken");
+        }
+        User user = new User();
+        user.setFullName(request.getFullName().trim());
+        user.setLegacyName(user.getFullName());
+        user.setUserCode(userCode);
+        user.setEmail(email);
+        user.setContactNumber(request.getContactNumber());
+        user.setSkill(request.getSkill());
+        user.setRole(request.getRole() == null ? Role.DEVELOPER : request.getRole());
+        user.setPassword(passwordEncoder.encode(request.getPassword() == null || request.getPassword().isBlank() ? "TempPass@123" : request.getPassword()));
+        setAvailabilityFields(user, request.getStatus() == null ? "Active" : request.getStatus(), false);
+        return UserResponse.from(userRepository.save(user));
+    }
 
     @Transactional(readOnly = true)
     public List<UserResponse> list(String search) {
@@ -183,11 +229,13 @@ public class UserService {
             throw new BusinessRuleException("At least one Admin must remain in the system");
         }
 
-        if (newRole == Role.TEAM_MEMBER) {
+        if (newRole == Role.DEVELOPER || newRole == Role.TESTER || newRole == Role.QA) {
             long managed = projectRepository.countByProjectManagerId(id);
-            if (managed > 0) {
-                throw new BusinessRuleException(user.getFullName() + " manages " + managed
-                        + " project(s). Reassign them to another Project Manager before changing this role.");
+            long led = projectRepository.countByProjectLeadId(id);
+            long teamLeadAssignments = teamMemberRepository.findByUserId(id).stream()
+                    .filter(tm -> "Team Lead".equalsIgnoreCase(tm.getTeamRole())).count();
+            if (managed > 0 || led > 0 || teamLeadAssignments > 0) {
+                throw new BusinessRuleException(user.getFullName() + " still has management responsibilities. Reassign projects/teams before changing this role.");
             }
         }
 
@@ -197,16 +245,21 @@ public class UserService {
 
     /** PATCH /api/users/{id}/status (Admin only): Active / Inactive. */
     @Transactional
-    public UserResponse setActive(Long id, boolean active) {
+    public UserResponse setStatus(Long id, Boolean active, String status) {
         AuthUser caller = CurrentUser.get();
         User user = getUserById(id);
-
-        if (!active && caller.userId().equals(id)) {
-            throw new BusinessRuleException("You cannot deactivate your own account");
-        }
-
-        user.setActive(active);
+        boolean self = caller.userId().equals(id);
+        if (!caller.isAdmin() && !self) throw new AccessDeniedException("You can only update your own status");
+        String resolved = (status == null || status.isBlank()) ? ((active != null && active) ? "Active" : "Inactive") : status.trim();
+        setAvailabilityFields(user, resolved, self);
         return UserResponse.from(userRepository.save(user));
+    }
+
+    private void setAvailabilityFields(User user, String status, boolean self) {
+        if (!List.of("Active", "Inactive", "In Meeting").contains(status)) throw new BusinessRuleException("Invalid user status");
+        if (self && "Inactive".equals(status)) throw new BusinessRuleException("You cannot deactivate your own account");
+        user.setAvailabilityStatus(status);
+        user.setActive(!"Inactive".equals(status));
     }
 
     /**
@@ -225,12 +278,15 @@ public class UserService {
         User user = getUserById(id);
 
         long managed = projectRepository.countByProjectManagerId(id);
-        if (managed > 0) {
-            throw new BusinessRuleException(user.getFullName() + " manages " + managed
-                    + " project(s). Reassign them to another Project Manager before deleting this user.");
+        long led = projectRepository.countByProjectLeadId(id);
+        long teamLeadAssignments = teamMemberRepository.findByUserId(id).stream()
+                .filter(tm -> "Team Lead".equalsIgnoreCase(tm.getTeamRole())).count();
+        if (managed > 0 || led > 0 || teamLeadAssignments > 0) {
+            throw new BusinessRuleException(user.getFullName() + " still has project/team responsibilities. Reassign them before deleting this user.");
         }
 
         teamMemberRepository.deleteByUserId(id);
+        projectMemberAssignmentRepository.deleteByUserId(id);
         projectRepository.removeUserFromAllProjects(id);
         taskRepository.unassignUser(id);
 
@@ -301,7 +357,7 @@ public class UserService {
                 user.getRole().name(),
                 user.getRole().getLabel(),
                 user.isActive(),
-                user.isActive() ? "Active" : "Inactive",
+                user.getAvailabilityStatus(),
                 user.getCreatedAt(),
                 projects,
                 teams,

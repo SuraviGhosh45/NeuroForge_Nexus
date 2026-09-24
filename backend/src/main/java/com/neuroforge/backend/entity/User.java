@@ -48,14 +48,18 @@ public class User {
     @Column(name = "skill", length = 30)
     private Skill skill;
 
-    /** Access role. Always TEAM_MEMBER at signup; changed only by an Admin. */
+    /** Access role. Always DEVELOPER at signup; changed only by an Admin. */
     @Enumerated(EnumType.STRING)
     @Column(name = "access_role", nullable = false, length = 30)
-    private Role role = Role.TEAM_MEMBER;
+    private Role role = Role.DEVELOPER;
 
-    /** Active / Inactive status shown on the Users page. Inactive users cannot log in. */
+    /** Login/authorization switch. */
     @Column(name = "active", nullable = false)
     private boolean active = true;
+
+    /** Team presence status shown in the UI. In Meeting does not disable login. */
+    @Column(name = "availability_status", nullable = false, length = 20)
+    private String availabilityStatus = "Active";
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -91,6 +95,8 @@ public class User {
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public String getAvailabilityStatus() { return availabilityStatus; }
+    public void setAvailabilityStatus(String availabilityStatus) { this.availabilityStatus = availabilityStatus; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -17,7 +17,7 @@ import com.neuroforge.backend.service.TaskDependencyService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
+@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 @RequestMapping("/api/tasks/{taskId}/dependencies")
 @RequiredArgsConstructor
 public class TaskDependencyController {

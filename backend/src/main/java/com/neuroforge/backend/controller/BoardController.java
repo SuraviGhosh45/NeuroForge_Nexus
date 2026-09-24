@@ -22,7 +22,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class BoardController {

@@ -48,6 +48,15 @@ public class Project {
     @JoinColumn(name = "project_manager_id")
     private User projectManager;
 
+    @ManyToOne
+    @JoinColumn(name = "project_lead_id")
+    private User projectLead;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    @JsonIgnore
+    private Team team;
+
     /**
      * Project members (no fixed Team required). Lazy - only touch it inside a transaction.
      * Never serialise the entity directly; controllers return DTOs.
@@ -113,6 +122,12 @@ public class Project {
 
     public User getProjectManager() { return projectManager; }
     public void setProjectManager(User projectManager) { this.projectManager = projectManager; }
+
+    public User getProjectLead() { return projectLead; }
+    public void setProjectLead(User projectLead) { this.projectLead = projectLead; }
+
+    public Team getTeam() { return team; }
+    public void setTeam(Team team) { this.team = team; }
 
     public Set<User> getMembers() { return members; }
     public void setMembers(Set<User> members) { this.members = members; }

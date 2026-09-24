@@ -18,7 +18,7 @@ import io.jsonwebtoken.security.Keys;
 
 /**
  * Creates and validates the JWT. The token carries: userId, role, email.
- * Every protected endpoint takes the role from this signed token - never from the request body/headers.
+ * The token authenticates the user id; the current role is reloaded from the database on each request.
  */
 @Service
 public class JwtService {

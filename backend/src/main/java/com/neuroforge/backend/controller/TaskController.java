@@ -44,19 +44,19 @@ public class TaskController {
 
     /** Admin / PM (a PM only for projects they manage - checked in the service). */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
     public ResponseEntity<TaskResponse> create(@RequestBody TaskRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskService.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
     public TaskResponse update(@PathVariable Long id, @RequestBody TaskRequest request) {
         return taskService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
     public ResponseEntity<Map<String, String>> delete(@PathVariable Long id) {
         taskService.delete(id);
         return ResponseEntity.ok(Map.of("message", "Task deleted successfully"));

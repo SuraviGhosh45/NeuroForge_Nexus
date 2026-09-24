@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.neuroforge.backend.dto.UpdateUserRequest;
+import com.neuroforge.backend.dto.CreateUserRequest;
 import com.neuroforge.backend.dto.UserDtos.ProfileResponse;
 import com.neuroforge.backend.dto.UserDtos.RoleUpdateRequest;
 import com.neuroforge.backend.dto.UserDtos.StatusUpdateRequest;
@@ -34,6 +35,12 @@ public class UserController {
 
     private final UserService userService;
 
+    @org.springframework.web.bind.annotation.PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse create(@Valid @RequestBody CreateUserRequest request) {
+        return userService.createByAdmin(request);
+    }
+
     /** Users page: Name, Email, Skill, Access Role, Status. Optional ?search= (name / email / user id). Admin only. */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -47,7 +54,7 @@ public class UserController {
      * Optional ?roles=PROJECT_MANAGER,ADMIN filter (e.g. for the Project Manager dropdown).
      */
     @GetMapping("/options")
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD','TEAM_LEAD')")
     public List<UserOption> options(@RequestParam(required = false) List<Role> roles) {
         return userService.options(roles);
     }
@@ -71,11 +78,10 @@ public class UserController {
         return userService.changeRole(id, request.role());
     }
 
-    /** Active / Inactive toggle. Admin only. */
+    /** Current working status. Admin can set any user; everyone can set their own status. */
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse changeStatus(@PathVariable Long id, @Valid @RequestBody StatusUpdateRequest request) {
-        return userService.setActive(id, request.active());
+        return userService.setStatus(id, request.active(), request.status());
     }
 
     @DeleteMapping("/{id}")

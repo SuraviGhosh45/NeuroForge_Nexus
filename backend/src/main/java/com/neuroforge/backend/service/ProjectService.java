@@ -23,6 +23,7 @@ import com.neuroforge.backend.entity.Role;
 import com.neuroforge.backend.entity.Sprint;
 import com.neuroforge.backend.entity.Task;
 import com.neuroforge.backend.entity.Team;
+import com.neuroforge.backend.entity.TeamMember;
 import com.neuroforge.backend.entity.User;
 import com.neuroforge.backend.exception.BusinessRuleException;
 import com.neuroforge.backend.repository.ProjectRepository;
@@ -49,6 +50,7 @@ public class ProjectService {
     private final TaskRepository taskRepository;
     private final SprintRepository sprintRepository;
     private final TaskDependencyRepository taskDependencyRepository;
+    private final com.neuroforge.backend.repository.ProjectMemberAssignmentRepository projectMemberAssignmentRepository;
     private final AccessService access;
 
     // ------------------------------------------------------------------ queries
@@ -76,7 +78,7 @@ public class ProjectService {
     @Transactional
     public ProjectDtos.Detail create(ProjectRequest request) {
         AuthUser caller = CurrentUser.get();
-        if (caller.isTeamMember()) {
+        if (!(caller.isAdmin() || caller.isProjectManager())) {
             throw new AccessDeniedException("Only Admin or Project Manager can create projects");
         }
 
@@ -103,18 +105,32 @@ public class ProjectService {
                 : suggestPriority(request.getStartDate(), request.getEndDate());
         project.setPriority(priority.getLabel());
 
-        // No manager supplied -> the creator (who is an Admin or PM) manages it.
-        Long managerId = request.getProjectManagerId() != null ? request.getProjectManagerId() : caller.userId();
+        // Admin/PM may default the manager to themselves; Project Lead must explicitly choose a Project Manager.
+        Long managerId = request.getProjectManagerId();
+        if (managerId == null) {
+            if (caller.isProjectManager() || caller.isAdmin()) managerId = caller.userId();
+            else throw new BusinessRuleException("A Project Manager must be selected when a Project Lead creates a project");
+        }
         project.setProjectManager(resolveManager(managerId));
 
-        if (request.getMemberIds() != null) {
-            project.getMembers().addAll(resolveUsers(request.getMemberIds()));
+        if (request.getProjectLeadId() != null) {
+            project.setProjectLead(resolveProjectLead(request.getProjectLeadId()));
         }
 
         project.setProjectKey(nextProjectKey(code, request.getName()));
         project.setTaskCounter(0);
 
-        return toDetail(projectRepository.save(project));
+        Project saved = projectRepository.save(project);
+        Team team = resolveOrCreateTeam(saved, request.getTeamId());
+        saved.setTeam(team);
+
+        if (request.getMemberIds() != null) {
+            saved.getMembers().addAll(resolveUsers(request.getMemberIds()));
+        }
+
+        saved = projectRepository.save(saved);
+        syncAssignments(saved);
+        return toDetail(saved);
     }
 
     /** PUT /api/projects/{id} (Admin, or the PM who manages it). */
@@ -142,6 +158,17 @@ public class ProjectService {
             project.setPriority(Priority.parse(request.getPriority()).getLabel());
         }
 
+        if (request.getProjectLeadId() != null) {
+            Long currentLeadId = project.getProjectLead() == null ? null : project.getProjectLead().getId();
+            if (!request.getProjectLeadId().equals(currentLeadId)) {
+                project.setProjectLead(resolveProjectLead(request.getProjectLeadId()));
+            }
+        }
+
+        if (request.getTeamId() != null && (project.getTeam() == null || !request.getTeamId().equals(project.getTeam().getId()))) {
+            project.setTeam(resolveOrCreateTeam(project, request.getTeamId()));
+        }
+
         // Only an Admin may hand the project to a different manager.
         Long newManagerId = request.getProjectManagerId();
         Long currentManagerId = project.getProjectManager() == null ? null : project.getProjectManager().getId();
@@ -159,14 +186,18 @@ public class ProjectService {
         // Status is never taken from the request - re-derive it.
         project.setStatus(computeStatus(taskRepository.findByProjectId(id)).getLabel());
 
-        return toDetail(projectRepository.save(project));
+        Project saved = projectRepository.save(project);
+        syncAssignments(saved);
+        return toDetail(saved);
     }
 
     /** DELETE /api/projects/{id} (Admin, or the PM who manages it). */
     @Transactional
     public void delete(Long id) {
         Project project = find(id);
-        access.assertCanManage(CurrentUser.get(), project);
+        if (!CurrentUser.get().isAdmin()) {
+            throw new AccessDeniedException("Only an Admin can delete projects");
+        }
 
         List<Task> tasks = taskRepository.findByProjectId(id);
 
@@ -196,9 +227,125 @@ public class ProjectService {
         }
         sprintRepository.flush();
 
+        projectMemberAssignmentRepository.deleteByProjectId(id);
+
         // project_members rows are removed automatically (Project owns the join table).
         projectRepository.delete(project);
         projectRepository.flush();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjectDtos.MemberInfo> members(Long projectId) {
+        Project project = find(projectId);
+        access.assertCanView(CurrentUser.get(), project);
+        return projectMemberAssignmentRepository.findByProjectIdOrderByAssignedAtAsc(projectId).stream()
+                .map(ProjectDtos.MemberInfo::from).toList();
+    }
+
+    @Transactional
+    public ProjectDtos.MemberInfo addMember(Long projectId, Long userId, String projectRole) {
+        Project project = find(projectId);
+        access.assertCanManageProjectTeam(CurrentUser.get(), project);
+        if (projectMemberAssignmentRepository.findByProjectIdAndUserId(projectId, userId).isPresent()) {
+            throw new BusinessRuleException("This user is already a member of the project");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
+        if (!user.isActive()) throw new BusinessRuleException("Inactive users cannot be assigned to a project");
+        validateProjectRole(projectRole);
+        validateProjectRoleMatchesUser(user, projectRole);
+        if ("Team Lead".equalsIgnoreCase(projectRole)
+                && projectMemberAssignmentRepository.findByProjectIdOrderByAssignedAtAsc(projectId).stream()
+                    .anyMatch(m -> "Team Lead".equalsIgnoreCase(m.getProjectRole()))) {
+            throw new BusinessRuleException("This project already has a Team Lead");
+        }
+        project.getMembers().add(user);
+        projectRepository.save(project);
+        syncTeamMember(project, user, projectRole);
+        var assignment = new com.neuroforge.backend.entity.ProjectMemberAssignment();
+        assignment.setProject(project);
+        assignment.setUser(user);
+        assignment.setProjectRole(normalizeProjectRole(projectRole));
+        assignment.setMemberStatus("Active");
+        return ProjectDtos.MemberInfo.from(projectMemberAssignmentRepository.save(assignment));
+    }
+
+    @Transactional
+    public ProjectDtos.MemberInfo updateMember(Long projectId, Long userId, String projectRole) {
+        Project project = find(projectId);
+        access.assertCanManageProjectTeam(CurrentUser.get(), project);
+        validateProjectRole(projectRole);
+        var assignment = projectMemberAssignmentRepository.findByProjectIdAndUserId(projectId, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Project member was not found"));
+        validateProjectRoleMatchesUser(assignment.getUser(), projectRole);
+        if ("Team Lead".equalsIgnoreCase(projectRole)
+                && !"Team Lead".equalsIgnoreCase(assignment.getProjectRole())
+                && projectMemberAssignmentRepository.findByProjectIdOrderByAssignedAtAsc(projectId).stream()
+                    .anyMatch(m -> !m.getUser().getId().equals(userId) && "Team Lead".equalsIgnoreCase(m.getProjectRole()))) {
+            throw new BusinessRuleException("This project already has a Team Lead");
+        }
+        assignment.setProjectRole(normalizeProjectRole(projectRole));
+        syncTeamMember(project, assignment.getUser(), projectRole);
+        return ProjectDtos.MemberInfo.from(projectMemberAssignmentRepository.save(assignment));
+    }
+
+    @Transactional
+    public ProjectDtos.MemberInfo updateMemberStatus(Long projectId, Long userId, String status) {
+        Project project = find(projectId);
+        if (!status.equals("Active") && !status.equals("Inactive") && !status.equals("In Meeting")) {
+            throw new IllegalArgumentException("Invalid project member status");
+        }
+        AuthUser caller = CurrentUser.get();
+        if (!caller.userId().equals(userId)) {
+            access.assertCanManageProjectTeam(caller, project);
+        }
+        var assignment = projectMemberAssignmentRepository.findByProjectIdAndUserId(projectId, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Project member was not found"));
+        assignment.setMemberStatus(status);
+        return ProjectDtos.MemberInfo.from(projectMemberAssignmentRepository.save(assignment));
+    }
+
+    @Transactional
+    public void removeMember(Long projectId, Long userId) {
+        Project project = find(projectId);
+        access.assertCanManageProjectTeam(CurrentUser.get(), project);
+        if (taskRepository.existsByProjectIdAndAssigneeIdAndBoardStatusNot(projectId, userId, BoardStatus.DONE)) {
+            throw new BusinessRuleException("The member still has unfinished tasks in this project");
+        }
+        project.getMembers().removeIf(user -> user.getId().equals(userId));
+        projectRepository.save(project);
+        projectMemberAssignmentRepository.deleteByProjectIdAndUserId(projectId, userId);
+        for (Team team : teamRepository.findByProjectId(projectId)) {
+            teamMemberRepository.findByTeamIdAndUserId(team.getId(), userId).ifPresent(teamMemberRepository::delete);
+        }
+    }
+
+    private void validateProjectRoleMatchesUser(User user, String value) {
+        String normalized = normalizeProjectRole(value);
+        Role role = user.getRole();
+        boolean ok = switch (normalized) {
+            case "Team Lead" -> role == Role.TEAM_LEAD || role == Role.ADMIN;
+            case "Tester" -> role == Role.TESTER;
+            case "QA" -> role == Role.QA;
+            default -> role == Role.DEVELOPER || role == Role.TEAM_MEMBER || role == Role.ADMIN;
+        };
+        if (!ok) throw new BusinessRuleException("Project role " + normalized + " does not match the user's system role " + role.getLabel());
+    }
+
+    private void validateProjectRole(String value) {
+        String role = normalizeProjectRole(value);
+        if (!(role.equals("Team Lead") || role.equals("Developer") || role.equals("Tester") || role.equals("QA"))) {
+            throw new IllegalArgumentException("Project role must be Team Lead, Developer, Tester or QA");
+        }
+    }
+
+    private String normalizeProjectRole(String value) {
+        if (value == null) return "Developer";
+        String key = value.trim().replace('_', ' ').replace('-', ' ');
+        if (key.equalsIgnoreCase("team lead")) return "Team Lead";
+        if (key.equalsIgnoreCase("tester")) return "Tester";
+        if (key.equalsIgnoreCase("qa") || key.equalsIgnoreCase("qa specialist")) return "QA";
+        return "Developer";
     }
 
     // ------------------------------------------------------------------ priority
@@ -294,6 +441,87 @@ public class ProjectService {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
+    private User resolveProjectLead(Long leadId) {
+        User lead = userRepository.findById(leadId)
+                .orElseThrow(() -> new IllegalArgumentException("Project Lead not found with id " + leadId));
+        if (lead.getRole() != Role.PROJECT_LEAD && lead.getRole() != Role.ADMIN) {
+            throw new IllegalArgumentException("Project Lead must have the Project Lead or Admin role");
+        }
+        if (!lead.isActive()) {
+            throw new IllegalArgumentException("The selected Project Lead is inactive");
+        }
+        return lead;
+    }
+
+    private Team resolveOrCreateTeam(Project project, Long teamId) {
+        if (teamId != null) {
+            Team team = teamRepository.findById(teamId)
+                    .orElseThrow(() -> new IllegalArgumentException("Team not found with id " + teamId));
+            if (team.getProject() != null && !team.getProject().getId().equals(project.getId())) {
+                throw new IllegalArgumentException("Selected team belongs to another project");
+            }
+            if (team.getProject() == null) {
+                team.setProject(project);
+                return teamRepository.save(team);
+            }
+            return team;
+        }
+
+        Team team = new Team();
+        team.setName(project.getName() + " Team");
+        team.setTeamCode("TEAM-" + String.format("%02d", project.getId()));
+        team.setDescription("Default project team");
+        team.setProject(project);
+        return teamRepository.save(team);
+    }
+
+    private void syncAssignments(Project project) {
+        Set<Long> memberIds = project.getMembers().stream().map(User::getId).collect(Collectors.toSet());
+        for (com.neuroforge.backend.entity.ProjectMemberAssignment assignment : projectMemberAssignmentRepository.findByProjectIdOrderByAssignedAtAsc(project.getId())) {
+            if (!memberIds.contains(assignment.getUser().getId())) {
+                projectMemberAssignmentRepository.delete(assignment);
+            }
+        }
+        for (User user : project.getMembers()) {
+            var existing = projectMemberAssignmentRepository.findByProjectIdAndUserId(project.getId(), user.getId());
+            if (existing.isEmpty()) {
+                var assignment = new com.neuroforge.backend.entity.ProjectMemberAssignment();
+                assignment.setProject(project);
+                assignment.setUser(user);
+                assignment.setProjectRole(projectRoleFromUser(user));
+                assignment.setMemberStatus(user.isActive() ? "Active" : "Inactive");
+                projectMemberAssignmentRepository.save(assignment);
+            }
+            syncTeamMember(project, user, projectRoleFromUser(user));
+        }
+    }
+
+    private void syncTeamMember(Project project, User user, String projectRole) {
+        if (project.getTeam() == null || user == null) return;
+        String normalized = normalizeProjectRole(projectRole);
+        TeamMember member = teamMemberRepository.findByTeamIdAndUserId(project.getTeam().getId(), user.getId())
+                .orElseGet(() -> {
+                    TeamMember tm = new TeamMember();
+                    tm.setTeam(project.getTeam());
+                    tm.setUser(user);
+                    return tm;
+                });
+        member.setTeamRole(normalized);
+        teamMemberRepository.save(member);
+    }
+
+    private String projectRoleFromUser(User user) {
+        return switch (user.getRole()) {
+            case TEAM_LEAD -> "Team Lead";
+            case TESTER -> "Tester";
+            case QA -> "QA";
+            case PROJECT_LEAD -> "Project Lead";
+            case PROJECT_MANAGER -> "Project Manager";
+            case ADMIN -> "Admin";
+            default -> "Developer";
+        };
+    }
+
     /** The project manager must be an existing, active user whose role is Project Manager or Admin. */
     private User resolveManager(Long managerId) {
         User manager = userRepository.findById(managerId)
@@ -371,6 +599,9 @@ public class ProjectService {
                 project.getStatus(),
                 project.getPriority(),
                 ProjectDtos.PersonInfo.from(project.getProjectManager()),
+                ProjectDtos.PersonInfo.from(project.getProjectLead()),
+                project.getTeam() == null ? null : project.getTeam().getId(),
+                project.getTeam() == null ? null : project.getTeam().getName(),
                 members,
                 total,
                 completed,

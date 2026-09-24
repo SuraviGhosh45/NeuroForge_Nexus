@@ -43,7 +43,7 @@ public final class UserDtos {
                     user.getRole().name(),
                     user.getRole().getLabel(),
                     user.isActive(),
-                    user.isActive() ? "Active" : "Inactive",
+                    user.getAvailabilityStatus(),
                     user.getCreatedAt());
         }
     }
@@ -76,7 +76,7 @@ public final class UserDtos {
     public record RoleUpdateRequest(@NotNull Role role) {}
 
     /** PATCH /api/users/{id}/status */
-    public record StatusUpdateRequest(@NotNull Boolean active) {}
+    public record StatusUpdateRequest(Boolean active, String status) {}
 
     // ------------------------------------------------------------------ profile
 

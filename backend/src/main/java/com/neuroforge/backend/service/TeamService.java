@@ -79,21 +79,22 @@ public class TeamService {
     public TeamDtos.Detail create(TeamRequest request) {
         AuthUser user = CurrentUser.get();
 
-        if (request == null || request.getProjectId() == null) {
-            throw new IllegalArgumentException("Project is required");
-        }
-        if (request.getName() == null || request.getName().isBlank()) {
+        if (request == null || request.getName() == null || request.getName().isBlank()) {
             throw new IllegalArgumentException("Team name is required");
         }
-        if (request.getTeamCode() == null || request.getTeamCode().isBlank()) {
-            throw new IllegalArgumentException("Team ID is required");
+
+        Project project = null;
+        if (request.getProjectId() != null) {
+            project = projectRepository.findById(request.getProjectId())
+                    .orElseThrow(() -> new EntityNotFoundException("Project not found with id " + request.getProjectId()));
+            access.assertCanManage(user, project);
+        } else if (!user.isAdmin()) {
+            throw new IllegalArgumentException("Project is required for non-admin team creation");
         }
 
-        Project project = projectRepository.findById(request.getProjectId())
-                .orElseThrow(() -> new EntityNotFoundException("Project not found with id " + request.getProjectId()));
-        access.assertCanManage(user, project);
-
-        String teamCode = request.getTeamCode().trim();
+        String teamCode = request.getTeamCode() == null || request.getTeamCode().isBlank()
+                ? nextTeamCode()
+                : request.getTeamCode().trim();
         if (teamRepository.existsByTeamCodeIgnoreCase(teamCode)) {
             throw new BusinessRuleException("A team with Team ID '" + teamCode + "' already exists");
         }
@@ -149,6 +150,15 @@ public class TeamService {
         teamRepository.delete(team);
     }
 
+
+    private String nextTeamCode() {
+        int counter = 1;
+        String code;
+        do {
+            code = String.format("TEAM-%02d", counter++);
+        } while (teamRepository.existsByTeamCodeIgnoreCase(code));
+        return code;
+    }
     // ------------------------------------------------------------------ members
 
     @Transactional(readOnly = true)

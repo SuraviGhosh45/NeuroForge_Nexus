@@ -18,7 +18,9 @@ public record AuthResponse(
         String email,
         String role,
         String roleLabel,
-        String skill) {
+        String skill,
+        boolean active,
+        String status) {
 
     /** Signup / login: includes the freshly issued JWT. */
     public static AuthResponse of(String message, String token, long expiresInSeconds, User user) {
@@ -26,8 +28,7 @@ public record AuthResponse(
     }
 
     /**
-     * GET /api/auth/me: no new token. effectiveRole is the role inside the caller's JWT - i.e. the role
-     * the backend is actually enforcing for this session.
+     * GET /api/auth/me: no new token. effectiveRole is the current role loaded by the backend for this session.
      */
     public static AuthResponse me(User user, Role effectiveRole) {
         return build("Authenticated", null, null, 0, user, effectiveRole);
@@ -46,6 +47,8 @@ public record AuthResponse(
                 user.getEmail(),
                 role.name(),
                 role.getLabel(),
-                user.getSkill() == null ? null : user.getSkill().getLabel());
+                user.getSkill() == null ? null : user.getSkill().getLabel(),
+                user.isActive(),
+                user.getAvailabilityStatus());
     }
 }

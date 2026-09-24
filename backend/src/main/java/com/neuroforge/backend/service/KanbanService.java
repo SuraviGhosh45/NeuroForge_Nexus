@@ -39,7 +39,7 @@ public class KanbanService {
 
         access.assertCanView(user, project);
 
-        boolean managesProject = access.canManage(user, project);
+        boolean managesProject = access.canManage(user, project) || (user.isTeamLead() && access.canView(user, project));
 
         List<KanbanResponse.Card> todo = new ArrayList<>();
         List<KanbanResponse.Card> inProgress = new ArrayList<>();

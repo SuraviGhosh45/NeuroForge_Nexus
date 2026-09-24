@@ -7,20 +7,15 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.neuroforge.backend.dto.ProjectDtos;
+import com.neuroforge.backend.dto.ProjectMemberRequest;
+import com.neuroforge.backend.dto.ProjectMemberStatusRequest;
 import com.neuroforge.backend.dto.ProjectRequest;
 import com.neuroforge.backend.service.ProjectService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -30,15 +25,11 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
-    /** Scoped by role in the service: Admin all, PM managed/assigned, Team Member member-of. */
     @GetMapping
-    public List<ProjectDtos.Summary> list() {
-        return projectService.list();
-    }
+    public List<ProjectDtos.Summary> list() { return projectService.list(); }
 
-    /** Create form helper: ?startDate=2026-10-01&endDate=2026-10-10 -> {"priority":"High","durationDays":9}. */
     @GetMapping("/priority-suggestion")
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
     public ProjectDtos.PrioritySuggestion prioritySuggestion(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
@@ -46,9 +37,7 @@ public class ProjectController {
     }
 
     @GetMapping("/{id}")
-    public ProjectDtos.Detail get(@PathVariable Long id) {
-        return projectService.get(id);
-    }
+    public ProjectDtos.Detail get(@PathVariable Long id) { return projectService.get(id); }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
@@ -57,15 +46,48 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
     public ProjectDtos.Detail update(@PathVariable Long id, @RequestBody ProjectRequest request) {
         return projectService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         projectService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{projectId}/members")
+    public List<ProjectDtos.MemberInfo> members(@PathVariable Long projectId) {
+        return projectService.members(projectId);
+    }
+
+    @PostMapping("/{projectId}/members")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD','TEAM_LEAD')")
+    public ResponseEntity<ProjectDtos.MemberInfo> addMember(@PathVariable Long projectId,
+                                                              @Valid @RequestBody ProjectMemberRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(projectService.addMember(projectId, request.userId(), request.projectRole()));
+    }
+
+    @PutMapping("/{projectId}/members/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD','TEAM_LEAD')")
+    public ProjectDtos.MemberInfo updateMember(@PathVariable Long projectId, @PathVariable Long userId,
+                                                @Valid @RequestBody ProjectMemberRequest request) {
+        return projectService.updateMember(projectId, userId, request.projectRole());
+    }
+
+    @PatchMapping("/{projectId}/members/{userId}/status")
+    public ProjectDtos.MemberInfo updateMemberStatus(@PathVariable Long projectId, @PathVariable Long userId,
+                                                       @Valid @RequestBody ProjectMemberStatusRequest request) {
+        return projectService.updateMemberStatus(projectId, userId, request.status());
+    }
+
+    @DeleteMapping("/{projectId}/members/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD','TEAM_LEAD')")
+    public ResponseEntity<Void> removeMember(@PathVariable Long projectId, @PathVariable Long userId) {
+        projectService.removeMember(projectId, userId);
         return ResponseEntity.noContent().build();
     }
 }

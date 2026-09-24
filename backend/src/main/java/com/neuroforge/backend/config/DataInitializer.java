@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Runs once at startup:
- *  1. Signup can only create TEAM_MEMBERs, so if there is no Admin yet, create the first one from
+ *  1. Signup can only create DEVELOPERs, so if there is no Admin yet, create the first one from
  *     the app.bootstrap-admin.* properties (skipped when the password is blank).
  *  2. Re-derive every project's status from its tasks (old rows had a manually chosen status).
  */
@@ -77,6 +77,7 @@ public class DataInitializer implements ApplicationRunner {
         admin.setPassword(passwordEncoder.encode(password));
         admin.setRole(Role.ADMIN);
         admin.setActive(true);
+        admin.setAvailabilityStatus("Active");
         userRepository.save(admin);
 
         log.info("Created first Admin account '{}' ({})", userCode, admin.getEmail());

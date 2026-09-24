@@ -20,15 +20,27 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     boolean existsByCodeIgnoreCaseAndIdNot(String code, Long id);
 
     long countByProjectManagerId(Long userId);
+    long countByProjectLeadId(Long userId);
 
     List<Project> findByProjectManagerId(Long userId);
+    List<Project> findByProjectLeadId(Long userId);
 
     /** PROJECT_MANAGER scope: projects they manage OR are a member of. */
     @Query("select distinct p from Project p left join p.members m "
             + "where p.projectManager.id = :userId or m.id = :userId order by p.id")
     List<Project> findManagedOrMemberOf(@Param("userId") Long userId);
 
-    /** TEAM_MEMBER scope: only projects they are a member of. */
+    /** Project Lead scope: projects they lead or are assigned to. */
+    @Query("select distinct p from Project p left join p.members m "
+            + "where p.projectLead.id = :userId or m.id = :userId order by p.id")
+    List<Project> findLedOrMemberOf(@Param("userId") Long userId);
+
+    /** Team Lead scope: projects where the user is a Team Lead assignment. */
+    @Query("select distinct p from Project p join p.team t join t.members tm "
+            + "where tm.user.id = :userId and lower(tm.teamRole) = 'team lead' order by p.id")
+    List<Project> findTeamLeadProjects(@Param("userId") Long userId);
+
+    /** Execution-role scope: projects the caller is a member of. */
     @Query("select distinct p from Project p join p.members m where m.id = :userId order by p.id")
     List<Project> findByMemberId(@Param("userId") Long userId);
 

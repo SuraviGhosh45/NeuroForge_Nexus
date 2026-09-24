@@ -31,7 +31,7 @@ public class AuthController {
     private final UserService userService;
     private final JwtService jwtService;
 
-    /** POST /api/auth/signup - always creates a TEAM_MEMBER; returns the JWT so the user is logged in. */
+    /** POST /api/auth/signup - always creates a DEVELOPER; returns the JWT so the user is logged in. */
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
         User user = userService.register(request);

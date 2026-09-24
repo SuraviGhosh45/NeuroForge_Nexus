@@ -2,6 +2,8 @@ package com.neuroforge.backend.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "teams")
@@ -30,6 +32,9 @@ public class Team {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TeamMember> members = new ArrayList<>();
+
     public Team() {}
 
     // ---- getters & setters ----
@@ -50,4 +55,7 @@ public class Team {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public List<TeamMember> getMembers() { return members; }
+    public void setMembers(List<TeamMember> members) { this.members = members; }
 }

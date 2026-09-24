@@ -21,6 +21,10 @@ import com.neuroforge.backend.entity.TaskDependency;
 import com.neuroforge.backend.exception.BusinessRuleException;
 import com.neuroforge.backend.repository.TaskDependencyRepository;
 import com.neuroforge.backend.repository.TaskRepository;
+import com.neuroforge.backend.repository.ProjectRepository;
+import com.neuroforge.backend.security.AuthUser;
+import com.neuroforge.backend.security.CurrentUser;
+import org.springframework.security.access.AccessDeniedException;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +37,8 @@ public class BoardService {
 private final TaskRepository taskRepository;
 private final TaskDependencyRepository dependencyRepository;
 private final SprintService sprintService;
+private final AccessService access;
+private final ProjectRepository projectRepository;
 
 /**
  * Get the complete Kanban board for a sprint.
@@ -41,6 +47,7 @@ private final SprintService sprintService;
 public SprintBoardResponse board(Long sprintId) {
 
     Sprint sprint = sprintService.get(sprintId);
+    access.assertCanView(CurrentUser.get(), sprint.getProject());
 
     List<Task> tasks = taskRepository
             .findBySprintIdOrderByBoardStatusAscBoardPositionAsc(sprintId);
@@ -145,6 +152,7 @@ public BoardCard move(
                             "Task " + taskId + " not found"
                     )
             );
+    assertCanMutate(CurrentUser.get(), task);
 
     /*
      * A backlog task cannot be moved on a sprint board.
@@ -347,6 +355,7 @@ public BoardCard setBlocked(
                             "Task " + taskId + " not found"
                     )
             );
+    assertCanMutate(CurrentUser.get(), task);
 
     if (task.getSprint() != null
             && task.getSprint().getStatus()
@@ -538,6 +547,21 @@ public BoardCard toCard(
                     : task.getSprint().getName(),
             task.getDueDate()
     );
+}
+
+private void assertCanMutate(AuthUser caller, Task task) {
+    if (caller.isAdmin() || caller.isProjectManager() || caller.isProjectLead()) {
+        access.assertCanManage(caller, task.getProject());
+        return;
+    }
+    if (caller.isTeamLead()) {
+        access.assertCanView(caller, task.getProject());
+        return;
+    }
+    if (task.getAssignee() == null || !task.getAssignee().getId().equals(caller.userId())) {
+        throw new AccessDeniedException("You can only move or block tasks assigned to you");
+    }
+    access.assertCanView(caller, task.getProject());
 }
 
 }
