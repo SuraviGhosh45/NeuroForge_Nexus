@@ -93,10 +93,14 @@ const Register = () => {
         name: form.fullName.trim(),
         email: form.email.trim(),
         password: form.password,
+        role: "developer",
       });
 
       if (!result.success) {
-        setMessage(result.message || "Unable to create your account. Please try again.");
+        setMessage(
+          result.message ||
+            "Unable to create your account. Please try again."
+        );
         setIsSubmitting(false);
         return;
       }
@@ -109,10 +113,12 @@ const Register = () => {
   };
 
   const hasValidLength = form.password.length >= 6;
+
   const passwordsMatch =
     hasValidLength &&
     form.confirmPassword &&
     form.password === form.confirmPassword;
+
   const passwordsMismatch =
     Boolean(form.confirmPassword) &&
     form.password !== form.confirmPassword;
@@ -121,31 +127,26 @@ const Register = () => {
     <AuthLayout>
       <div className="w-full max-w-xl">
         <section className="relative overflow-hidden rounded-2xl border border-[#e8eef8]/15 bg-[#0d1a2b]/90 p-6 sm:p-10 backdrop-blur-2xl shadow-2xl shadow-black/70 transition-all">
-          {/* Subtle Top Gradient Accent Line */}
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600" />
 
-          {/* Heading (No icons) */}
           <div className="text-left mb-7">
             <h2 className="text-2xl font-bold tracking-tight text-white">
               Create your account
             </h2>
+
             <p className="mt-1.5 text-sm text-[#e8eef8]/60">
               Join your team on the NeuroForge Nexus SDLC platform
             </p>
           </div>
 
-          {/* Alert Message */}
           {message && (
             <div className="mb-5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-300">
               {message}
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            {/* Grid 2-cols: Full Name and Email */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {/* Full Name */}
               <div>
                 <label
                   htmlFor="fullName"
@@ -153,6 +154,7 @@ const Register = () => {
                 >
                   Full Name
                 </label>
+
                 <input
                   id="fullName"
                   name="fullName"
@@ -167,6 +169,7 @@ const Register = () => {
                       : "border-[#e8eef8]/15 hover:border-[#e8eef8]/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   }`}
                 />
+
                 {errors.fullName && (
                   <p className="mt-1 text-xs text-rose-400">
                     {errors.fullName}
@@ -174,7 +177,6 @@ const Register = () => {
                 )}
               </div>
 
-              {/* Work Email */}
               <div>
                 <label
                   htmlFor="email"
@@ -182,6 +184,7 @@ const Register = () => {
                 >
                   Work Email
                 </label>
+
                 <input
                   id="email"
                   name="email"
@@ -196,6 +199,7 @@ const Register = () => {
                       : "border-[#e8eef8]/15 hover:border-[#e8eef8]/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   }`}
                 />
+
                 {errors.email && (
                   <p className="mt-1 text-xs text-rose-400">
                     {errors.email}
@@ -204,24 +208,7 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Role Selection */}
-            <div>
-              <label
-                className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70"
-              >
-                Workspace Role
-              </label>
-              <div className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f]/90 px-4 py-2.5 text-sm text-[#e8eef8]">
-                Developer
-              </div>
-              <p className="mt-1 text-[11px] text-[#e8eef8]/40">
-                New accounts start as Developer. An administrator can change the role later.
-              </p>
-            </div>
-
-            {/* Grid 2-cols: Password and Confirm Password */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {/* Password */}
               <div>
                 <label
                   htmlFor="password"
@@ -229,6 +216,7 @@ const Register = () => {
                 >
                   Password
                 </label>
+
                 <div className="relative">
                   <input
                     id="password"
@@ -244,15 +232,19 @@ const Register = () => {
                         : "border-[#e8eef8]/15 hover:border-[#e8eef8]/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     }`}
                   />
+
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute inset-y-0 right-0 flex items-center px-3.5 text-xs font-medium text-[#e8eef8]/40 hover:text-white transition"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
+
                 {errors.password && (
                   <p className="mt-1 text-xs text-rose-400">
                     {errors.password}
@@ -260,7 +252,6 @@ const Register = () => {
                 )}
               </div>
 
-              {/* Confirm Password */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
                   <label
@@ -269,17 +260,20 @@ const Register = () => {
                   >
                     Confirm Password
                   </label>
+
                   {passwordsMatch && (
                     <span className="text-[11px] font-medium text-emerald-400">
                       Passwords match
                     </span>
                   )}
+
                   {passwordsMismatch && (
                     <span className="text-[11px] font-medium text-rose-400">
                       Passwords don't match
                     </span>
                   )}
                 </div>
+
                 <div className="relative">
                   <input
                     id="confirmPassword"
@@ -297,15 +291,23 @@ const Register = () => {
                         : "border-[#e8eef8]/15 hover:border-[#e8eef8]/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     }`}
                   />
+
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    onClick={() =>
+                      setShowConfirmPassword((prev) => !prev)
+                    }
                     className="absolute inset-y-0 right-0 flex items-center px-3.5 text-xs font-medium text-[#e8eef8]/40 hover:text-white transition"
-                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showConfirmPassword
+                        ? "Hide password"
+                        : "Show password"
+                    }
                   >
                     {showConfirmPassword ? "Hide" : "Show"}
                   </button>
                 </div>
+
                 {errors.confirmPassword && (
                   <p className="mt-1 text-xs text-rose-400">
                     {errors.confirmPassword}
@@ -314,7 +316,6 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Terms and Privacy Agreement - Small, left-aligned, top-aligned checkbox */}
             <div className="pt-1">
               <div className="flex items-start justify-start">
                 <label className="flex items-start gap-2.5 cursor-pointer select-none text-[11px] text-[#e8eef8]/60 hover:text-[#e8eef8]/80 transition leading-normal">
@@ -326,6 +327,7 @@ const Register = () => {
                     onChange={handleChange}
                     className="mt-0.5 h-3.5 w-3.5 rounded border-[#e8eef8]/20 bg-[#07111f] text-blue-600 focus:ring-0 cursor-pointer accent-blue-500 shrink-0"
                   />
+
                   <span>
                     I agree to the{" "}
                     <span className="text-blue-400 hover:text-blue-300 underline underline-offset-2 cursor-pointer">
@@ -338,6 +340,7 @@ const Register = () => {
                   </span>
                 </label>
               </div>
+
               {errors.terms && (
                 <p className="mt-1 text-xs text-rose-400">
                   {errors.terms}
@@ -345,7 +348,6 @@ const Register = () => {
               )}
             </div>
 
-            {/* Submit CTA */}
             <button
               type="submit"
               disabled={isSubmitting}
@@ -355,17 +357,16 @@ const Register = () => {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="relative my-6 text-center">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-[#e8eef8]/10" />
             </div>
+
             <span className="relative bg-[#0d1a2b] px-3 text-[10px] font-semibold uppercase tracking-widest text-[#e8eef8]/40">
               OR
             </span>
           </div>
 
-          {/* Switch to Login */}
           <p className="text-center text-xs text-[#e8eef8]/60">
             Already have an account?{" "}
             <Link
@@ -376,7 +377,6 @@ const Register = () => {
             </Link>
           </p>
 
-          {/* Security Note */}
           <div className="mt-6 border-t border-[#e8eef8]/10 pt-4 text-center text-[11px] text-[#e8eef8]/40">
             IAM Powered by Keycloak • Enterprise-Grade Protection
           </div>

@@ -1,3 +1,4 @@
+
 import { PiList, PiSignOut } from "react-icons/pi";
 import { FaRegBell } from "react-icons/fa6";
 import { CgProfile } from "react-icons/cg";
@@ -5,6 +6,7 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES, formatRole, normalizeRole } from "../../constants/roles.js";
 import Sidebar from "./Sidebar.jsx";
+import ChatBot from "../Chatbot/Chatbot.jsx";
 
 const ROLE_STYLES = {
   [ROLES.ADMIN]: "bg-purple-500/10 text-purple-400 border-purple-500/30",
@@ -18,6 +20,7 @@ const ROLE_STYLES = {
 
 const DashboardLayout = ({ children }) => {
   const { currentUser, logout } = useAuth();
+
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = sessionStorage.getItem("sidebarOpen");
     return saved === null ? true : saved === "true";
@@ -34,7 +37,10 @@ const DashboardLayout = ({ children }) => {
   if (!currentUser) return null;
 
   const currentRole = normalizeRole(currentUser.role);
-  const badgeStyle = ROLE_STYLES[currentRole] || "bg-gray-500/10 text-gray-300 border-gray-500/30";
+
+  const badgeStyle =
+    ROLE_STYLES[currentRole] ||
+    "bg-gray-500/10 text-gray-300 border-gray-500/30";
 
   return (
     <div className="min-h-screen bg-[#070b14] text-[#e8eef8]">
@@ -49,15 +55,17 @@ const DashboardLayout = ({ children }) => {
           >
             <PiList size={22} />
           </button>
-          
+
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 font-bold text-white shadow-md shadow-blue-500/20">
               N
             </div>
+
             <div>
               <h1 className="text-base font-semibold tracking-tight text-[#e8eef8]">
                 NeuroForge Nexus
               </h1>
+
               <span className="text-[10px] uppercase tracking-wider text-[#e8eef8]/40">
                 SDLC Management Suite
               </span>
@@ -68,7 +76,9 @@ const DashboardLayout = ({ children }) => {
         {/* Right tools */}
         <div className="flex items-center gap-4">
           {/* Active Role Badge */}
-          <span className={`inline-flex items-center rounded-lg border px-3 py-1 text-xs font-semibold tracking-wide ${badgeStyle}`}>
+          <span
+            className={`inline-flex items-center rounded-lg border px-3 py-1 text-xs font-semibold tracking-wide ${badgeStyle}`}
+          >
             {formatRole(currentRole)}
           </span>
 
@@ -80,13 +90,15 @@ const DashboardLayout = ({ children }) => {
             <FaRegBell size={17} />
           </button>
 
-          <div className="flex items-center gap-2 pl-2 border-l border-[#e8eef8]/10">
+          <div className="flex items-center gap-2 border-l border-[#e8eef8]/10 pl-2">
             <CgProfile size={24} className="text-[#e8eef8]/80" />
-            <div className="hidden md:block text-left">
-              <p className="text-xs font-medium text-white leading-tight">
+
+            <div className="hidden text-left md:block">
+              <p className="text-xs font-medium leading-tight text-white">
                 {currentUser.fullName || "User"}
               </p>
-              <p className="text-[10px] text-[#e8eef8]/40 truncate max-w-[120px]">
+
+              <p className="max-w-[120px] truncate text-[10px] text-[#e8eef8]/40">
                 {currentUser.email}
               </p>
             </div>
@@ -95,7 +107,7 @@ const DashboardLayout = ({ children }) => {
           <button
             onClick={logout}
             title="Logout"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8eef8]/10 bg-[#0f1422] px-3 py-1.5 text-xs text-[#e8eef8]/70 transition hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8eef8]/10 bg-[#0f1422] px-3 py-1.5 text-xs text-[#e8eef8]/70 transition hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-400"
           >
             <PiSignOut size={16} />
             <span className="hidden sm:inline">Logout</span>
@@ -106,12 +118,17 @@ const DashboardLayout = ({ children }) => {
       {/* Main layout */}
       <div className="flex">
         {sidebarOpen && <Sidebar role={currentUser.role} />}
+
         <main className="min-w-0 flex-1 px-4 py-8 sm:px-8 lg:px-10">
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
+
+      {/* Global floating chatbot */}
+      <ChatBot />
     </div>
   );
 };
 
 export default DashboardLayout;
+
