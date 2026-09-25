@@ -174,6 +174,42 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
+  const updateProjectStatus = async (projectId, status) => {
+    try {
+      const response = await axios.patch(
+        `${API_BASE}/${projectId}/status`,
+        { status }
+      );
+
+      const updated = response.data;
+      const repos = getStoredRepos();
+      const projectWithRepo = {
+        ...updated,
+        repository: updated.repository || repos[String(updated.id)] || "",
+      };
+
+      setProjects((prev) =>
+        prev.map((project) =>
+          String(project.id) === String(projectId)
+            ? { ...project, ...projectWithRepo, status: updated.status || status }
+            : project
+        )
+      );
+
+      return {
+        success: true,
+        data: projectWithRepo,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message:
+          err.response?.data?.message ||
+          "Failed to update project status.",
+      };
+    }
+  };
+
   const deleteProject = async (projectId) => {
     try {
       await axios.delete(
@@ -247,6 +283,7 @@ export const ProjectProvider = ({ children }) => {
         error,
         createProject,
         updateProject,
+        updateProjectStatus,
         deleteProject,
         getProjectById,
         getVisibleProjects,

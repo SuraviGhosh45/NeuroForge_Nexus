@@ -51,6 +51,16 @@ public class ProjectController {
         return projectService.update(id, request);
     }
 
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
+    public ProjectDtos.Detail updateStatus(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        String status = body.get("status");
+        if (status == null || status.isBlank()) {
+            throw new IllegalArgumentException("Status cannot be blank");
+        }
+        return projectService.updateStatus(id, status);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

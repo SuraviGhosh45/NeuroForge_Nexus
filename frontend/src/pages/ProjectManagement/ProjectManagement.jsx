@@ -20,6 +20,7 @@ const ProjectManagement = () => {
     error: projectsError,
     createProject,
     updateProject,
+    updateProjectStatus,
     deleteProject,
     getVisibleProjects,
   } = useProjects();
@@ -440,17 +441,48 @@ const ProjectManagement = () => {
                     </td>
 
                     <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${
-                          project.status === "Completed"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                            : project.status === "In Progress"
-                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                            : "bg-gray-500/10 text-gray-400 border-gray-500/20"
-                        }`}
-                      >
-                        {project.status || "Not Started"}
-                      </span>
+                      {showActions ? (
+                        <select
+                          value={project.status || "Not Started"}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={async (e) => {
+                            e.stopPropagation();
+                            const newStatus = e.target.value;
+                            const res = await updateProjectStatus(project.id, newStatus);
+                            if (res && !res.success) {
+                              alert(res.message || "Failed to update project status");
+                            }
+                          }}
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium border outline-none cursor-pointer transition ${
+                            project.status === "Completed"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : project.status === "In Progress"
+                              ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                              : project.status === "On Hold"
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                          }`}
+                        >
+                          <option value="Not Started" className="bg-[#0a0e17] text-gray-300">Not Started</option>
+                          <option value="In Progress" className="bg-[#0a0e17] text-blue-400">In Progress</option>
+                          <option value="On Hold" className="bg-[#0a0e17] text-amber-400">On Hold</option>
+                          <option value="Completed" className="bg-[#0a0e17] text-emerald-400">Completed</option>
+                        </select>
+                      ) : (
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${
+                            project.status === "Completed"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : project.status === "In Progress"
+                              ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                              : project.status === "On Hold"
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                          }`}
+                        >
+                          {project.status || "Not Started"}
+                        </span>
+                      )}
                     </td>
 
                     {showActions && (

@@ -92,7 +92,7 @@ const ProjectWorkspace = () => {
     description: "",
     code: "",
     repository: "",
-    status: "Planning",
+    status: "Not Started",
     startDate: "",
     endDate: "",
   });
@@ -132,7 +132,7 @@ const ProjectWorkspace = () => {
         description: project.description || "",
         code: project.code || "",
         repository: project.repository || "",
-        status: project.status || "Planning",
+        status: project.status || "Not Started",
         startDate: project.startDate || "",
         endDate: project.endDate || "",
       });
@@ -693,7 +693,17 @@ const ProjectWorkspace = () => {
                   )}
 
                   {project.status && (
-                    <span className="rounded-full border border-blue-400/20 bg-blue-400/5 px-3 py-1 text-xs font-semibold text-blue-400">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                        project.status === "Completed"
+                          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                          : project.status === "In Progress"
+                          ? "border-blue-400/20 bg-blue-400/10 text-blue-400"
+                          : project.status === "On Hold"
+                          ? "border-amber-400/20 bg-amber-400/10 text-amber-400"
+                          : "border-slate-400/20 bg-slate-400/10 text-slate-300"
+                      }`}
+                    >
                       {project.status}
                     </span>
                   )}
@@ -790,7 +800,7 @@ const ProjectWorkspace = () => {
                 </p>
 
                 <p className="mt-2 text-xl font-bold text-[#e8eef8]">
-                  {project.status || "Planning"}
+                  {project.status || "Not Started"}
                 </p>
               </div>
 
@@ -1500,12 +1510,12 @@ const ProjectWorkspace = () => {
                     onChange={handleProjectFormChange}
                     className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
                   >
-                    <option value="Planning">
-                      Planning
+                    <option value="Not Started">
+                      Not Started
                     </option>
 
-                    <option value="Active">
-                      Active
+                    <option value="In Progress">
+                      In Progress
                     </option>
 
                     <option value="On Hold">
