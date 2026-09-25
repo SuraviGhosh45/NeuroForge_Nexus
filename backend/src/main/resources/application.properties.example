@@ -14,4 +14,4 @@ app.bootstrap-admin.full-name=System Admin
 app.bootstrap-admin.user-id=admin
 app.bootstrap-admin.email=admin@example.com
 app.bootstrap-admin.contact-number=0000000000
-app.bootstrap-admin.password=${ADMIN_PASSWORD:}
+app.bootstrap-admin.password=admin123

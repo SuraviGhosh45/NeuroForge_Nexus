@@ -48,10 +48,10 @@ public class User {
     @Column(name = "skill", length = 30)
     private Skill skill;
 
-    /** Access role. Always DEVELOPER at signup; changed only by an Admin. */
+    /** Access role. Always UNASSIGNED at signup; changed only by an Admin. */
     @Enumerated(EnumType.STRING)
     @Column(name = "access_role", nullable = false, length = 30)
-    private Role role = Role.DEVELOPER;
+    private Role role = Role.UNASSIGNED;
 
     /** Login/authorization switch. */
     @Column(name = "active", nullable = false)

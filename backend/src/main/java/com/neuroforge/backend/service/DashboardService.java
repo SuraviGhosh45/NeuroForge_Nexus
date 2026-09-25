@@ -42,6 +42,9 @@ import lombok.RequiredArgsConstructor;
  *
  * TEAM_MEMBER:
  *      Team Leads see team/project work; Developers, Testers and QA see their own tasks inside projects where they are members.
+ *
+ * UNASSIGNED:
+ *      Pending user with no role yet — empty dashboard until an Admin assigns one.
  */
 @Service
 @RequiredArgsConstructor
@@ -107,6 +110,9 @@ public class DashboardService {
 
             case TEAM_LEAD, DEVELOPER, TESTER, QA, TEAM_MEMBER ->
                     teamMember(ownTasks, today, myTasks);
+
+            case UNASSIGNED ->
+                    pending(myTasks);
         };
     }
 
@@ -345,6 +351,27 @@ public class DashboardService {
                 split(ownTasks),
                 null,
                 nearest,
+                myTasks
+        );
+    }
+
+    // ------------------------------------------------------------------ UNASSIGNED
+
+    /** A pending user has no projects and no tasks yet — empty dashboard until an Admin assigns a role. */
+    private DashboardResponse pending(MyTasks myTasks) {
+
+        Map<String, Long> stats = new LinkedHashMap<>();
+        stats.put("assignedTasks", 0L);
+        stats.put("todoTasks", 0L);
+        stats.put("inProgressTasks", 0L);
+        stats.put("completedTasks", 0L);
+
+        return new DashboardResponse(
+                "UNASSIGNED",
+                stats,
+                new StatusSplit(0L, 0L, 0L),
+                null,
+                null,
                 myTasks
         );
     }

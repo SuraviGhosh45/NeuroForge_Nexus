@@ -36,6 +36,7 @@ import lombok.RequiredArgsConstructor;
  *  - Admin: all tasks
  *  - Project Manager: tasks of projects they manage/belong to
  *  - Team Member: only tasks assigned to them AND belonging to projects they are a member of
+ *  - Unassigned: no tasks, no access, until an Admin assigns a role
  *  - create/update/delete: Admin or the PM who manages the task's project
  *  - the assignee must be a MEMBER of the selected project
  *  - status changes go through updateStatus (Kanban drag & drop); a Team Member may only move their own tasks
@@ -88,6 +89,8 @@ public class TaskService {
                                 && task.getAssignee().getId().equals(user.userId()))
                         .toList();
             }
+
+            case UNASSIGNED -> List.<Task>of();
         };
 
         return tasks.stream()
@@ -335,6 +338,8 @@ public class TaskService {
 
             case DEVELOPER, TESTER, QA, TEAM_MEMBER ->
                     access.canView(user, task.getProject());
+
+            case UNASSIGNED -> false;
         };
 
         if (!allowed) {
@@ -354,11 +359,14 @@ public class TaskService {
                     access.canManage(user, task.getProject());
 
             case TEAM_LEAD ->
-                    access.canView(user, task.getProject());
+                    access.isTeamLead(task.getProject(), user.userId())
+                            || (isAssignee(user, task) && access.isMember(task.getProject(), user.userId()));
 
             case DEVELOPER, TESTER, QA, TEAM_MEMBER ->
                     isAssignee(user, task)
                             && access.isMember(task.getProject(), user.userId());
+
+            case UNASSIGNED -> false;
         };
 
         if (!allowed) {

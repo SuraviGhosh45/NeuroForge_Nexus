@@ -29,6 +29,7 @@ public class AccessService {
             case PROJECT_LEAD -> projectRepository.findLedOrMemberOf(user.userId());
             case TEAM_LEAD -> projectRepository.findTeamLeadProjects(user.userId());
             case DEVELOPER, TESTER, QA, TEAM_MEMBER -> projectRepository.findByMemberId(user.userId());
+            case UNASSIGNED -> List.of();
         };
         return projects.stream()
                 .sorted(Comparator.comparing(Project::getId))
@@ -69,6 +70,9 @@ public class AccessService {
         if (role == Role.TEAM_LEAD) {
             return isTeamLead(project, user.userId()) || isMember(project, user.userId());
         }
+        if (role == Role.UNASSIGNED) {
+            return false;
+        }
         return isMember(project, user.userId());
     }
 
@@ -85,7 +89,9 @@ public class AccessService {
     /** Team membership management inside a project workspace. */
     public boolean canManageProjectTeam(AuthUser user, Project project) {
         return switch (user.role()) {
-            case ADMIN, PROJECT_MANAGER, PROJECT_LEAD -> true;
+            case ADMIN -> true;
+            case PROJECT_MANAGER -> isManager(project, user.userId());
+            case PROJECT_LEAD -> isProjectLead(project, user.userId());
             case TEAM_LEAD -> isTeamLead(project, user.userId()) || isMember(project, user.userId());
             default -> false;
         };

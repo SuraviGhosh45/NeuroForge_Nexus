@@ -52,7 +52,8 @@ public class UserService {
     // ------------------------------------------------------------------ auth
 
     /**
-     * Signup. The role is NEVER read from the client: every new account is DEVELOPER.
+     * Signup. The role is NEVER read from the client: every new account is UNASSIGNED
+     * until an Admin promotes them to a real role.
      */
     @Transactional
     public User register(SignupRequest request) {
@@ -78,7 +79,7 @@ public class UserService {
         user.setContactNumber(request.getContactNumber() == null || request.getContactNumber().isBlank() ? null : request.getContactNumber().trim());
         user.setSkill(request.getSkill());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(Role.DEVELOPER);   // privileged roles are assigned by Admin only
+        user.setRole(Role.UNASSIGNED);   // privileged/execution roles are assigned by Admin only
         user.setActive(true);
         user.setAvailabilityStatus("Active");
 
@@ -148,7 +149,7 @@ public class UserService {
         user.setEmail(email);
         user.setContactNumber(request.getContactNumber());
         user.setSkill(request.getSkill());
-        user.setRole(request.getRole() == null ? Role.DEVELOPER : request.getRole());
+        user.setRole(request.getRole() == null ? Role.UNASSIGNED : request.getRole());
         user.setPassword(passwordEncoder.encode(request.getPassword() == null || request.getPassword().isBlank() ? "TempPass@123" : request.getPassword()));
         setAvailabilityFields(user, request.getStatus() == null ? "Active" : request.getStatus(), false);
         return UserResponse.from(userRepository.save(user));
@@ -262,6 +263,20 @@ public class UserService {
         user.setActive(!"Inactive".equals(status));
     }
 
+    /** PATCH /api/users/me/password (any authenticated user, on their own account only). */
+    @Transactional
+    public void changeOwnPassword(String currentPassword, String newPassword) {
+        AuthUser caller = CurrentUser.get();
+        User user = getUserById(caller.userId());
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new BusinessRuleException("Current password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
     /**
      * DELETE /api/users/{id} (Admin only).
      * The user is removed from teams and project member lists and their tasks become unassigned.
@@ -272,24 +287,52 @@ public class UserService {
         AuthUser caller = CurrentUser.get();
 
         if (caller.userId().equals(id)) {
-            throw new BusinessRuleException("You cannot delete your own account");
+            throw new BusinessRuleException("You cannot delete your own account here. Use the account menu to delete your own account.");
         }
 
         User user = getUserById(id);
+        assertNoOutstandingResponsibilities(user);
+        purgeAndDelete(user);
+    }
 
+    /**
+     * DELETE /api/users/me (self-service, any authenticated user).
+     * The id always comes from the caller's own token. Blocked if this is the last
+     * Admin in the system, or the user still manages/leads a project or team -
+     * same guard rails as the Admin-driven delete, just enforced on yourself.
+     */
+    @Transactional
+    public void deleteSelf() {
+        AuthUser caller = CurrentUser.get();
+        User user = getUserById(caller.userId());
+
+        if (user.getRole() == Role.ADMIN && userRepository.countByRole(Role.ADMIN) <= 1) {
+            throw new BusinessRuleException("You are the last Admin. Promote another user to Admin before deleting your account.");
+        }
+
+        assertNoOutstandingResponsibilities(user);
+        purgeAndDelete(user);
+    }
+
+    /** Shared guard for both delete paths: can't remove someone still managing/leading live work. */
+    private void assertNoOutstandingResponsibilities(User user) {
+        Long id = user.getId();
         long managed = projectRepository.countByProjectManagerId(id);
         long led = projectRepository.countByProjectLeadId(id);
         long teamLeadAssignments = teamMemberRepository.findByUserId(id).stream()
                 .filter(tm -> "Team Lead".equalsIgnoreCase(tm.getTeamRole())).count();
         if (managed > 0 || led > 0 || teamLeadAssignments > 0) {
-            throw new BusinessRuleException(user.getFullName() + " still has project/team responsibilities. Reassign them before deleting this user.");
+            throw new BusinessRuleException("You still have project/team responsibilities. Reassign them before deleting this account.");
         }
+    }
 
+    /** Shared cleanup + delete used by both the Admin-driven and self-service delete. */
+    private void purgeAndDelete(User user) {
+        Long id = user.getId();
         teamMemberRepository.deleteByUserId(id);
         projectMemberAssignmentRepository.deleteByUserId(id);
         projectRepository.removeUserFromAllProjects(id);
         taskRepository.unassignUser(id);
-
         userRepository.deleteById(id);
     }
 

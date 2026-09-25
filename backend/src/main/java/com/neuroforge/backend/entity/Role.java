@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 /**
  * System roles used by the frontend RBAC model.
- * TEAM_MEMBER is retained only as a legacy database value; new accounts use DEVELOPER.
+ * TEAM_MEMBER is retained only as a legacy database value; new accounts use UNASSIGNED.
+ * UNASSIGNED is the signup default — it is never returned by fromString(), so a client
+ * can never request it; only the backend sets it, and only an Admin can change it away.
  */
 public enum Role {
     ADMIN("Admin"),
@@ -14,7 +16,8 @@ public enum Role {
     DEVELOPER("Developer"),
     TESTER("Tester"),
     QA("QA"),
-    TEAM_MEMBER("Team Member");
+    TEAM_MEMBER("Team Member"),
+    UNASSIGNED("Unassigned");
 
     private final String label;
 
@@ -56,6 +59,7 @@ public enum Role {
             case "qa", "qaspecialist", "qualityassurance" -> QA;
             default -> {
                 for (Role role : values()) {
+                    if (role == UNASSIGNED) continue; // never selectable by a client
                     if (normalize(role.name()).equals(key) || normalize(role.label).equals(key)) {
                         yield role;
                     }

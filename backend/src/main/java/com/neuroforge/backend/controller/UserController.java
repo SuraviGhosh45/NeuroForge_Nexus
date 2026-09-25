@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.neuroforge.backend.dto.ChangePasswordRequest;
 import com.neuroforge.backend.dto.UpdateUserRequest;
 import com.neuroforge.backend.dto.CreateUserRequest;
 import com.neuroforge.backend.dto.UserDtos.ProfileResponse;
@@ -84,11 +85,30 @@ public class UserController {
         return userService.setStatus(id, request.active(), request.status());
     }
 
+    /** Self-service password change. Requires the current password for verification. */
+    @PatchMapping("/me/password")
+    public ResponseEntity<Map<String, String>> changeOwnPassword(@Valid @RequestBody ChangePasswordRequest request) {
+        userService.changeOwnPassword(request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> delete(@PathVariable Long id) {
         userService.delete(id);
         return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
+    }
+
+    /**
+     * Self-service account deletion. Any authenticated user deletes their OWN account -
+     * the id always comes from the caller's token, never from the request, so no one
+     * can pass another user's id here. Blocked if you're the last Admin, or you still
+     * manage/lead a project or team (same rule the Admin-driven delete enforces).
+     */
+    @DeleteMapping("/me")
+    public ResponseEntity<Map<String, String>> deleteSelf() {
+        userService.deleteSelf();
+        return ResponseEntity.ok(Map.of("message", "Your account has been deleted"));
     }
 
     /** Single call for the profile page. Admin: any user. Everyone else: their own profile only (checked in the service). */

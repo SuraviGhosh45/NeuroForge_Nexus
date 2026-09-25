@@ -1,5 +1,4 @@
-
-import { PiList, PiSignOut } from "react-icons/pi";
+import { PiList, PiSignOut, PiTrash, PiCaretDown } from "react-icons/pi";
 import { FaRegBell } from "react-icons/fa6";
 import { CgProfile } from "react-icons/cg";
 import { useState } from "react";
@@ -16,15 +15,21 @@ const ROLE_STYLES = {
   [ROLES.DEVELOPER]: "bg-amber-500/10 text-amber-400 border-amber-500/30",
   [ROLES.TESTER]: "bg-rose-500/10 text-rose-400 border-rose-500/30",
   [ROLES.QA]: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30",
+  [ROLES.UNASSIGNED]: "bg-gray-500/10 text-gray-300 border-gray-500/30",
 };
 
 const DashboardLayout = ({ children }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, deleteAccount } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = sessionStorage.getItem("sidebarOpen");
     return saved === null ? true : saved === "true";
   });
+
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const toggleSidebar = () => {
     setSidebarOpen((open) => {
@@ -32,6 +37,20 @@ const DashboardLayout = ({ children }) => {
       sessionStorage.setItem("sidebarOpen", String(nextOpen));
       return nextOpen;
     });
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError("");
+    const result = await deleteAccount();
+    setDeleting(false);
+
+    if (!result.success) {
+      setDeleteError(result.message);
+      return;
+    }
+
+    // deleteAccount() already clears the session; nothing else to do here.
   };
 
   if (!currentUser) return null;
@@ -90,28 +109,58 @@ const DashboardLayout = ({ children }) => {
             <FaRegBell size={17} />
           </button>
 
-          <div className="flex items-center gap-2 border-l border-[#e8eef8]/10 pl-2">
-            <CgProfile size={24} className="text-[#e8eef8]/80" />
+          {/* Account dropdown */}
+          <div className="relative border-l border-[#e8eef8]/10 pl-2">
+            <button
+              type="button"
+              onClick={() => setAccountMenuOpen((open) => !open)}
+              className="flex items-center gap-2 rounded-lg px-1.5 py-1 transition hover:bg-[#e8eef8]/5"
+            >
+              <CgProfile size={24} className="text-[#e8eef8]/80" />
 
-            <div className="hidden text-left md:block">
-              <p className="text-xs font-medium leading-tight text-white">
-                {currentUser.fullName || "User"}
-              </p>
+              <div className="hidden text-left md:block">
+                <p className="text-xs font-medium leading-tight text-white">
+                  {currentUser.fullName || "User"}
+                </p>
 
-              <p className="max-w-[120px] truncate text-[10px] text-[#e8eef8]/40">
-                {currentUser.email}
-              </p>
-            </div>
+                <p className="max-w-[120px] truncate text-[10px] text-[#e8eef8]/40">
+                  {currentUser.email}
+                </p>
+              </div>
+
+              <PiCaretDown
+                size={14}
+                className={`text-[#e8eef8]/40 transition-transform ${accountMenuOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {accountMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-[#e8eef8]/10 bg-[#0f1422] py-1.5 shadow-xl">
+                <button
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    logout();
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs text-[#e8eef8]/70 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                >
+                  <PiSignOut size={16} />
+                  Logout
+                </button>
+
+                <button
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    setDeleteError("");
+                    setConfirmDeleteOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs text-rose-400 transition hover:bg-rose-500/10"
+                >
+                  <PiTrash size={16} />
+                  Delete Account
+                </button>
+              </div>
+            )}
           </div>
-
-          <button
-            onClick={logout}
-            title="Logout"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8eef8]/10 bg-[#0f1422] px-3 py-1.5 text-xs text-[#e8eef8]/70 transition hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-400"
-          >
-            <PiSignOut size={16} />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
         </div>
       </header>
 
@@ -124,6 +173,45 @@ const DashboardLayout = ({ children }) => {
         </main>
       </div>
 
+      {/* Delete-account confirmation */}
+      {confirmDeleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-[#e8eef8]/10 bg-[#0f1422] p-6 shadow-2xl">
+            <h2 className="text-base font-semibold text-white">Delete your account?</h2>
+            <p className="mt-2 text-sm text-[#e8eef8]/60">
+              This permanently deletes your account. You will be removed from all
+              projects and teams, and this cannot be undone.
+            </p>
+
+            {deleteError && (
+              <p className="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-400">
+                {deleteError}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteOpen(false)}
+                disabled={deleting}
+                className="rounded-lg border border-[#e8eef8]/10 px-3.5 py-1.5 text-xs text-[#e8eef8]/70 transition hover:bg-[#e8eef8]/5 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="rounded-lg bg-rose-500/90 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-rose-500 disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Global floating chatbot */}
       <ChatBot />
     </div>
@@ -131,4 +219,3 @@ const DashboardLayout = ({ children }) => {
 };
 
 export default DashboardLayout;
-

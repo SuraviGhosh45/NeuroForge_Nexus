@@ -13,12 +13,13 @@ import "../services/api.js";
 const AuthContext = createContext(null);
 
 const API_BASE = "http://localhost:8080/api/auth";
+const USERS_BASE = "http://localhost:8080/api/users";
 const AUTH_USER_KEY = "auth_user";
 
 export const normalizeUser = (user) => {
   if (!user) return null;
 
-  const role = normalizeRole(user.role || ROLES.DEVELOPER);
+  const role = normalizeRole(user.role || ROLES.UNASSIGNED);
 
   return {
     ...user,
@@ -161,9 +162,28 @@ export const AuthProvider = ({ children }) => {
     setCurrentUser(null);
   };
 
+  /** Self-service account deletion. Backend re-validates everything (last-admin, live responsibilities). */
+  const deleteAccount = async () => {
+    try {
+      await axios.delete(`${USERS_BASE}/me`);
+
+      clearToken();
+      sessionStorage.removeItem(AUTH_USER_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      setCurrentUser(null);
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Unable to delete your account.",
+      };
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ currentUser, authReady, register, login, logout }}
+      value={{ currentUser, authReady, register, login, logout, deleteAccount }}
     >
       {children}
     </AuthContext.Provider>

@@ -7,6 +7,7 @@ export const ROLES = {
   TESTER: "tester",
   QA: "qa",
   TEAM_MEMBER: "team_member", // legacy backend value
+  UNASSIGNED: "unassigned",   // signup default, until Admin assigns a real role
 };
 
 export const MEMBER_ROLES = [
@@ -26,7 +27,7 @@ export const ALL_ROLES = [
 ];
 
 export const normalizeRole = (role) => {
-  if (!role || typeof role !== "string") return ROLES.DEVELOPER;
+  if (!role || typeof role !== "string") return ROLES.UNASSIGNED;
 
   const cleaned = role.trim().toLowerCase().replace(/[\s-]+/g, "_");
 
@@ -49,7 +50,8 @@ export const normalizeRole = (role) => {
     case "quality_assurance": return ROLES.QA;
     case "team_member":
     case "member": return ROLES.DEVELOPER;
-    default: return ROLES.DEVELOPER;
+    case "unassigned": return ROLES.UNASSIGNED;
+    default: return ROLES.UNASSIGNED;
   }
 };
 
@@ -62,6 +64,7 @@ export const formatRole = (role) => {
     case ROLES.DEVELOPER: return "Developer";
     case ROLES.TESTER: return "Tester";
     case ROLES.QA: return "QA Specialist";
-    default: return "Developer";
+    case ROLES.UNASSIGNED: return "Pending Assignment";
+    default: return "Pending Assignment";
   }
 };
