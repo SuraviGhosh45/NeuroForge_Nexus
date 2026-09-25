@@ -91,6 +91,7 @@ const ProjectWorkspace = () => {
     name: "",
     description: "",
     code: "",
+    repository: "",
     status: "Planning",
     startDate: "",
     endDate: "",
@@ -130,6 +131,7 @@ const ProjectWorkspace = () => {
         name: project.name || "",
         description: project.description || "",
         code: project.code || "",
+        repository: project.repository || "",
         status: project.status || "Planning",
         startDate: project.startDate || "",
         endDate: project.endDate || "",
@@ -781,7 +783,7 @@ const ProjectWorkspace = () => {
 
         {activeSection === "overview" && (
           <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
                 <p className="text-sm text-[#e8eef8]/50">
                   Project Status
@@ -826,6 +828,27 @@ const ProjectWorkspace = () => {
                 <p className="mt-2 text-xl font-bold text-[#e8eef8]">
                   {projectMembers.length}
                 </p>
+              </div>
+
+              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
+                <p className="text-sm text-[#e8eef8]/50">
+                  Repositary
+                </p>
+
+                <div className="mt-2">
+                  {project.repository ? (
+                    <a
+                      href={project.repository.startsWith("http") ? project.repository : `https://${project.repository}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xl font-bold text-blue-400 hover:text-blue-300 underline transition"
+                    >
+                      Link
+                    </a>
+                  ) : (
+                    <p className="text-xl font-bold text-[#e8eef8]/40">__</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1447,6 +1470,21 @@ const ProjectWorkspace = () => {
                   onChange={handleProjectFormChange}
                   rows={4}
                   className="w-full resize-none rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition placeholder:text-[#e8eef8]/30 focus:border-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                  Repository Link
+                </label>
+
+                <input
+                  type="url"
+                  name="repository"
+                  value={projectForm.repository}
+                  onChange={handleProjectFormChange}
+                  placeholder="e.g. https://github.com/organization/repository"
+                  className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition placeholder:text-[#e8eef8]/30 focus:border-blue-400"
                 />
               </div>
 

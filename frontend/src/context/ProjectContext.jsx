@@ -5,6 +5,27 @@ import "../services/api.js";
 const ProjectContext = createContext(null);
 
 const API_BASE = "http://localhost:8080/api/projects";
+const REPOS_STORAGE_KEY = "sdlc_project_repositories";
+
+const getStoredRepos = () => {
+  try {
+    return JSON.parse(localStorage.getItem(REPOS_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const saveStoredRepo = (projectId, repoUrl) => {
+  try {
+    const repos = getStoredRepos();
+    if (projectId != null) {
+      repos[String(projectId)] = (repoUrl || "").trim();
+      localStorage.setItem(REPOS_STORAGE_KEY, JSON.stringify(repos));
+    }
+  } catch (e) {
+    console.warn("Failed to save project repository:", e);
+  }
+};
 
 export const ProjectProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
@@ -23,11 +44,17 @@ export const ProjectProvider = ({ children }) => {
         ? response.data
         : [];
 
-      setProjects(data);
+      const repos = getStoredRepos();
+      const enriched = data.map((item) => ({
+        ...item,
+        repository: item.repository || repos[String(item.id)] || "",
+      }));
+
+      setProjects(enriched);
 
       // Automatically select the first available project
-      if (data.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(data[0].id);
+      if (enriched.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(enriched[0].id);
       }
     } catch (err) {
       console.warn(
@@ -75,14 +102,23 @@ export const ProjectProvider = ({ children }) => {
         buildPayload(formData)
       );
 
+      const createdRepo = formData.repository || "";
+      if (response.data?.id) {
+        saveStoredRepo(response.data.id, createdRepo);
+      }
+      const projectWithRepo = {
+        ...response.data,
+        repository: createdRepo,
+      };
+
       setProjects((prev) => [
         ...prev,
-        response.data,
+        projectWithRepo,
       ]);
 
       return {
         success: true,
-        data: response.data,
+        data: projectWithRepo,
       };
     } catch (err) {
       return {
@@ -94,24 +130,39 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
-  const updateProject = async (formData) => {
+  const updateProject = async (arg1, arg2) => {
+    const formData =
+      typeof arg1 === "object" && arg1 !== null
+        ? arg1
+        : { ...(arg2 || {}), id: arg1 };
+
+    const targetId = formData.id;
     try {
       const response = await axios.put(
-        `${API_BASE}/${formData.id}`,
+        `${API_BASE}/${targetId}`,
         buildPayload(formData)
       );
 
+      const updatedRepo = formData.repository != null ? formData.repository : "";
+      if (targetId) {
+        saveStoredRepo(targetId, updatedRepo);
+      }
+      const projectWithRepo = {
+        ...response.data,
+        repository: updatedRepo,
+      };
+
       setProjects((prev) =>
         prev.map((project) =>
-          project.id === formData.id
-            ? response.data
+          String(project.id) === String(targetId)
+            ? projectWithRepo
             : project
         )
       );
 
       return {
         success: true,
-        data: response.data,
+        data: projectWithRepo,
       };
     } catch (err) {
       return {
