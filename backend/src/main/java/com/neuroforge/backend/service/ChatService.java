@@ -44,9 +44,9 @@ public class ChatService {
 
     public ChatService(
             ChatContextBuilder contextBuilder,
-            @Value("${neuroforge.chat.base-url}") String baseUrl,
-            @Value("${neuroforge.chat.api-key}") String apiKey,
-            @Value("${neuroforge.chat.model}") String model) {
+            @Value("${neuroforge.chat.base-url:https://api.groq.com/openai/v1}") String baseUrl,
+            @Value("${neuroforge.chat.api-key:mock-key}") String apiKey,
+            @Value("${neuroforge.chat.model:llama-3.3-70b-versatile}") String model) {
 
         this.contextBuilder = contextBuilder;
         this.model = model;
