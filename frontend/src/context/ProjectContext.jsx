@@ -176,10 +176,25 @@ export const ProjectProvider = ({ children }) => {
 
   const updateProjectStatus = async (projectId, status) => {
     try {
-      const response = await axios.patch(
-        `${API_BASE}/${projectId}/status`,
-        { status }
-      );
+      let response;
+      try {
+        response = await axios.patch(
+          `${API_BASE}/${projectId}/status`,
+          { status }
+        );
+      } catch (patchErr) {
+        if (patchErr.response?.status === 404) {
+          const currentProject = projects.find(
+            (p) => String(p.id) === String(projectId)
+          ) || {};
+          response = await axios.put(
+            `${API_BASE}/${projectId}`,
+            buildPayload({ ...currentProject, status })
+          );
+        } else {
+          throw patchErr;
+        }
+      }
 
       const updated = response.data;
       const repos = getStoredRepos();

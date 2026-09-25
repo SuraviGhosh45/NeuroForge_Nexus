@@ -51,7 +51,7 @@ public class ProjectController {
         return projectService.update(id, request);
     }
 
-    @PatchMapping("/{id}/status")
+    @RequestMapping(value = "/{id}/status", method = {RequestMethod.PATCH, RequestMethod.PUT})
     @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
     public ProjectDtos.Detail updateStatus(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
         String status = body.get("status");
