@@ -25,7 +25,9 @@ const MyTask = () => {
     tasks,
     subtasks = [],
     updateSubtask,
+    updateSubtaskStatus,
     updateTask,
+    updateTaskStatus,
   } = useTasks();
 
   const { projects } = useProjects();
@@ -85,43 +87,47 @@ const MyTask = () => {
   const now = new Date();
 
   /*
-   * Parent task status update.
-   *
-   * TasksContext handles the correct backend endpoint:
-   * TEAM_MEMBER -> PATCH /api/tasks/{id}/status
+   * Parent task status update via dedicated PATCH /api/tasks/{id}/status
    */
   const handleParentTaskStatusChange = async (
     task,
     newStatus
   ) => {
-    await updateTask({
-      ...task,
-      status: newStatus,
-    });
+    const res = await updateTaskStatus(task.id, newStatus);
+    if (res && !res.success) {
+      alert(res.message || "Failed to update task status");
+    }
   };
 
   /*
-   * Subtask status update.
+   * Subtask status update via dedicated PATCH /api/subtasks/{id}/status
    */
   const handleSubtaskStatusChange = async (
     subtask,
     newStatus
   ) => {
-    await updateSubtask(subtask.taskId, {
-      ...subtask,
-      status: newStatus,
-    });
+    const res = await updateSubtaskStatus(subtask.id, newStatus);
+    if (res && !res.success) {
+      alert(res.message || "Failed to update subtask status");
+    }
   };
 
   /*
-   * Status helper.
+   * Status helper with full normalization to match select options.
+   * For parent tasks, QA/testing statuses map to "In Review" (BoardStatus.IN_REVIEW).
    */
   const getStatus = (item) => {
-    return (
-      item.status ||
-      item.boardStatus ||
-      "To Do"
-    );
+    if (!item) return "To Do";
+    const raw = (item.status || item.boardStatus || "To Do").trim();
+    const upper = raw.toUpperCase().replace(/\s+/g, "_");
+    if (upper === "TODO" || upper === "TO_DO") return "To Do";
+    if (upper === "IN_PROGRESS") return "In Progress";
+    if (upper === "IN_REVIEW") return "In Review";
+    if (upper === "READY_FOR_TESTING") return item.itemType === "task" ? "In Review" : "Ready for Testing";
+    if (upper === "IN_TESTING") return item.itemType === "task" ? "In Review" : "In Testing";
+    if (upper === "IN_QA") return item.itemType === "task" ? "In Review" : "In QA";
+    if (upper === "DONE" || upper === "COMPLETED") return "Done";
+    return raw;
   };
 
   /*
@@ -154,16 +160,25 @@ const MyTask = () => {
     ];
   }, [myParentTasks, mySubtasks]);
 
+  const teamWorkItems = useMemo(() => {
+    return teamSubtasks.map((subtask) => ({
+      ...subtask,
+      itemType: "subtask",
+      itemId: subtask.id,
+      itemStatus: getStatus(subtask),
+    }));
+  }, [teamSubtasks]);
+
   /*
    * Filter displayed work items.
    */
   const displayedItems = useMemo(() => {
     if (activeTab === "team_work") {
       if (statusFilter === "ALL") {
-        return teamSubtasks;
+        return teamWorkItems;
       }
 
-      return teamSubtasks.filter(
+      return teamWorkItems.filter(
         (subtask) =>
           getStatus(subtask) === statusFilter
       );
@@ -196,10 +211,9 @@ const MyTask = () => {
     } else if (activeTab === "review") {
       items = items.filter(
         (item) =>
-          getStatus(item) ===
-            "Ready for Testing" ||
-          getStatus(item) ===
-            "In Testing" ||
+          getStatus(item) === "In Review" ||
+          getStatus(item) === "Ready for Testing" ||
+          getStatus(item) === "In Testing" ||
           getStatus(item) === "In QA"
       );
     }
@@ -209,7 +223,7 @@ const MyTask = () => {
     activeTab,
     statusFilter,
     allMyItems,
-    teamSubtasks,
+    teamWorkItems,
     now,
   ]);
 
@@ -586,30 +600,24 @@ const MyTask = () => {
                           className="rounded-lg border border-[#e8eef8]/15 bg-[#0a0e17] px-2.5 py-1 text-xs text-white outline-none cursor-pointer focus:border-blue-500"
                         >
 
-                          <option value="To Do">
-                            To Do
-                          </option>
-
-                          <option value="In Progress">
-                            In Progress
-                          </option>
-
-                          <option value="Ready for Testing">
-                            Ready for Testing
-                          </option>
-
-                          <option value="In Testing">
-                            In Testing
-                          </option>
-
-                          <option value="In QA">
-                            In QA
-                          </option>
-
-                          <option value="Done">
-                            Done
-                          </option>
-
+                          {isParentTask ? (
+                            <>
+                              <option value="To Do">To Do</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="In Review">In Review</option>
+                              <option value="Done">Done</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="To Do">To Do</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="In Review">In Review</option>
+                              <option value="Ready for Testing">Ready for Testing</option>
+                              <option value="In Testing">In Testing</option>
+                              <option value="In QA">In QA</option>
+                              <option value="Done">Done</option>
+                            </>
+                          )}
                         </select>
 
                       </td>

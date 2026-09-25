@@ -29,6 +29,7 @@ export default function Landing() {
 
       {/* Navigation Bar */}
       <nav className="sticky top-0 z-50 border-b border-[#e8eef8]/10 bg-[#07111f]/80 backdrop-blur-xl transition">
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-10">
           <Logo />
 

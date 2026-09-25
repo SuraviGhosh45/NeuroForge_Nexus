@@ -28,13 +28,13 @@ public class AdminSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.bootstrap-admin.name}")
+    @Value("${app.bootstrap-admin.name:System Admin}")
     private String bootstrapName;
 
-    @Value("${app.bootstrap-admin.email}")
+    @Value("${app.bootstrap-admin.email:admin@example.com}")
     private String bootstrapEmail;
 
-    @Value("${app.bootstrap-admin.password}")
+    @Value("${app.bootstrap-admin.password:Admin@12345}")
     private String bootstrapPassword;
 
     @Override

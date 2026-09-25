@@ -7,11 +7,12 @@ import "./Kanban.css";
 const COLUMNS = [
   { id: "To Do", title: "To Do" },
   { id: "In Progress", title: "In Progress" },
+  { id: "In Review", title: "In Review" },
   { id: "Done", title: "Done" },
 ];
 
 function KanbanBoard() {
-  const { tasks, updateTask } = useTasks();
+  const { tasks, updateTask, updateTaskStatus } = useTasks();
 
   const {
     projects,
@@ -58,15 +59,14 @@ function KanbanBoard() {
       return;
     }
 
-    if (task.status === newStatus) {
+    if (task.status === newStatus || task.boardStatus === newStatus) {
       setDraggedTaskId(null);
       return;
     }
 
-    const result = await updateTask({
-      ...task,
-      status: newStatus,
-    });
+    const result = updateTaskStatus
+      ? await updateTaskStatus(task.id, newStatus)
+      : await updateTask({ ...task, status: newStatus });
 
     if (!result.success) {
       console.error(
@@ -90,18 +90,31 @@ function KanbanBoard() {
     );
   }, [tasks, selectedProjectId]);
 
+  const normalizeStatus = (status) => {
+    if (!status) return "To Do";
+    const upper = String(status).toUpperCase().replace(/\s+/g, "_");
+    if (upper === "TODO" || upper === "TO_DO") return "To Do";
+    if (upper === "IN_PROGRESS") return "In Progress";
+    if (upper === "IN_REVIEW" || upper === "READY_FOR_TESTING" || upper === "IN_TESTING" || upper === "IN_QA") return "In Review";
+    if (upper === "DONE" || upper === "COMPLETED") return "Done";
+    return status;
+  };
+
   const tasksByStatus = useMemo(() => {
     const groupedTasks = {
       "To Do": [],
       "In Progress": [],
+      "In Review": [],
       Done: [],
     };
 
     projectTasks.forEach((task) => {
-      const status = task.status || "To Do";
+      const status = normalizeStatus(task.status || task.boardStatus);
 
       if (groupedTasks[status]) {
         groupedTasks[status].push(task);
+      } else {
+        groupedTasks["To Do"].push(task);
       }
     });
 

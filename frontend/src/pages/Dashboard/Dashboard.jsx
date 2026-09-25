@@ -1,6 +1,7 @@
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 import { useProjects } from "../../context/ProjectContext.jsx";
+import { ROLES, normalizeRole } from "../../constants/roles.js";
 import StatCard from "../../components/dashboard/StatCard.jsx";
 import TaskOverviewChart from "../../components/dashboard/TaskOverviewChart.jsx";
 import ProjectProgressList from "../../components/dashboard/ProjectProgressList.jsx";
@@ -120,54 +121,52 @@ const Dashboard = () => {
 
       </div>
 
-      {/* My Tasks Summary */}
-      <div className="mt-6 rounded-xl border border-[#e8eef8]/10 bg-[#181b23] p-5">
+      {/* My Tasks Summary (Non-Admin only) */}
+      {normalizeRole(currentUser.role) !== ROLES.ADMIN && (
+        <div className="mt-6 rounded-xl border border-[#e8eef8]/10 bg-[#181b23] p-5">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">
+              My Tasks
+            </h3>
 
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold">
-            My Tasks
-          </h3>
+            <p className="mt-1 text-sm text-[#e8eef8]/50">
+              Tasks currently assigned to you
+            </p>
+          </div>
 
-          <p className="mt-1 text-sm text-[#e8eef8]/50">
-            Tasks currently assigned to you
-          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border border-[#e8eef8]/10 bg-[#0f1117] p-4">
+              <p className="text-sm text-[#e8eef8]/50">
+                Assigned
+              </p>
+
+              <p className="mt-2 text-xl font-semibold">
+                {myTasks.length}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-[#e8eef8]/10 bg-[#0f1117] p-4">
+              <p className="text-sm text-[#e8eef8]/50">
+                In Progress
+              </p>
+
+              <p className="mt-2 text-xl font-semibold">
+                {myInProgressTasks}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-[#e8eef8]/10 bg-[#0f1117] p-4">
+              <p className="text-sm text-[#e8eef8]/50">
+                Completed
+              </p>
+
+              <p className="mt-2 text-xl font-semibold">
+                {myCompletedTasks}
+              </p>
+            </div>
+          </div>
         </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-
-          <div className="rounded-lg border border-[#e8eef8]/10 bg-[#0f1117] p-4">
-            <p className="text-sm text-[#e8eef8]/50">
-              Assigned
-            </p>
-
-            <p className="mt-2 text-xl font-semibold">
-              {myTasks.length}
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-[#e8eef8]/10 bg-[#0f1117] p-4">
-            <p className="text-sm text-[#e8eef8]/50">
-              In Progress
-            </p>
-
-            <p className="mt-2 text-xl font-semibold">
-              {myInProgressTasks}
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-[#e8eef8]/10 bg-[#0f1117] p-4">
-            <p className="text-sm text-[#e8eef8]/50">
-              Completed
-            </p>
-
-            <p className="mt-2 text-xl font-semibold">
-              {myCompletedTasks}
-            </p>
-          </div>
-
-        </div>
-
-      </div>
+      )}
     </div>
   );
 };

@@ -25,7 +25,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class SprintController {
@@ -33,6 +32,7 @@ public class SprintController {
 	private final SprintService sprintService;
 
 	@PostMapping("/projects/{projectId}/sprints")
+	@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public SprintResponse create(@PathVariable Long projectId, @Valid @RequestBody SprintRequest request) {
 		return sprintService.create(projectId, request);
@@ -54,34 +54,40 @@ public class SprintController {
 	}
 
 	@PutMapping("/sprints/{sprintId}")
+	@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 	public SprintResponse update(@PathVariable Long sprintId, @Valid @RequestBody SprintRequest request) {
 		return sprintService.update(sprintId, request);
 	}
 
 	@PatchMapping("/sprints/{sprintId}/activate")
+	@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 	public SprintResponse activate(@PathVariable Long sprintId) {
 		return sprintService.activate(sprintId);
 	}
 
 	@PatchMapping("/sprints/{sprintId}/complete")
+	@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 	public SprintResponse complete(@PathVariable Long sprintId,
 								   @RequestParam(required = false) Long moveUnfinishedTo) {
 		return sprintService.complete(sprintId, moveUnfinishedTo);
 	}
 
 	@DeleteMapping("/sprints/{sprintId}")
+	@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 	public ResponseEntity<Void> delete(@PathVariable Long sprintId) {
 		sprintService.delete(sprintId);
 		return ResponseEntity.noContent().build();
 	}
 
 	@PostMapping("/sprints/{sprintId}/tasks/{taskId}")
+	@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 	public ResponseEntity<Void> addTask(@PathVariable Long sprintId, @PathVariable Long taskId) {
 		sprintService.addTask(sprintId, taskId);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/sprints/{sprintId}/tasks/{taskId}")
+	@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER','PROJECT_LEAD')")
 	public ResponseEntity<Void> removeTask(@PathVariable Long sprintId, @PathVariable Long taskId) {
 		sprintService.removeTask(sprintId, taskId);
 		return ResponseEntity.noContent().build();

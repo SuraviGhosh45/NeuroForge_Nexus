@@ -22,7 +22,7 @@ import { ROLES, normalizeRole } from "../../constants/roles.js";
 
 const PROJECT_ROLES = ["Team Lead", "Developer", "Tester", "QA"];
 
-const TASK_STATUSES = ["To Do", "In Progress", "Done"];
+const TASK_STATUSES = ["To Do", "In Progress", "In Review", "Done"];
 
 const PRIORITIES = ["Low", "Medium", "High", "Critical"];
 
@@ -91,7 +91,8 @@ const ProjectWorkspace = () => {
     name: "",
     description: "",
     code: "",
-    status: "Planning",
+    repository: "",
+    status: "Not Started",
     startDate: "",
     endDate: "",
   });
@@ -130,7 +131,8 @@ const ProjectWorkspace = () => {
         name: project.name || "",
         description: project.description || "",
         code: project.code || "",
-        status: project.status || "Planning",
+        repository: project.repository || "",
+        status: project.status || "Not Started",
         startDate: project.startDate || "",
         endDate: project.endDate || "",
       });
@@ -691,7 +693,17 @@ const ProjectWorkspace = () => {
                   )}
 
                   {project.status && (
-                    <span className="rounded-full border border-blue-400/20 bg-blue-400/5 px-3 py-1 text-xs font-semibold text-blue-400">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                        project.status === "Completed"
+                          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                          : project.status === "In Progress"
+                          ? "border-blue-400/20 bg-blue-400/10 text-blue-400"
+                          : project.status === "On Hold"
+                          ? "border-amber-400/20 bg-amber-400/10 text-amber-400"
+                          : "border-slate-400/20 bg-slate-400/10 text-slate-300"
+                      }`}
+                    >
                       {project.status}
                     </span>
                   )}
@@ -781,14 +793,14 @@ const ProjectWorkspace = () => {
 
         {activeSection === "overview" && (
           <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
                 <p className="text-sm text-[#e8eef8]/50">
                   Project Status
                 </p>
 
                 <p className="mt-2 text-xl font-bold text-[#e8eef8]">
-                  {project.status || "Planning"}
+                  {project.status || "Not Started"}
                 </p>
               </div>
 
@@ -826,6 +838,27 @@ const ProjectWorkspace = () => {
                 <p className="mt-2 text-xl font-bold text-[#e8eef8]">
                   {projectMembers.length}
                 </p>
+              </div>
+
+              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
+                <p className="text-sm text-[#e8eef8]/50">
+                  Repositary
+                </p>
+
+                <div className="mt-2">
+                  {project.repository ? (
+                    <a
+                      href={project.repository.startsWith("http") ? project.repository : `https://${project.repository}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xl font-bold text-blue-400 hover:text-blue-300 underline transition"
+                    >
+                      Link
+                    </a>
+                  ) : (
+                    <p className="text-xl font-bold text-[#e8eef8]/40">__</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1450,6 +1483,21 @@ const ProjectWorkspace = () => {
                 />
               </div>
 
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                  Repository Link
+                </label>
+
+                <input
+                  type="url"
+                  name="repository"
+                  value={projectForm.repository}
+                  onChange={handleProjectFormChange}
+                  placeholder="e.g. https://github.com/organization/repository"
+                  className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition placeholder:text-[#e8eef8]/30 focus:border-blue-400"
+                />
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
@@ -1462,12 +1510,12 @@ const ProjectWorkspace = () => {
                     onChange={handleProjectFormChange}
                     className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
                   >
-                    <option value="Planning">
-                      Planning
+                    <option value="Not Started">
+                      Not Started
                     </option>
 
-                    <option value="Active">
-                      Active
+                    <option value="In Progress">
+                      In Progress
                     </option>
 
                     <option value="On Hold">
