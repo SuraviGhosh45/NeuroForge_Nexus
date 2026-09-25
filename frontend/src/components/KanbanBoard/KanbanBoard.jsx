@@ -1,15 +1,24 @@
 import React, { useMemo, useState } from "react";
 import KanbanColumn from "./KanbanColumn.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
+import { useProjects } from "../../context/ProjectContext.jsx";
+import "./Kanban.css";
 
 const COLUMNS = [
   { id: "To Do", title: "To Do" },
   { id: "In Progress", title: "In Progress" },
+  { id: "In Review", title: "In Review" },
   { id: "Done", title: "Done" },
 ];
 
 function KanbanBoard() {
-  const { tasks, updateTask } = useTasks();
+  const { tasks, updateTask, updateTaskStatus } = useTasks();
+
+  const {
+    projects,
+    selectedProjectId,
+    selectProject,
+  } = useProjects();
 
   const [draggedTaskId, setDraggedTaskId] = useState(null);
 
@@ -32,11 +41,9 @@ function KanbanBoard() {
   const handleDrop = async (event, newStatus) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log("DROP FIRED", newStatus);
 
     const taskId =
       event.dataTransfer.getData("taskId") || draggedTaskId;
-    console.log("taskId:", taskId);
 
     if (!taskId) {
       setDraggedTaskId(null);
@@ -52,16 +59,14 @@ function KanbanBoard() {
       return;
     }
 
-    // Do nothing if the task is dropped into the same column.
-    if (task.status === newStatus) {
+    if (task.status === newStatus || task.boardStatus === newStatus) {
       setDraggedTaskId(null);
       return;
     }
 
-    const result = await updateTask({
-      ...task,
-      status: newStatus,
-    });
+    const result = updateTaskStatus
+      ? await updateTaskStatus(task.id, newStatus)
+      : await updateTask({ ...task, status: newStatus });
 
     if (!result.success) {
       console.error(
@@ -73,71 +78,174 @@ function KanbanBoard() {
     setDraggedTaskId(null);
   };
 
+  const projectTasks = useMemo(() => {
+    if (!selectedProjectId) {
+      return [];
+    }
+
+    return tasks.filter(
+      (task) =>
+        String(task.projectId) ===
+        String(selectedProjectId)
+    );
+  }, [tasks, selectedProjectId]);
+
+  const normalizeStatus = (status) => {
+    if (!status) return "To Do";
+    const upper = String(status).toUpperCase().replace(/\s+/g, "_");
+    if (upper === "TODO" || upper === "TO_DO") return "To Do";
+    if (upper === "IN_PROGRESS") return "In Progress";
+    if (upper === "IN_REVIEW" || upper === "READY_FOR_TESTING" || upper === "IN_TESTING" || upper === "IN_QA") return "In Review";
+    if (upper === "DONE" || upper === "COMPLETED") return "Done";
+    return status;
+  };
+
   const tasksByStatus = useMemo(() => {
     const groupedTasks = {
       "To Do": [],
       "In Progress": [],
-      "Done": [],
+      "In Review": [],
+      Done: [],
     };
 
-    tasks.forEach((task) => {
-      const status = task.status || "To Do";
+    projectTasks.forEach((task) => {
+      const status = normalizeStatus(task.status || task.boardStatus);
 
       if (groupedTasks[status]) {
         groupedTasks[status].push(task);
+      } else {
+        groupedTasks["To Do"].push(task);
       }
     });
 
     return groupedTasks;
-  }, [tasks]);
+  }, [projectTasks]);
 
-  const totalTasks = tasks.length;
-  const completedTasks = tasksByStatus["Done"].length;
+  const totalTasks = projectTasks.length;
+  const completedTasks = tasksByStatus.Done.length;
+
+  const selectedProject = projects.find(
+    (project) =>
+      String(project.id) ===
+      String(selectedProjectId)
+  );
 
   return (
-    <section className="kanban-board-section">
+    <section className="kanban-page">
+
+      {/* HEADER */}
       <div className="kanban-header">
-        <div>
-          <span className="section-label">
+
+        <div className="kanban-title-area">
+          <span className="kanban-label">
             KANBAN BOARD
           </span>
 
-          <h2>Task Board</h2>
+          <h1>Task Board</h1>
 
           <p>
-            Manage tasks by moving them between statuses.
+            Manage and track your project tasks
+            across different stages.
           </p>
         </div>
 
-        <div className="sprint-status">
-          <span className="status-dot"></span>
-          Active Board
+        {/* PROJECT SELECTOR */}
+        <div className="project-selector">
+
+          <label htmlFor="kanban-project-select">
+            Project
+          </label>
+
+          <select
+            id="kanban-project-select"
+            value={selectedProjectId || ""}
+            onChange={(event) =>
+              selectProject(event.target.value)
+            }
+          >
+            {projects.length === 0 ? (
+              <option value="">
+                No projects available
+              </option>
+            ) : (
+              projects.map((project) => (
+                <option
+                  key={project.id}
+                  value={project.id}
+                >
+                  {project.name}
+                </option>
+              ))
+            )}
+          </select>
+
         </div>
       </div>
 
-      <div className="sprint-summary">
+      {/* PROJECT NAME */}
+      {selectedProject && (
+        <div className="selected-project">
+          <span className="project-dot"></span>
+          <span>{selectedProject.name}</span>
+        </div>
+      )}
+
+      {/* SUMMARY */}
+      <div className="kanban-summary">
+
         <div className="summary-card">
-          <span>Total Tasks</span>
-          <strong>{totalTasks}</strong>
+          <div className="summary-icon total">
+            T
+          </div>
+
+          <div>
+            <span>Total Tasks</span>
+            <strong>{totalTasks}</strong>
+          </div>
         </div>
 
         <div className="summary-card">
-          <span>To Do</span>
-          <strong>{tasksByStatus["To Do"].length}</strong>
+          <div className="summary-icon todo">
+            T
+          </div>
+
+          <div>
+            <span>To Do</span>
+            <strong>
+              {tasksByStatus["To Do"].length}
+            </strong>
+          </div>
         </div>
 
         <div className="summary-card">
-          <span>In Progress</span>
-          <strong>{tasksByStatus["In Progress"].length}</strong>
+          <div className="summary-icon progress">
+            P
+          </div>
+
+          <div>
+            <span>In Progress</span>
+            <strong>
+              {tasksByStatus["In Progress"].length}
+            </strong>
+          </div>
         </div>
 
         <div className="summary-card">
-          <span>Completed</span>
-          <strong>{completedTasks}</strong>
+          <div className="summary-icon done">
+            ✓
+          </div>
+
+          <div>
+            <span>Completed</span>
+            <strong>{completedTasks}</strong>
+          </div>
         </div>
+
       </div>
 
+      {/* BOARD */}
       <div className="kanban-board">
+
         {COLUMNS.map((column) => (
           <KanbanColumn
             key={column.id}
@@ -150,7 +258,9 @@ function KanbanBoard() {
             onDrop={handleDrop}
           />
         ))}
+
       </div>
+
     </section>
   );
 }

@@ -27,7 +27,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class SubtaskService {
-    private static final List<String> STATUSES = List.of("To Do", "In Progress", "Done");
+    private static final List<String> STATUSES = List.of(
+            "To Do", "In Progress", "In Review", "Ready for Testing", "In Testing", "In QA", "Done"
+    );
     private static final List<String> PRIORITIES = List.of("Low", "Medium", "High", "Critical");
 
     private final SubtaskRepository subtaskRepository;
@@ -87,19 +89,41 @@ public class SubtaskService {
     public SubtaskResponse updateStatus(Long id, String status) {
         AuthUser caller = CurrentUser.get();
         Subtask subtask = get(id);
-        if (!STATUSES.contains(status)) throw new IllegalArgumentException("Invalid subtask status");
+        String targetStatus = normalizeStatus(status);
         if (!canChangeStatus(caller, subtask)) {
             throw new AccessDeniedException("You can only update the status of subtasks within your scope");
         }
-        subtask.setStatus(status);
+        subtask.setStatus(targetStatus);
         return SubtaskResponse.from(subtaskRepository.save(subtask));
+    }
+
+    public static String normalizeStatus(String raw) {
+        if (raw == null || raw.isBlank()) return "To Do";
+        String s = raw.trim();
+        for (String status : STATUSES) {
+            if (status.equalsIgnoreCase(s) || status.replace(" ", "_").equalsIgnoreCase(s.replace(" ", "_"))) {
+                return status;
+            }
+        }
+        if ("TODO".equalsIgnoreCase(s) || "TO_DO".equalsIgnoreCase(s)) return "To Do";
+        if ("COMPLETED".equalsIgnoreCase(s)) return "Done";
+        throw new IllegalArgumentException("Invalid subtask status: " + raw);
+    }
+
+    public static String normalizePriority(String raw) {
+        if (raw == null || raw.isBlank()) return "Medium";
+        String s = raw.trim();
+        for (String priority : PRIORITIES) {
+            if (priority.equalsIgnoreCase(s)) return priority;
+        }
+        throw new IllegalArgumentException("Invalid subtask priority: " + raw);
     }
 
     private boolean canViewSubtask(AuthUser caller, Subtask subtask) {
         Project project = subtask.getTask().getProject();
         if (caller.isAdmin() || caller.isProjectManager() || caller.isProjectLead()) return access.canView(caller, project);
-        if (caller.isTeamLead()) return access.canView(caller, project) && (subtask.getAssignee() == null || !caller.userId().equals(subtask.getAssignee().getId()) || access.isMember(project, caller.userId()));
-        return subtask.getAssignee() != null && caller.userId().equals(subtask.getAssignee().getId());
+        if (caller.isTeamLead()) return access.canView(caller, project);
+        return access.canView(caller, project) || (subtask.getAssignee() != null && caller.userId().equals(subtask.getAssignee().getId()));
     }
 
     private boolean canManage(AuthUser caller, Project project, Subtask subtask) {
@@ -126,10 +150,8 @@ public class SubtaskService {
     private void apply(Subtask subtask, SubtaskRequest request, Project project) {
         subtask.setTitle(request.getTitle().trim());
         subtask.setDescription(request.getDescription());
-        subtask.setPriority(request.getPriority() == null || request.getPriority().isBlank() ? "Medium" : request.getPriority());
-        if (!PRIORITIES.contains(subtask.getPriority())) throw new IllegalArgumentException("Invalid subtask priority");
-        subtask.setStatus(request.getStatus() == null || request.getStatus().isBlank() ? "To Do" : request.getStatus());
-        if (!STATUSES.contains(subtask.getStatus())) throw new IllegalArgumentException("Invalid subtask status");
+        subtask.setPriority(normalizePriority(request.getPriority()));
+        subtask.setStatus(normalizeStatus(request.getStatus()));
         subtask.setDueDate(request.getDueDate());
 
         User assignee = null;

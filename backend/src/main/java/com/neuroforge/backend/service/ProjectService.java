@@ -50,6 +50,7 @@ public class ProjectService {
     private final TaskRepository taskRepository;
     private final SprintRepository sprintRepository;
     private final TaskDependencyRepository taskDependencyRepository;
+    private final com.neuroforge.backend.repository.SubtaskRepository subtaskRepository;
     private final com.neuroforge.backend.repository.ProjectMemberAssignmentRepository projectMemberAssignmentRepository;
     private final AccessService access;
 
@@ -96,8 +97,12 @@ public class ProjectService {
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
 
-        // The client can never choose the status.
-        project.setStatus(ProjectStatus.NOT_STARTED.getLabel());
+        // Status: client can set initial status (defaults to NOT_STARTED)
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            project.setStatus(ProjectStatus.from(request.getStatus()).getLabel());
+        } else {
+            project.setStatus(ProjectStatus.NOT_STARTED.getLabel());
+        }
 
         // Priority: auto-calculated from the date range, but the PM may override the suggested value.
         Priority priority = request.getPriority() != null && !request.getPriority().isBlank()
@@ -183,8 +188,12 @@ public class ProjectService {
             replaceMembers(project, resolveUsers(request.getMemberIds()));
         }
 
-        // Status is never taken from the request - re-derive it.
-        project.setStatus(computeStatus(taskRepository.findByProjectId(id)).getLabel());
+        // Status: update if provided in request, otherwise keep or re-derive
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            project.setStatus(ProjectStatus.from(request.getStatus()).getLabel());
+        } else if (project.getStatus() == null || project.getStatus().isBlank()) {
+            project.setStatus(computeStatus(taskRepository.findByProjectId(id)).getLabel());
+        }
 
         Project saved = projectRepository.save(project);
         syncAssignments(saved);
@@ -201,13 +210,15 @@ public class ProjectService {
 
         List<Task> tasks = taskRepository.findByProjectId(id);
 
-        // Delete all dependency records related to these tasks first.
+        // Delete all dependency and subtask records related to these tasks first.
         for (Task task : tasks) {
             Long taskId = task.getId();
             taskDependencyRepository.deleteByTaskId(taskId);
             taskDependencyRepository.deleteByDependsOnId(taskId);
+            subtaskRepository.deleteByTaskId(taskId);
         }
         taskDependencyRepository.flush();
+        subtaskRepository.flush();
 
         for (Task task : tasks) {
             taskRepository.delete(task);
@@ -402,9 +413,32 @@ public class ProjectService {
     /** Called after every task create / update / delete / status change. */
     @Transactional
     public void recalculateStatus(Project project) {
-        String label = computeStatus(taskRepository.findByProjectId(project.getId())).getLabel();
-        if (!label.equals(project.getStatus())) {
-            project.setStatus(label);
+        if ("On Hold".equalsIgnoreCase(project.getStatus())) {
+            List<Task> tasks = taskRepository.findByProjectId(project.getId());
+            if (!tasks.isEmpty() && tasks.stream().allMatch(t -> t.getBoardStatus() == BoardStatus.DONE)) {
+                project.setStatus(ProjectStatus.COMPLETED.getLabel());
+                projectRepository.save(project);
+            }
+            return;
+        }
+
+        List<Task> tasks = taskRepository.findByProjectId(project.getId());
+        if (tasks.isEmpty()) {
+            return;
+        }
+
+        boolean allDone = tasks.stream().allMatch(t -> t.getBoardStatus() == BoardStatus.DONE);
+        if (allDone) {
+            if (!ProjectStatus.COMPLETED.getLabel().equals(project.getStatus())) {
+                project.setStatus(ProjectStatus.COMPLETED.getLabel());
+                projectRepository.save(project);
+            }
+            return;
+        }
+
+        boolean anyActive = tasks.stream().anyMatch(t -> t.getBoardStatus() != BoardStatus.TODO);
+        if (anyActive && ProjectStatus.NOT_STARTED.getLabel().equalsIgnoreCase(project.getStatus())) {
+            project.setStatus(ProjectStatus.IN_PROGRESS.getLabel());
             projectRepository.save(project);
         }
     }
@@ -414,10 +448,27 @@ public class ProjectService {
         taskRepository.findById(taskId).ifPresent(task -> recalculateStatus(task.getProject()));
     }
 
-    /** Run once at startup so projects that had a manually chosen status get a derived one. */
+    /** Dedicated atomic status update (PATCH /api/projects/{id}/status). */
+    @Transactional
+    public ProjectDtos.Detail updateStatus(Long id, String newStatus) {
+        AuthUser caller = CurrentUser.get();
+        Project project = find(id);
+        access.assertCanManage(caller, project);
+
+        ProjectStatus target = ProjectStatus.from(newStatus);
+        project.setStatus(target.getLabel());
+        Project saved = projectRepository.save(project);
+        return toDetail(saved);
+    }
+
+    /** Run once at startup so projects that lack a status get an initial one. */
     @Transactional
     public void recalculateAllStatuses() {
-        projectRepository.findAll().forEach(this::recalculateStatus);
+        projectRepository.findAll().forEach(p -> {
+            if (p.getStatus() == null || p.getStatus().isBlank()) {
+                recalculateStatus(p);
+            }
+        });
     }
 
     // ------------------------------------------------------------------ helpers

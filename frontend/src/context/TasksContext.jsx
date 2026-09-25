@@ -101,6 +101,49 @@ export const TasksProvider = ({ children }) => {
     }
   };
 
+  const updateTaskStatus = async (taskId, newStatus) => {
+    try {
+      const response = await axios.patch(`${API_BASE}/${taskId}/status`, {
+        status: newStatus,
+      });
+
+      const existingTask = getTaskById(taskId);
+      const updated = normalizeTask(
+        response.data || {
+          ...existingTask,
+          id: taskId,
+          status: newStatus,
+        }
+      );
+
+      setTasks((prev) =>
+        prev.map((task) =>
+          String(task.id) === String(taskId)
+            ? {
+                ...task,
+                ...updated,
+                status: updated.status || newStatus,
+                boardStatus: updated.boardStatus || task.boardStatus,
+              }
+            : task
+        )
+      );
+
+      return {
+        success: true,
+        data: updated,
+      };
+    } catch (err) {
+      console.error("Failed to update task status:", err);
+      return {
+        success: false,
+        message:
+          err.response?.data?.message ||
+          "You are not allowed to update this task status.",
+      };
+    }
+  };
+
   const updateTask = async (formData) => {
     const existingTask = getTaskById(formData.id);
 
@@ -134,59 +177,26 @@ export const TasksProvider = ({ children }) => {
 
     const isExecutionRole = ["DEVELOPER", "TESTER", "QA", "TEAM_MEMBER"].includes(role);
 
+    // Check if this update is strictly a status transition (e.g. from Kanban, My Work, or status dropdown)
+    const isStatusOnlyUpdate = existingTask && formData.status && (
+      String(formData.status) !== String(existingTask.status) ||
+      String(formData.status) !== String(existingTask.boardStatus)
+    ) && (
+      !formData.title || formData.title === existingTask.title
+    ) && (
+      formData.description === undefined || formData.description === (existingTask.description || "")
+    ) && (
+      !formData.priority || formData.priority === existingTask.priority
+    );
+
     if (
-      isExecutionRole &&
+      (isExecutionRole || isStatusOnlyUpdate) &&
       existingTask &&
       formData.status &&
-      String(formData.status) !==
-        String(existingTask.status)
+      (String(formData.status) !== String(existingTask.status) ||
+       String(formData.status) !== String(existingTask.boardStatus))
     ) {
-      try {
-        const response = await axios.patch(
-          `${API_BASE}/${formData.id}/status`,
-          {
-            status: formData.status,
-          }
-        );
-
-        const updated = normalizeTask(
-          response.data || {
-            ...existingTask,
-            ...formData,
-          }
-        );
-
-        setTasks((prev) =>
-          prev.map((task) =>
-            String(task.id) === String(formData.id)
-              ? {
-                  ...task,
-                  ...updated,
-                  status:
-                    updated.status ||
-                    formData.status,
-                }
-              : task
-          )
-        );
-
-        return {
-          success: true,
-          data: updated,
-        };
-      } catch (err) {
-        console.error(
-          "Failed to update task status:",
-          err
-        );
-
-        return {
-          success: false,
-          message:
-            err.response?.data?.message ||
-            "You are not allowed to update this task.",
-        };
-      }
+      return updateTaskStatus(formData.id, formData.status);
     }
 
     /*
@@ -305,6 +315,32 @@ export const TasksProvider = ({ children }) => {
     }
   };
 
+  const updateSubtaskStatus = async (subtaskId, newStatus) => {
+    try {
+      const response = await axios.patch(
+        `${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${subtaskId}/status`,
+        {
+          status: newStatus || "To Do",
+        }
+      );
+      const updated = normalizeSubtask(response.data);
+      setSubtasks((prev) =>
+        prev.map((sub) =>
+          String(sub.id) === String(subtaskId)
+            ? { ...sub, ...updated, status: updated.status || newStatus }
+            : sub
+        )
+      );
+      return { success: true, data: updated };
+    } catch (error) {
+      console.error("Failed to update subtask status:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to update subtask status.",
+      };
+    }
+  };
+
   const updateSubtask = async (taskId, updatedSubtask) => {
     if (!updatedSubtask?.id) return { success: false, message: "Subtask ID is required." };
 
@@ -314,27 +350,36 @@ export const TasksProvider = ({ children }) => {
     const role = String(currentUser?.role || "").toUpperCase();
     const isExecutionRole = ["DEVELOPER", "TESTER", "QA", "TEAM_MEMBER"].includes(role);
 
+    const existingSubtask = subtasks.find((s) => String(s.id) === String(updatedSubtask.id));
+    const isStatusOnlyUpdate = existingSubtask && updatedSubtask.status && (
+      String(updatedSubtask.status) !== String(existingSubtask.status)
+    ) && (
+      !updatedSubtask.title || updatedSubtask.title === existingSubtask.title
+    ) && (
+      updatedSubtask.description === undefined || updatedSubtask.description === (existingSubtask.description || "")
+    ) && (
+      !updatedSubtask.priority || updatedSubtask.priority === existingSubtask.priority
+    );
+
+    if (isExecutionRole || isStatusOnlyUpdate) {
+      return updateSubtaskStatus(updatedSubtask.id, updatedSubtask.status);
+    }
+
     try {
-      let response;
-      if (isExecutionRole) {
-        response = await axios.patch(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${updatedSubtask.id}/status`, {
-          status: updatedSubtask.status || "To Do",
-        });
-      } else {
-        response = await axios.put(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${updatedSubtask.id}`, {
-          title: updatedSubtask.title,
-          description: updatedSubtask.description || "",
-          assigneeId: updatedSubtask.assigneeId ? Number(updatedSubtask.assigneeId) : null,
-          teamId: updatedSubtask.teamId ? Number(updatedSubtask.teamId) : null,
-          status: updatedSubtask.status || "To Do",
-          priority: updatedSubtask.priority || "Medium",
-          dueDate: updatedSubtask.dueDate || null,
-        });
-      }
+      const response = await axios.put(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${updatedSubtask.id}`, {
+        title: updatedSubtask.title,
+        description: updatedSubtask.description || "",
+        assigneeId: updatedSubtask.assigneeId ? Number(updatedSubtask.assigneeId) : null,
+        teamId: updatedSubtask.teamId ? Number(updatedSubtask.teamId) : null,
+        status: updatedSubtask.status || "To Do",
+        priority: updatedSubtask.priority || "Medium",
+        dueDate: updatedSubtask.dueDate || null,
+      });
       const updated = normalizeSubtask(response.data);
-      setSubtasks((prev) => prev.map((sub) => String(sub.id) === String(updated.id) ? updated : sub));
+      setSubtasks((prev) => prev.map((sub) => String(sub.id) === String(updated.id) ? { ...sub, ...updated, status: updated.status || updatedSubtask.status } : sub));
       return { success: true, data: updated };
     } catch (error) {
+      console.error("Failed to update subtask:", error);
       return { success: false, message: error.response?.data?.message || "Failed to update subtask." };
     }
   };
@@ -416,10 +461,12 @@ export const TasksProvider = ({ children }) => {
         error,
         createTask,
         updateTask,
+        updateTaskStatus,
         deleteTask,
         getTaskById,
         createSubtask,
         updateSubtask,
+        updateSubtaskStatus,
         deleteSubtask,
         getSubtasksByTaskId,
         getVisibleTasks,

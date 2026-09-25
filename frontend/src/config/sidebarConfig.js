@@ -4,6 +4,7 @@ import {
   PiFolder,
   PiCalendarBlank,
   PiBriefcase,
+  PiKanban,
 } from "react-icons/pi";
 import { ROLES, MEMBER_ROLES, normalizeRole } from "../constants/roles.js";
 
@@ -24,6 +25,18 @@ export const sidebarItems = [
     label: "Projects",
     path: "/projects",
     icon: PiFolder,
+    roles: [
+      ROLES.ADMIN,
+      ROLES.PROJECT_MANAGER,
+      ROLES.PROJECT_LEAD,
+      ROLES.TEAM_LEAD,
+      ...MEMBER_ROLES,
+    ],
+  },
+  {
+    label: "Kanban",
+    path: "/kanban",
+    icon: PiKanban,
     roles: [
       ROLES.ADMIN,
       ROLES.PROJECT_MANAGER,

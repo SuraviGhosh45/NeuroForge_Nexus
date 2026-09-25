@@ -48,6 +48,7 @@ public class UserService {
     private final ProjectMemberAssignmentRepository projectMemberAssignmentRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final TaskRepository taskRepository;
+    private final com.neuroforge.backend.repository.SubtaskRepository subtaskRepository;
 
     // ------------------------------------------------------------------ auth
 
@@ -333,6 +334,7 @@ public class UserService {
         projectMemberAssignmentRepository.deleteByUserId(id);
         projectRepository.removeUserFromAllProjects(id);
         taskRepository.unassignUser(id);
+        subtaskRepository.unassignUser(id);
         userRepository.deleteById(id);
     }
 

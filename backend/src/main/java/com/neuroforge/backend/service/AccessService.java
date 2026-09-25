@@ -37,8 +37,19 @@ public class AccessService {
     }
 
     public boolean isMember(Project project, Long userId) {
-        return project != null && project.getMembers().stream()
-                .anyMatch(member -> member.getId().equals(userId));
+        if (project == null || userId == null) return false;
+        if (isManager(project, userId) || isProjectLead(project, userId)) {
+            return true;
+        }
+        if (project.getMembers() != null && project.getMembers().stream()
+                .anyMatch(member -> member.getId().equals(userId))) {
+            return true;
+        }
+        if (project.getTeam() != null && project.getTeam().getMembers() != null) {
+            return project.getTeam().getMembers().stream()
+                    .anyMatch(tm -> tm.getUser() != null && userId.equals(tm.getUser().getId()));
+        }
+        return false;
     }
 
     public boolean isManager(Project project, Long userId) {

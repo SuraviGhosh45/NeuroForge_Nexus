@@ -356,15 +356,15 @@ public class TaskService {
             case ADMIN -> true;
 
             case PROJECT_MANAGER, PROJECT_LEAD ->
-                    access.canManage(user, task.getProject());
+                    access.canManage(user, task.getProject())
+                            || isAssignee(user, task);
 
             case TEAM_LEAD ->
                     access.isTeamLead(task.getProject(), user.userId())
-                            || (isAssignee(user, task) && access.isMember(task.getProject(), user.userId()));
+                            || isAssignee(user, task);
 
             case DEVELOPER, TESTER, QA, TEAM_MEMBER ->
-                    isAssignee(user, task)
-                            && access.isMember(task.getProject(), user.userId());
+                    isAssignee(user, task);
 
             case UNASSIGNED -> false;
         };
@@ -372,7 +372,7 @@ public class TaskService {
         if (!allowed) {
             throw new AccessDeniedException(
                     user.isExecutionRole()
-                            ? "You can only move tasks assigned to you in projects you are a member of"
+                            ? "You can only move tasks assigned to you"
                             : "You do not have permission to move this task"
             );
         }
@@ -662,7 +662,7 @@ public class TaskService {
             case "IN_PROGRESS" ->
                     BoardStatus.IN_PROGRESS;
 
-            case "IN_REVIEW" ->
+            case "IN_REVIEW", "READY_FOR_TESTING", "IN_TESTING", "IN_QA" ->
                     BoardStatus.IN_REVIEW;
 
             case "DONE", "COMPLETED" ->
@@ -672,7 +672,7 @@ public class TaskService {
                     throw new IllegalArgumentException(
                             "Unsupported task status '"
                                     + status
-                                    + "'. Allowed: To Do, In Progress, Done"
+                                    + "'. Allowed: To Do, In Progress, In Review, Done"
                     );
         };
     }

@@ -13,6 +13,7 @@ import { useProjects } from "../../context/ProjectContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 import { useTeams } from "../../context/TeamsContext.jsx";
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
+import axios from "../../services/api.js";
 
 const SUGGESTIONS = [
   "How many projects do I have?",
@@ -906,6 +907,9 @@ const ChatBot = () => {
   const [input, setInput] =
     useState("");
 
+  const [sending, setSending] =
+    useState(false);
+
   const [messages, setMessages] =
     useState([
       {
@@ -923,18 +927,15 @@ const ChatBot = () => {
     });
   }, [messages, open]);
 
-  const send = (text) => {
+  const send = async (text) => {
     const question = text.trim();
 
-    if (!question) return;
+    if (!question || sending) return;
 
-    const reply = buildReply({
-      question,
-      projects,
-      subtasks: visibleSubtasks,
-      tasks,
-      userId: currentUser?.id,
-    });
+    const history = messages.slice(-6).map((message) => ({
+      role: message.from === "user" ? "user" : "assistant",
+      content: message.text,
+    }));
 
     setMessages((prev) => [
       ...prev,
@@ -942,13 +943,48 @@ const ChatBot = () => {
         from: "user",
         text: question,
       },
-      {
-        from: "bot",
-        text: reply,
-      },
     ]);
 
     setInput("");
+    setSending(true);
+
+    try {
+      const { data } = await axios.post(
+        "http://localhost:8080/api/chat",
+        {
+          message: question,
+          history,
+        }
+      );
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          from: "bot",
+          text: data.reply,
+        },
+      ]);
+    } catch (error) {
+      console.error("Chatbot backend error:", error);
+
+      const fallback = buildReply({
+        question,
+        projects,
+        subtasks: visibleSubtasks,
+        tasks,
+        userId: currentUser?.id,
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          from: "bot",
+          text: fallback,
+        },
+      ]);
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleSubmit = (event) => {
@@ -1032,6 +1068,14 @@ const ChatBot = () => {
               )
             )}
 
+            {sending && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl bg-[#0a0e17] px-3 py-2 text-sm text-[#e8eef8]/60">
+                  ...
+                </div>
+              </div>
+            )}
+
             {messages.length === 1 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {SUGGESTIONS.map(
@@ -1072,7 +1116,8 @@ const ChatBot = () => {
             <button
               type="submit"
               aria-label="Send message"
-              className="rounded-xl bg-blue-600 p-2.5 text-white transition hover:bg-blue-500"
+              disabled={sending}
+              className="rounded-xl bg-blue-600 p-2.5 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <PiPaperPlaneRight
                 size={18}
