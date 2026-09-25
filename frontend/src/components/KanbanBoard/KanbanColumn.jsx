@@ -1,53 +1,78 @@
-import KanbanCard from "./KanbanCard";
-import "./Kanban.css";
+import React from "react";
+import KanbanCard from "./KanbanCard.jsx";
 
 function KanbanColumn({
   column,
   tasks,
+  draggedTaskId,
   onDragStart,
   onDragEnd,
-  onDrop,
   onDragOver,
-  draggedTaskId,
+  onDrop,
 }) {
+  const getColumnClass = () => {
+    if (column.id === "To Do") {
+      return "kanban-column todo-column";
+    }
+
+    if (column.id === "In Progress") {
+      return "kanban-column progress-column";
+    }
+
+    return "kanban-column done-column";
+  };
+
   return (
     <div
-      className="kanban-column"
+      className={getColumnClass()}
       onDragOver={onDragOver}
-      onDrop={(event) => onDrop(event, column.id)}
+      onDrop={(event) =>
+        onDrop(event, column.id)
+      }
     >
+
       <div className="column-header">
-        <div>
+
+        <div className="column-title">
+
+          <span className="column-status-dot"></span>
+
           <h3>{column.title}</h3>
-          <span>{tasks.length} tasks</span>
+
         </div>
 
-        <span className="column-count">
+        <span className="task-count">
           {tasks.length}
         </span>
+
       </div>
 
-      <div
-        className="column-content"
-        onDragOver={onDragOver}
-        onDrop={(event) => onDrop(event, column.id)}
-      >
-        {tasks.map((task) => (
-          <KanbanCard
-            key={task.id}
-            task={task}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            isDragging={String(task.id) === String(draggedTaskId)}
-          />
-        ))}
+      <div className="column-divider"></div>
 
-        {tasks.length === 0 && (
+      <div className="column-tasks">
+
+        {tasks.length === 0 ? (
           <div className="empty-column">
-            Drop tasks here
+            <div className="empty-icon">
+              +
+            </div>
+
+            <span>Drop tasks here</span>
           </div>
+        ) : (
+          tasks.map((task) => (
+            <KanbanCard
+              key={task.id}
+              task={task}
+              draggedTaskId={draggedTaskId}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+            />
+          ))
         )}
+
       </div>
+
     </div>
   );
 }
