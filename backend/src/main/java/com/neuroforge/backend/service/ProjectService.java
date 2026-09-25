@@ -50,6 +50,7 @@ public class ProjectService {
     private final TaskRepository taskRepository;
     private final SprintRepository sprintRepository;
     private final TaskDependencyRepository taskDependencyRepository;
+    private final com.neuroforge.backend.repository.SubtaskRepository subtaskRepository;
     private final com.neuroforge.backend.repository.ProjectMemberAssignmentRepository projectMemberAssignmentRepository;
     private final AccessService access;
 
@@ -201,13 +202,15 @@ public class ProjectService {
 
         List<Task> tasks = taskRepository.findByProjectId(id);
 
-        // Delete all dependency records related to these tasks first.
+        // Delete all dependency and subtask records related to these tasks first.
         for (Task task : tasks) {
             Long taskId = task.getId();
             taskDependencyRepository.deleteByTaskId(taskId);
             taskDependencyRepository.deleteByDependsOnId(taskId);
+            subtaskRepository.deleteByTaskId(taskId);
         }
         taskDependencyRepository.flush();
+        subtaskRepository.flush();
 
         for (Task task : tasks) {
             taskRepository.delete(task);

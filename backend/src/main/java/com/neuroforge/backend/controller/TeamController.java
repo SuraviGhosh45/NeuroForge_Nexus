@@ -26,7 +26,6 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/teams")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
 public class TeamController {
 
     private final TeamService teamService;
@@ -37,6 +36,7 @@ public class TeamController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
     public ResponseEntity<TeamDtos.Detail> create(@RequestBody TeamRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(teamService.create(request));
     }
@@ -47,11 +47,13 @@ public class TeamController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
     public TeamDtos.Detail update(@PathVariable Long id, @RequestBody TeamRequest request) {
         return teamService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         teamService.delete(id);
         return ResponseEntity.noContent().build();
@@ -63,11 +65,13 @@ public class TeamController {
     }
 
     @PostMapping("/{teamId}/members")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
     public TeamDtos.MemberInfo addMember(@PathVariable Long teamId, @RequestBody AddMemberRequest request) {
         return teamService.addMember(teamId, request.getUserId(), request.getTeamRole());
     }
 
     @PutMapping("/{teamId}/members/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
     public TeamDtos.MemberInfo updateMemberRole(
             @PathVariable Long teamId,
             @PathVariable Long userId,
@@ -76,6 +80,7 @@ public class TeamController {
     }
 
     @DeleteMapping("/{teamId}/members/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
     public ResponseEntity<Void> removeMember(@PathVariable Long teamId, @PathVariable Long userId) {
         teamService.removeMember(teamId, userId);
         return ResponseEntity.noContent().build();

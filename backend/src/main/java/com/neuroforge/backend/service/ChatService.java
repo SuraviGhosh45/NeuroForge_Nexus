@@ -94,9 +94,8 @@ public class ChatService {
             return new ChatResponse(content != null ? content : "I couldn't come up with an answer for that — try rephrasing?");
 
         } catch (RestClientException ex) {
-            // Provider down, network hiccup, or a 429 from the shared free-tier quota.
-            ex.printStackTrace();
-            throw ex;
+            // Provider down, network hiccup, invalid key, or quota exhausted.
+            return new ChatResponse("AI Assistant is currently unavailable. Please verify that a valid GROQ_API_KEY is configured in application.properties.");
         }
     }
 
