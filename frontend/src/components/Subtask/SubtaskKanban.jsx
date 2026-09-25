@@ -29,6 +29,12 @@ const COLUMNS = [
         dot: "bg-blue-400",
     },
     {
+        id: "In Review",
+        title: "In Review",
+        color: "text-purple-400",
+        dot: "bg-purple-400",
+    },
+    {
         id: "Done",
         title: "Done",
         color: "text-emerald-400",
@@ -63,6 +69,7 @@ const SubtaskKanban = () => {
         getTaskById,
         getSubtasksByTaskId,
         updateSubtask,
+        updateSubtaskStatus,
     } = useTasks();
 
     const { users } = useUsers();
@@ -294,8 +301,9 @@ const SubtaskKanban = () => {
 
         setIsUpdating(true);
 
-        const result =
-            await updateSubtask(
+        const result = updateSubtaskStatus
+            ? await updateSubtaskStatus(draggedSubtask.id, newStatus)
+            : await updateSubtask(
                 taskId,
                 {
                     ...draggedSubtask,
@@ -459,19 +467,20 @@ const SubtaskKanban = () => {
 
                 {/* SUMMARY */}
 
-                <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
                     {COLUMNS.map(
                         (column) => {
 
                             const count =
                                 subtasks.filter(
-                                    (subtask) =>
-                                        (
-                                            subtask.status ||
-                                            "To Do"
-                                        ) ===
-                                        column.id
+                                    (subtask) => {
+                                        const st = subtask.status || "To Do";
+                                        if (column.id === "In Review") {
+                                            return ["In Review", "Ready for Testing", "In Testing", "In QA"].includes(st);
+                                        }
+                                        return st === column.id;
+                                    }
                                 ).length;
 
                             return (
@@ -507,19 +516,20 @@ const SubtaskKanban = () => {
 
                 <div className="mt-6 overflow-x-auto">
 
-                    <div className="grid min-w-[1000px] grid-cols-3 gap-5">
+                    <div className="grid min-w-[1000px] grid-cols-4 gap-5">
 
                         {COLUMNS.map(
                             (column) => {
 
                                 const columnSubtasks =
                                     subtasks.filter(
-                                        (subtask) =>
-                                            (
-                                                subtask.status ||
-                                                "To Do"
-                                            ) ===
-                                            column.id
+                                        (subtask) => {
+                                            const st = subtask.status || "To Do";
+                                            if (column.id === "In Review") {
+                                                return ["In Review", "Ready for Testing", "In Testing", "In QA"].includes(st);
+                                            }
+                                            return st === column.id;
+                                        }
                                     );
 
                                 const isDropTarget =

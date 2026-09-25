@@ -25,7 +25,9 @@ const MyTask = () => {
     tasks,
     subtasks = [],
     updateSubtask,
+    updateSubtaskStatus,
     updateTask,
+    updateTaskStatus,
   } = useTasks();
 
   const { projects } = useProjects();
@@ -85,39 +87,34 @@ const MyTask = () => {
   const now = new Date();
 
   /*
-   * Parent task status update.
+   * Parent task status update via dedicated PATCH /api/tasks/{id}/status
    */
   const handleParentTaskStatusChange = async (
     task,
     newStatus
   ) => {
-    const res = await updateTask({
-      ...task,
-      status: newStatus,
-    });
+    const res = await updateTaskStatus(task.id, newStatus);
     if (res && !res.success) {
-      alert(res.message || "Failed to update status");
+      alert(res.message || "Failed to update task status");
     }
   };
 
   /*
-   * Subtask status update.
+   * Subtask status update via dedicated PATCH /api/subtasks/{id}/status
    */
   const handleSubtaskStatusChange = async (
     subtask,
     newStatus
   ) => {
-    const res = await updateSubtask(subtask.taskId, {
-      ...subtask,
-      status: newStatus,
-    });
+    const res = await updateSubtaskStatus(subtask.id, newStatus);
     if (res && !res.success) {
-      alert(res.message || "Failed to update status");
+      alert(res.message || "Failed to update subtask status");
     }
   };
 
   /*
    * Status helper with full normalization to match select options.
+   * For parent tasks, QA/testing statuses map to "In Review" (BoardStatus.IN_REVIEW).
    */
   const getStatus = (item) => {
     if (!item) return "To Do";
@@ -126,9 +123,9 @@ const MyTask = () => {
     if (upper === "TODO" || upper === "TO_DO") return "To Do";
     if (upper === "IN_PROGRESS") return "In Progress";
     if (upper === "IN_REVIEW") return "In Review";
-    if (upper === "READY_FOR_TESTING") return "Ready for Testing";
-    if (upper === "IN_TESTING") return "In Testing";
-    if (upper === "IN_QA") return "In QA";
+    if (upper === "READY_FOR_TESTING") return item.itemType === "task" ? "In Review" : "Ready for Testing";
+    if (upper === "IN_TESTING") return item.itemType === "task" ? "In Review" : "In Testing";
+    if (upper === "IN_QA") return item.itemType === "task" ? "In Review" : "In QA";
     if (upper === "DONE" || upper === "COMPLETED") return "Done";
     return raw;
   };
@@ -603,34 +600,24 @@ const MyTask = () => {
                           className="rounded-lg border border-[#e8eef8]/15 bg-[#0a0e17] px-2.5 py-1 text-xs text-white outline-none cursor-pointer focus:border-blue-500"
                         >
 
-                          <option value="To Do">
-                            To Do
-                          </option>
-
-                          <option value="In Progress">
-                            In Progress
-                          </option>
-
-                          <option value="In Review">
-                            In Review
-                          </option>
-
-                          <option value="Ready for Testing">
-                            Ready for Testing
-                          </option>
-
-                          <option value="In Testing">
-                            In Testing
-                          </option>
-
-                          <option value="In QA">
-                            In QA
-                          </option>
-
-                          <option value="Done">
-                            Done
-                          </option>
-
+                          {isParentTask ? (
+                            <>
+                              <option value="To Do">To Do</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="In Review">In Review</option>
+                              <option value="Done">Done</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="To Do">To Do</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="In Review">In Review</option>
+                              <option value="Ready for Testing">Ready for Testing</option>
+                              <option value="In Testing">In Testing</option>
+                              <option value="In QA">In QA</option>
+                              <option value="Done">Done</option>
+                            </>
+                          )}
                         </select>
 
                       </td>

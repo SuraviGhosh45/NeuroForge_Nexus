@@ -22,7 +22,7 @@ import { ROLES, normalizeRole } from "../../constants/roles.js";
 
 const PROJECT_ROLES = ["Team Lead", "Developer", "Tester", "QA"];
 
-const TASK_STATUSES = ["To Do", "In Progress", "Done"];
+const TASK_STATUSES = ["To Do", "In Progress", "In Review", "Done"];
 
 const PRIORITIES = ["Low", "Medium", "High", "Critical"];
 

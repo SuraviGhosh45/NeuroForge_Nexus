@@ -31,6 +31,29 @@ const priorityColor = {
     "text-[#a0d0a0] border-[#a0d0a0]/30 bg-[#a0d0a0]/5",
 };
 
+const statusColor = {
+  "To Do":
+    "text-slate-300 border-slate-400/20 bg-slate-400/5",
+
+  "In Progress":
+    "text-blue-400 border-blue-400/20 bg-blue-400/5",
+
+  "In Review":
+    "text-amber-400 border-amber-400/20 bg-amber-400/5",
+
+  "Ready for Testing":
+    "text-purple-400 border-purple-400/20 bg-purple-400/5",
+
+  "In Testing":
+    "text-indigo-400 border-indigo-400/20 bg-indigo-400/5",
+
+  "In QA":
+    "text-cyan-400 border-cyan-400/20 bg-cyan-400/5",
+
+  Done:
+    "text-emerald-400 border-emerald-400/20 bg-emerald-400/5",
+};
+
 const SubtaskDetails = () => {
   const {
     projectId,
@@ -248,6 +271,15 @@ const SubtaskDetails = () => {
 
                   <span className="rounded-lg border border-[#e8eef8]/10 bg-[#e8eef8]/5 px-3 py-1 text-xs text-[#e8eef8]/50">
                     SUBTASK-{subtask.id}
+                  </span>
+
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                      statusColor[subtask.status] ||
+                      statusColor["To Do"]
+                    }`}
+                  >
+                    {subtask.status || "To Do"}
                   </span>
 
                   <span className="text-sm text-[#e8eef8]/40">

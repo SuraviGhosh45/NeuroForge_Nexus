@@ -19,6 +19,10 @@ import Can from "../../components/common/Can.jsx";
 const SUBTASK_STATUSES = [
   "To Do",
   "In Progress",
+  "In Review",
+  "Ready for Testing",
+  "In Testing",
+  "In QA",
   "Done",
 ];
 
@@ -42,6 +46,18 @@ const statusColor = {
 
   "In Progress":
     "text-blue-400 border-blue-400/20 bg-blue-400/5",
+
+  "In Review":
+    "text-amber-400 border-amber-400/20 bg-amber-400/5",
+
+  "Ready for Testing":
+    "text-purple-400 border-purple-400/20 bg-purple-400/5",
+
+  "In Testing":
+    "text-indigo-400 border-indigo-400/20 bg-indigo-400/5",
+
+  "In QA":
+    "text-cyan-400 border-cyan-400/20 bg-cyan-400/5",
 
   Done:
     "text-emerald-400 border-emerald-400/20 bg-emerald-400/5",
