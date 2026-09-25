@@ -1,15 +1,16 @@
 
 import { useAuth } from "../../context/AuthContext.jsx";
-import { normalizeRole } from "../../constants/roles.js";
+import { normalizeRole, ROLES } from "../../constants/roles.js";
+import AdminDashboard from "./roles/AdminDashboard.jsx";
+import ProjectManagerDashboard from "./roles/ProjectManagerDashboard.jsx";
+import ProjectLeadDashboard from "./roles/ProjectLeadDashboard.jsx";
+import TeamLeadDashboard from "./roles/TeamLeadDashboard.jsx";
+import MemberDashboard from "./roles/MemberDashboard.jsx";
 import Dashboard from "./Dashboard.jsx";
 
 /**
- * DashboardRouter dynamically renders the dashboard experience
+ * DashboardRouter dynamically renders the role-tailored dashboard experience
  * for the currently authenticated user.
- *
- * Role-specific dashboard components are not currently present
- * in the repository, so the existing Dashboard component is used
- * as a temporary fallback.
  */
 const DashboardRouter = () => {
   const { currentUser } = useAuth();
@@ -22,10 +23,27 @@ const DashboardRouter = () => {
     );
   }
 
-  normalizeRole(currentUser.role);
+  const role = normalizeRole(currentUser.role);
 
-  return <Dashboard />;
+  switch (role) {
+    case ROLES.ADMIN:
+      return <AdminDashboard />;
+    case ROLES.PROJECT_MANAGER:
+      return <ProjectManagerDashboard />;
+    case ROLES.PROJECT_LEAD:
+      return <ProjectLeadDashboard />;
+    case ROLES.TEAM_LEAD:
+      return <TeamLeadDashboard />;
+    case ROLES.DEVELOPER:
+    case ROLES.TESTER:
+    case ROLES.QA:
+    case ROLES.TEAM_MEMBER:
+      return <MemberDashboard />;
+    default:
+      return <Dashboard />;
+  }
 };
 
 export default DashboardRouter;
+
 
