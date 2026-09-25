@@ -134,12 +134,24 @@ export const TasksProvider = ({ children }) => {
 
     const isExecutionRole = ["DEVELOPER", "TESTER", "QA", "TEAM_MEMBER"].includes(role);
 
+    // Check if this update is strictly a status transition (e.g. from Kanban, My Work, or status dropdown)
+    const isStatusOnlyUpdate = existingTask && formData.status && (
+      String(formData.status) !== String(existingTask.status) ||
+      String(formData.status) !== String(existingTask.boardStatus)
+    ) && (
+      !formData.title || formData.title === existingTask.title
+    ) && (
+      formData.description === undefined || formData.description === (existingTask.description || "")
+    ) && (
+      !formData.priority || formData.priority === existingTask.priority
+    );
+
     if (
-      isExecutionRole &&
+      (isExecutionRole || isStatusOnlyUpdate) &&
       existingTask &&
       formData.status &&
-      String(formData.status) !==
-        String(existingTask.status)
+      (String(formData.status) !== String(existingTask.status) ||
+       String(formData.status) !== String(existingTask.boardStatus))
     ) {
       try {
         const response = await axios.patch(
@@ -165,6 +177,9 @@ export const TasksProvider = ({ children }) => {
                   status:
                     updated.status ||
                     formData.status,
+                  boardStatus:
+                    updated.boardStatus ||
+                    task.boardStatus,
                 }
               : task
           )
@@ -314,9 +329,20 @@ export const TasksProvider = ({ children }) => {
     const role = String(currentUser?.role || "").toUpperCase();
     const isExecutionRole = ["DEVELOPER", "TESTER", "QA", "TEAM_MEMBER"].includes(role);
 
+    const existingSubtask = subtasks.find((s) => String(s.id) === String(updatedSubtask.id));
+    const isStatusOnlyUpdate = existingSubtask && updatedSubtask.status && (
+      String(updatedSubtask.status) !== String(existingSubtask.status)
+    ) && (
+      !updatedSubtask.title || updatedSubtask.title === existingSubtask.title
+    ) && (
+      updatedSubtask.description === undefined || updatedSubtask.description === (existingSubtask.description || "")
+    ) && (
+      !updatedSubtask.priority || updatedSubtask.priority === existingSubtask.priority
+    );
+
     try {
       let response;
-      if (isExecutionRole) {
+      if (isExecutionRole || isStatusOnlyUpdate) {
         response = await axios.patch(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${updatedSubtask.id}/status`, {
           status: updatedSubtask.status || "To Do",
         });
@@ -332,9 +358,10 @@ export const TasksProvider = ({ children }) => {
         });
       }
       const updated = normalizeSubtask(response.data);
-      setSubtasks((prev) => prev.map((sub) => String(sub.id) === String(updated.id) ? updated : sub));
+      setSubtasks((prev) => prev.map((sub) => String(sub.id) === String(updated.id) ? { ...sub, ...updated, status: updated.status || updatedSubtask.status } : sub));
       return { success: true, data: updated };
     } catch (error) {
+      console.error("Failed to update subtask:", error);
       return { success: false, message: error.response?.data?.message || "Failed to update subtask." };
     }
   };

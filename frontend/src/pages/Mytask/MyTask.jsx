@@ -86,18 +86,18 @@ const MyTask = () => {
 
   /*
    * Parent task status update.
-   *
-   * TasksContext handles the correct backend endpoint:
-   * TEAM_MEMBER -> PATCH /api/tasks/{id}/status
    */
   const handleParentTaskStatusChange = async (
     task,
     newStatus
   ) => {
-    await updateTask({
+    const res = await updateTask({
       ...task,
       status: newStatus,
     });
+    if (res && !res.success) {
+      alert(res.message || "Failed to update status");
+    }
   };
 
   /*
@@ -107,21 +107,30 @@ const MyTask = () => {
     subtask,
     newStatus
   ) => {
-    await updateSubtask(subtask.taskId, {
+    const res = await updateSubtask(subtask.taskId, {
       ...subtask,
       status: newStatus,
     });
+    if (res && !res.success) {
+      alert(res.message || "Failed to update status");
+    }
   };
 
   /*
-   * Status helper.
+   * Status helper with full normalization to match select options.
    */
   const getStatus = (item) => {
-    return (
-      item.status ||
-      item.boardStatus ||
-      "To Do"
-    );
+    if (!item) return "To Do";
+    const raw = (item.status || item.boardStatus || "To Do").trim();
+    const upper = raw.toUpperCase().replace(/\s+/g, "_");
+    if (upper === "TODO" || upper === "TO_DO") return "To Do";
+    if (upper === "IN_PROGRESS") return "In Progress";
+    if (upper === "IN_REVIEW") return "In Review";
+    if (upper === "READY_FOR_TESTING") return "Ready for Testing";
+    if (upper === "IN_TESTING") return "In Testing";
+    if (upper === "IN_QA") return "In QA";
+    if (upper === "DONE" || upper === "COMPLETED") return "Done";
+    return raw;
   };
 
   /*
@@ -154,16 +163,25 @@ const MyTask = () => {
     ];
   }, [myParentTasks, mySubtasks]);
 
+  const teamWorkItems = useMemo(() => {
+    return teamSubtasks.map((subtask) => ({
+      ...subtask,
+      itemType: "subtask",
+      itemId: subtask.id,
+      itemStatus: getStatus(subtask),
+    }));
+  }, [teamSubtasks]);
+
   /*
    * Filter displayed work items.
    */
   const displayedItems = useMemo(() => {
     if (activeTab === "team_work") {
       if (statusFilter === "ALL") {
-        return teamSubtasks;
+        return teamWorkItems;
       }
 
-      return teamSubtasks.filter(
+      return teamWorkItems.filter(
         (subtask) =>
           getStatus(subtask) === statusFilter
       );
@@ -196,10 +214,9 @@ const MyTask = () => {
     } else if (activeTab === "review") {
       items = items.filter(
         (item) =>
-          getStatus(item) ===
-            "Ready for Testing" ||
-          getStatus(item) ===
-            "In Testing" ||
+          getStatus(item) === "In Review" ||
+          getStatus(item) === "Ready for Testing" ||
+          getStatus(item) === "In Testing" ||
           getStatus(item) === "In QA"
       );
     }
@@ -209,7 +226,7 @@ const MyTask = () => {
     activeTab,
     statusFilter,
     allMyItems,
-    teamSubtasks,
+    teamWorkItems,
     now,
   ]);
 
@@ -592,6 +609,10 @@ const MyTask = () => {
 
                           <option value="In Progress">
                             In Progress
+                          </option>
+
+                          <option value="In Review">
+                            In Review
                           </option>
 
                           <option value="Ready for Testing">
