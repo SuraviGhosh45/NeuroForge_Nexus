@@ -1,9 +1,11 @@
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import {
   PiEnvelopeSimple,
   PiFolder,
   PiBriefcase,
+  PiUserPlus,
 } from "react-icons/pi";
 import Pagination from "./Pagination.jsx";
 import { formatRole } from "../../constants/roles.js";
@@ -15,6 +17,7 @@ const UserTable = ({
   onEdit,
   onDelete,
   onUpdateStatus,
+  onOpenAssignModal,
   currentUserId,
   currentPage = 1,
   setCurrentPage = () => {},
@@ -24,50 +27,75 @@ const UserTable = ({
   const { projectTeams } = useProjectTeam() || {};
   const { projects } = useProjects() || {};
 
-  const usersPerPage = 10;
+  const [usersPerPage, setUsersPerPage] = useState(5);
   const showActions = Boolean(onEdit || onDelete);
 
-  const totalPages = Math.ceil(users.length / usersPerPage);
+  const totalPages = Math.max(1, Math.ceil(users.length / usersPerPage));
   const startIndex = (currentPage - 1) * usersPerPage;
   const currentUsers = users.slice(
     startIndex,
     startIndex + usersPerPage
   );
 
-  const getUserAssignment = (userId) => {
-    if (!projectTeams) {
-      return {
-        isAssigned: false,
-        projectName: null,
-      };
+  // Auto-clamp currentPage if filtered list changes
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
     }
+  }, [currentPage, totalPages, setCurrentPage]);
 
-    for (const [projId, members] of Object.entries(projectTeams)) {
-      if (
-        Array.isArray(members) &&
-        members.some(
-          (m) => String(m.userId) === String(userId)
-        )
-      ) {
-        const proj = projects?.find(
-          (p) => String(p.id) === String(projId)
-        );
+  const getUserAssignments = (userId) => {
+    const list = [];
+    const seenProjectIds = new Set();
 
-        return {
-          isAssigned: true,
-          projectId: projId,
-          projectName:
-            proj?.name ||
-            (projId === "1"
-              ? "Banking System"
-              : `Project #${projId}`),
-        };
+    // 1. Check ProjectTeamContext members
+    if (projectTeams) {
+      for (const [projId, members] of Object.entries(projectTeams)) {
+        if (Array.isArray(members)) {
+          const memberRecord = members.find(
+            (m) => String(m.userId) === String(userId)
+          );
+          if (memberRecord) {
+            const proj = projects?.find((p) => String(p.id) === String(projId));
+            seenProjectIds.add(String(projId));
+            list.push({
+              projectId: projId,
+              projectName: proj?.name || `Project #${projId}`,
+              projectCode: proj?.code || null,
+              role: memberRecord.projectRole || "Member",
+            });
+          }
+        }
       }
     }
 
+    // 2. Check if user is Project Lead or Project Manager on projects
+    if (Array.isArray(projects)) {
+      projects.forEach((p) => {
+        if (seenProjectIds.has(String(p.id))) return;
+        if (String(p.projectLeadId) === String(userId)) {
+          seenProjectIds.add(String(p.id));
+          list.push({
+            projectId: String(p.id),
+            projectName: p.name,
+            projectCode: p.code || null,
+            role: "Project Lead",
+          });
+        } else if (String(p.projectManagerId) === String(userId)) {
+          seenProjectIds.add(String(p.id));
+          list.push({
+            projectId: String(p.id),
+            projectName: p.name,
+            projectCode: p.code || null,
+            role: "Project Manager",
+          });
+        }
+      });
+    }
+
     return {
-      isAssigned: false,
-      projectName: null,
+      isAssigned: list.length > 0,
+      assignments: list,
     };
   };
 
@@ -75,43 +103,43 @@ const UserTable = ({
     const normalized = (role || "").toLowerCase();
 
     if (normalized.includes("admin")) {
-      return "border-purple-200 bg-purple-50 text-purple-700";
+      return "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800/60 dark:bg-purple-950/40 dark:text-purple-300";
     }
 
     if (normalized.includes("manager")) {
-      return "border-blue-200 bg-blue-50 text-blue-700";
+      return "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300";
     }
 
     if (normalized.includes("lead")) {
-      return "border-cyan-200 bg-cyan-50 text-cyan-700";
+      return "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-300";
     }
 
     if (normalized.includes("dev")) {
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300";
     }
 
     if (normalized.includes("test")) {
-      return "border-amber-200 bg-amber-50 text-amber-700";
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300";
     }
 
     if (normalized.includes("qa")) {
-      return "border-rose-200 bg-rose-50 text-rose-700";
+      return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-300";
     }
 
-    return "border-slate-200 bg-slate-50 text-slate-600";
+    return "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
   };
 
   const getStatusBadgeStyle = (status) => {
     switch (status) {
       case "Active":
-        return "border-emerald-200 bg-emerald-50 text-emerald-700";
+        return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300";
 
       case "In Meeting":
-        return "border-amber-200 bg-amber-50 text-amber-700";
+        return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300";
 
       case "Inactive":
       default:
-        return "border-slate-200 bg-slate-100 text-slate-600";
+        return "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
     }
   };
 
@@ -130,11 +158,11 @@ const UserTable = ({
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-lg shadow-slate-900/5">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[950px]">
-          <thead className="border-b border-slate-700 bg-[#172033]">
-            <tr className="text-left text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/90">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               <th className="px-6 py-4">User</th>
               <th className="px-6 py-4">Email</th>
               <th className="px-6 py-4">
@@ -151,10 +179,10 @@ const UserTable = ({
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {currentUsers.length > 0 ? (
               currentUsers.map((user) => {
-                const assignment = getUserAssignment(user.id);
+                const assignment = getUserAssignments(user.id);
 
                 const isSelf = Boolean(
                   currentUserId &&
@@ -171,7 +199,7 @@ const UserTable = ({
                 return (
                   <tr
                     key={user.id}
-                    className="transition hover:bg-[#F1F5F9]"
+                    className="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
                   >
                     <td className="px-6 py-4">
                       <button
@@ -191,13 +219,13 @@ const UserTable = ({
                         </div>
 
                         <div>
-                          <div className="flex items-center gap-2 font-semibold text-[#172033]">
+                          <div className="flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
                             <span className="transition hover:text-blue-600">
                               {user.fullName}
                             </span>
 
                             {isSelf && (
-                              <span className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600">
+                              <span className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
                                 YOU
                               </span>
                             )}
@@ -217,7 +245,7 @@ const UserTable = ({
                     </td>
 
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-[#475569]">
+                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                         <PiEnvelopeSimple
                           size={16}
                           className="text-slate-400"
@@ -234,7 +262,7 @@ const UserTable = ({
                         {skills.slice(0, 3).map((skill) => (
                           <span
                             key={skill}
-                            className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600"
+                            className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                           >
                             {skill}
                           </span>
@@ -242,7 +270,7 @@ const UserTable = ({
 
                         {skills.length > 3 && (
                           <span
-                            className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-700"
+                            className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
                             title={skills.slice(3).join(", ")}
                           >
                             +{skills.length - 3}
@@ -269,7 +297,7 @@ const UserTable = ({
                                 e.target.value
                               )
                             }
-                            className={`cursor-pointer rounded-full border bg-white px-3 py-1.5 text-xs font-semibold outline-none transition hover:border-blue-400 focus:border-blue-400 ${getStatusBadgeStyle(
+                            className={`cursor-pointer rounded-full border bg-white px-3 py-1.5 text-xs font-semibold outline-none transition hover:border-blue-400 focus:border-blue-400 dark:bg-slate-800 ${getStatusBadgeStyle(
                               currentStatus
                             )}`}
                             title="Click to change your own status"
@@ -306,28 +334,61 @@ const UserTable = ({
 
                     <td className="px-6 py-4">
                       {assignment.isAssigned ? (
-                        <div className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-700">
-                          <PiFolder
-                            size={14}
-                            className="text-cyan-600"
-                          />
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {assignment.assignments.slice(0, 1).map((p) => (
+                              <Link
+                                key={p.projectId}
+                                to={`/projects/${p.projectId}`}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 hover:text-cyan-950 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-300 dark:hover:bg-cyan-900/40 transition"
+                                title={`Navigate to ${p.projectName} (${p.role})`}
+                              >
+                                <PiFolder size={13} className="text-cyan-600 dark:text-cyan-400 shrink-0" />
+                                <span className="max-w-[140px] truncate">{p.projectName}</span>
+                                <span className="rounded bg-cyan-200/60 dark:bg-cyan-800/40 px-1 py-0.2 text-[10px] text-cyan-800 dark:text-cyan-200 font-medium">
+                                  {p.role}
+                                </span>
+                              </Link>
+                            ))}
 
-                          <span className="font-semibold">
-                            Assigned:
-                          </span>
+                            {assignment.assignments.length > 1 && (
+                              <span
+                                className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 cursor-default"
+                                title={assignment.assignments.map((a) => `${a.projectName} (${a.role})`).join("\n")}
+                              >
+                                +{assignment.assignments.length - 1} more
+                              </span>
+                            )}
+                          </div>
 
-                          <span className="max-w-[140px] truncate">
-                            {assignment.projectName}
-                          </span>
+                          {onOpenAssignModal && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenAssignModal(user, assignment.assignments)}
+                              className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+                            >
+                              <PiUserPlus size={12} />
+                              <span>Assign to another project</span>
+                            </button>
+                          )}
                         </div>
                       ) : (
-                        <div className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
-                          <PiBriefcase
-                            size={14}
-                            className="text-amber-500"
-                          />
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <div className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300">
+                            <PiBriefcase size={13} className="text-amber-500 dark:text-amber-400" />
+                            <span>Unassigned</span>
+                          </div>
 
-                          <span>Unassigned</span>
+                          {onOpenAssignModal && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenAssignModal(user, [])}
+                              className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700 transition"
+                            >
+                              <PiUserPlus size={12} />
+                              <span>+ Assign to Project</span>
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -339,7 +400,7 @@ const UserTable = ({
                             <button
                               onClick={() => onEdit(user)}
                               title="Edit User"
-                              className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                              className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-blue-500 dark:hover:text-blue-400"
                             >
                               <FaEdit size={14} />
                             </button>
@@ -349,7 +410,7 @@ const UserTable = ({
                             <button
                               onClick={() => onDelete(user)}
                               title="Delete User"
-                              className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600"
+                              className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-900/30"
                             >
                               <FaTrash size={14} />
                             </button>
@@ -374,13 +435,17 @@ const UserTable = ({
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={users.length}
+        pageSize={usersPerPage}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(newSize) => {
+          setUsersPerPage(newSize);
+          setCurrentPage(1);
+        }}
+      />
     </div>
   );
 };

@@ -18,10 +18,10 @@ import { canRescheduleSubtask } from "../../utils/access.js";
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const priorityColor = {
-  Critical: "border-red-200 bg-red-50 text-red-700",
-  High: "border-red-200 bg-red-50 text-red-700",
-  Medium: "border-blue-200 bg-blue-50 text-blue-700",
-  Low: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  Critical: "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400",
+  High: "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400",
+  Medium: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400",
+  Low: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400",
 };
 
 const SubtaskCalendar = () => {
@@ -141,9 +141,9 @@ const SubtaskCalendar = () => {
 
   if (!parentTask) {
     return (
-      <div className="min-h-full bg-[#E8EEF7] p-6">
+      <div className="min-h-full bg-transparent p-6 text-[#172033] dark:text-slate-100">
         <div className="py-16 text-center">
-          <h2 className="text-lg font-semibold text-[#172033]">
+          <h2 className="text-lg font-semibold text-[#172033] dark:text-white">
             Task not found
           </h2>
 
@@ -160,44 +160,79 @@ const SubtaskCalendar = () => {
   }
 
   return (
-    <div className="min-h-full bg-[#E8EEF7] px-4 py-6 text-[#172033] sm:px-6 lg:px-8">
+    <div className="min-h-full bg-transparent px-4 py-6 text-[#172033] dark:text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
-        <button
-          type="button"
-          onClick={() =>
-            navigate(
-              `/projects/${projectId}/tasks/${taskId}/${subtaskId}`
-            )
-          }
-          className="mb-5 inline-flex items-center gap-2 text-xs font-semibold text-[#475569] transition hover:text-[#2563EB]"
-        >
-          <PiArrowLeft size={16} />
-          Back to Subtask Details
-        </button>
+        {/* HIERARCHICAL BREADCRUMB */}
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium text-[#64748B] dark:text-slate-400">
+          <button
+            type="button"
+            onClick={() => navigate("/projects")}
+            className="transition hover:text-[#2563EB] dark:hover:text-blue-400"
+          >
+            Projects
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(`/projects/${projectId}?section=tasks`, {
+                state: { section: "tasks" },
+              })
+            }
+            className="transition hover:text-[#2563EB] dark:hover:text-blue-400"
+          >
+            Project Workspace
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(`/projects/${projectId}/tasks/${taskId}`)
+            }
+            className="transition hover:text-[#2563EB] dark:hover:text-blue-400"
+          >
+            TASK-{parentTask.id}
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                `/projects/${projectId}/tasks/${taskId}/${subtaskId}`
+              )
+            }
+            className="transition hover:text-[#2563EB] dark:hover:text-blue-400"
+          >
+            SUBTASK-{subtaskId}
+          </button>
+          <span>/</span>
+          <span className="font-semibold text-[#172033] dark:text-slate-200">
+            Calendar
+          </span>
+        </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-6">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+          <div className="border-b border-slate-200 p-6 dark:border-slate-800">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-lg border border-slate-300 bg-[#F1F5F9] px-2.5 py-1 font-mono text-xs text-[#475569]">
+              <span className="rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 TASK-{parentTask.id}
               </span>
 
-              <span className="text-xs text-[#64748B]">
+              <span className="text-xs text-[#64748B] dark:text-slate-400">
                 Subtask Schedule
               </span>
             </div>
 
-            <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#172033] sm:text-3xl">
+            <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#172033] dark:text-white sm:text-3xl">
               {parentTask.title} • Calendar
             </h1>
 
-            <p className="mt-1 text-sm text-[#475569]">
-              Timeline schedule and deadlines for subtasks
-              belonging to this parent work item.
+            <p className="mt-1 text-sm text-[#475569] dark:text-slate-400">
+              Timeline schedule and deadlines for subtasks belonging to this parent work item.
             </p>
           </div>
 
-          <div className="border-b border-slate-200 bg-[#F1F5F9] p-2">
+          <div className="border-b border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-[#0b1120]">
             <div className="flex min-w-max gap-1">
               <button
                 type="button"
@@ -206,7 +241,7 @@ const SubtaskCalendar = () => {
                     `/projects/${projectId}/tasks/${taskId}/${subtaskId}`
                   )
                 }
-                className="rounded-xl px-5 py-2 text-xs font-semibold text-[#475569] transition hover:bg-white hover:text-[#172033]"
+                className="rounded-xl px-5 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
               >
                 Subtask Details
               </button>
@@ -218,7 +253,7 @@ const SubtaskCalendar = () => {
                     `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban`
                   )
                 }
-                className="rounded-xl px-5 py-2 text-xs font-semibold text-[#475569] transition hover:bg-white hover:text-[#172033]"
+                className="rounded-xl px-5 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
               >
                 Kanban
               </button>
@@ -235,7 +270,7 @@ const SubtaskCalendar = () => {
           <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-3">
             <div className="space-y-4 lg:col-span-2">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-[#172033]">
+                <h2 className="text-base font-semibold text-[#172033] dark:text-white">
                   {monthName} {year}
                 </h2>
 
@@ -243,7 +278,7 @@ const SubtaskCalendar = () => {
                   <button
                     type="button"
                     onClick={prevMonth}
-                    className="rounded-lg border border-slate-300 bg-white p-1.5 text-[#64748B] transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
+                    className="rounded-lg border border-slate-300 bg-white p-1.5 text-[#64748B] transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-blue-600 dark:hover:bg-slate-700 dark:hover:text-blue-400"
                   >
                     <PiCaretLeft size={16} />
                   </button>
@@ -251,14 +286,14 @@ const SubtaskCalendar = () => {
                   <button
                     type="button"
                     onClick={nextMonth}
-                    className="rounded-lg border border-slate-300 bg-white p-1.5 text-[#64748B] transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
+                    className="rounded-lg border border-slate-300 bg-white p-1.5 text-[#64748B] transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-blue-600 dark:hover:bg-slate-700 dark:hover:text-blue-400"
                   >
                     <PiCaretRight size={16} />
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 gap-1 pb-2 text-center text-xs font-semibold text-[#64748B]">
+              <div className="grid grid-cols-7 gap-1 pb-2 text-center text-xs font-semibold text-[#64748B] dark:text-slate-400">
                 {DAYS.map((day) => (
                   <div key={day}>{day}</div>
                 ))}
@@ -270,7 +305,7 @@ const SubtaskCalendar = () => {
                     return (
                       <div
                         key={`empty-${idx}`}
-                        className="h-20 rounded-xl bg-[#F1F5F9]"
+                        className="h-20 rounded-xl bg-[#F1F5F9] dark:bg-slate-800/40"
                       />
                     );
                   }
@@ -293,11 +328,11 @@ const SubtaskCalendar = () => {
                       key={`day-${day}`}
                       className={`flex h-24 flex-col justify-between rounded-xl border p-1.5 transition ${
                         isSelected
-                          ? "border-blue-300 bg-blue-50"
-                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-[#F1F5F9]"
+                          ? "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/40"
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-[#F1F5F9] dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-800/60"
                       }`}
                     >
-                      <span className="text-[11px] font-semibold text-[#475569]">
+                      <span className="text-[11px] font-semibold text-[#475569] dark:text-slate-400">
                         {day}
                       </span>
 
@@ -313,7 +348,7 @@ const SubtaskCalendar = () => {
                               priorityColor[
                                 s.priority
                               ] ||
-                              "border-slate-200 bg-slate-100 text-slate-600"
+                              "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                             }`}
                           >
                             {s.title}
@@ -326,69 +361,69 @@ const SubtaskCalendar = () => {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-300 bg-[#F1F5F9] p-5">
-              <h3 className="text-sm font-semibold text-[#172033]">
+            <div className="rounded-2xl border border-slate-300 bg-[#F1F5F9] p-5 dark:border-slate-800 dark:bg-slate-800/50">
+              <h3 className="text-sm font-semibold text-[#172033] dark:text-white">
                 Subtask Details
               </h3>
 
-              <p className="mt-0.5 text-xs text-[#64748B]">
+              <p className="mt-0.5 text-xs text-[#64748B] dark:text-slate-400">
                 Selected schedule event
               </p>
 
               {selectedSubtask ? (
                 <div className="mt-5 space-y-4">
                   <div>
-                    <span className="font-mono text-[10px] text-[#64748B]">
+                    <span className="font-mono text-[10px] text-[#64748B] dark:text-slate-400">
                       SUBTASK-{selectedSubtask.id}
                     </span>
 
-                    <h4 className="mt-1 text-sm font-semibold text-[#172033]">
+                    <h4 className="mt-1 text-sm font-semibold text-[#172033] dark:text-white">
                       {selectedSubtask.title}
                     </h4>
 
-                    <p className="mt-1 text-xs leading-5 text-[#475569]">
+                    <p className="mt-1 text-xs leading-5 text-[#475569] dark:text-slate-300">
                       {selectedSubtask.description ||
                         "No description provided."}
                     </p>
                   </div>
 
-                  <div className="space-y-2 border-t border-slate-300 pt-3 text-xs">
+                  <div className="space-y-2 border-t border-slate-300 pt-3 text-xs dark:border-slate-700">
                     <div className="flex justify-between gap-4">
-                      <span className="text-[#64748B]">
+                      <span className="text-[#64748B] dark:text-slate-400">
                         Status:
                       </span>
 
-                      <span className="font-medium text-[#172033]">
+                      <span className="font-medium text-[#172033] dark:text-white">
                         {selectedSubtask.status ||
                           "To Do"}
                       </span>
                     </div>
 
                     <div className="flex justify-between gap-4">
-                      <span className="text-[#64748B]">
+                      <span className="text-[#64748B] dark:text-slate-400">
                         Priority:
                       </span>
 
-                      <span className="font-medium text-[#172033]">
+                      <span className="font-medium text-[#172033] dark:text-white">
                         {selectedSubtask.priority ||
                           "Medium"}
                       </span>
                     </div>
 
                     <div className="flex justify-between gap-4">
-                      <span className="text-[#64748B]">
+                      <span className="text-[#64748B] dark:text-slate-400">
                         Due Date:
                       </span>
 
-                      <span className="font-medium text-[#D97706]">
+                      <span className="font-medium text-[#D97706] dark:text-amber-400">
                         {selectedSubtask.dueDate ||
                           "Not set"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-300 pt-4">
-                    <label className="mb-2 block text-xs font-semibold text-[#475569]">
+                  <div className="border-t border-slate-300 pt-4 dark:border-slate-700">
+                    <label className="mb-2 block text-xs font-semibold text-[#475569] dark:text-slate-300">
                       Reschedule Due Date
                     </label>
 
@@ -402,7 +437,7 @@ const SubtaskCalendar = () => {
                               e.target.value
                             )
                           }
-                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                         />
 
                         <button
@@ -417,7 +452,7 @@ const SubtaskCalendar = () => {
                         </button>
                       </div>
                     ) : (
-                      <p className="text-xs italic text-[#64748B]">
+                      <p className="text-xs italic text-[#64748B] dark:text-slate-400">
                         View-only schedule. Contact Team
                         Lead to reschedule.
                       </p>
@@ -425,7 +460,7 @@ const SubtaskCalendar = () => {
                   </div>
                 </div>
               ) : (
-                <div className="py-12 text-center text-xs text-[#64748B]">
+                <div className="py-12 text-center text-xs text-[#64748B] dark:text-slate-400">
                   Click any scheduled subtask on the
                   calendar to view details or reschedule.
                 </div>

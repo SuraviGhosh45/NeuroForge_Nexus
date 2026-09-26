@@ -575,20 +575,20 @@ const GlobalCalendar = () => {
   const todayISO = toISO(new Date());
 
   return (
-    <div className="min-h-full bg-[#E8EEF7] space-y-6 p-4 text-[#172033] sm:p-6">
+    <div className="min-h-full bg-transparent space-y-6 p-4 text-[#172033] dark:text-slate-100 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#2563EB]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#2563EB] dark:bg-blue-950/60 dark:text-blue-400">
               <PiCalendarBlank size={24} />
             </div>
 
             <div>
-              <h1 className="text-2xl font-semibold text-[#172033]">
+              <h1 className="text-2xl font-semibold text-[#172033] dark:text-white">
                 SDLC Master Calendar
               </h1>
 
-              <p className="mt-1 text-sm text-[#475569]">
+              <p className="mt-1 text-sm text-[#475569] dark:text-slate-400">
                 Track subtasks, milestones, delivery deadlines
                 and calendar events.
               </p>
@@ -599,15 +599,15 @@ const GlobalCalendar = () => {
         <button
           type="button"
           onClick={goToToday}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#475569] shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
+          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#475569] shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB] dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-400"
         >
           Today
         </button>
       </div>
 
-      <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">
-        <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#172033]">
-          <PiFunnel size={18} className="text-[#2563EB]" />
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+        <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#172033] dark:text-white">
+          <PiFunnel size={18} className="text-[#2563EB] dark:text-blue-400" />
           Filters
         </div>
 
@@ -619,9 +619,9 @@ const GlobalCalendar = () => {
                 event.target.value
               )
             }
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
           >
-            <option value="ALL">
+            <option value="" className="dark:bg-[#1e293b] dark:text-white">
               All Projects
             </option>
 
@@ -630,6 +630,7 @@ const GlobalCalendar = () => {
                 <option
                   key={project.id}
                   value={project.id}
+                  className="dark:bg-[#1e293b] dark:text-white"
                 >
                   {project.name ||
                     project.title ||
@@ -647,9 +648,9 @@ const GlobalCalendar = () => {
                 event.target.value
               )
             }
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
           >
-            <option value="ALL">
+            <option value="" className="dark:bg-[#1e293b] dark:text-white">
               All Teams
             </option>
 
@@ -657,6 +658,7 @@ const GlobalCalendar = () => {
               <option
                 key={team.id}
                 value={team.id}
+                className="dark:bg-[#1e293b] dark:text-white"
               >
                 {team.name ||
                   team.teamName ||
@@ -672,9 +674,9 @@ const GlobalCalendar = () => {
                 event.target.value
               )
             }
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
           >
-            <option value="ALL">
+            <option value="" className="dark:bg-[#1e293b] dark:text-white">
               All Users
             </option>
 
@@ -682,6 +684,7 @@ const GlobalCalendar = () => {
               <option
                 key={user.id}
                 value={user.id}
+                className="dark:bg-[#1e293b] dark:text-white"
               >
                 {user.fullName ||
                   user.name ||
@@ -693,18 +696,18 @@ const GlobalCalendar = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-300 bg-[#172033] px-5 py-4">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900/90">
           <button
             type="button"
             onClick={goToPreviousMonth}
-            className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
             aria-label="Previous month"
           >
             <PiCaretLeft size={20} />
           </button>
 
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
             {MONTHS[currentDate.getMonth()]}{" "}
             {currentDate.getFullYear()}
           </h2>
@@ -712,18 +715,18 @@ const GlobalCalendar = () => {
           <button
             type="button"
             onClick={goToNextMonth}
-            className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
             aria-label="Next month"
           >
             <PiCaretRight size={20} />
           </button>
         </div>
 
-        <div className="grid grid-cols-7 border-b border-slate-300 bg-[#24324A]">
+        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/60">
           {DAYS.map((day) => (
             <div
               key={day}
-              className="border-r border-white/10 px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-200 last:border-r-0"
+              className="border-r border-slate-200 dark:border-slate-700/60 px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300 last:border-r-0"
             >
               {day}
             </div>
@@ -743,10 +746,10 @@ const GlobalCalendar = () => {
               return (
                 <div
                   key={`${dateISO}-${index}`}
-                  className={`min-h-[125px] border-r border-b border-slate-200 p-2 last:border-r-0 ${
+                  className={`min-h-[125px] border-r border-b border-slate-200 p-2 last:border-r-0 dark:border-slate-800 ${
                     currentMonth
-                      ? "bg-white"
-                      : "bg-[#F1F5F9]"
+                      ? "bg-white dark:bg-[#0f172a]"
+                      : "bg-[#F1F5F9] dark:bg-slate-900/40"
                   }`}
                 >
                   <div className="mb-2 flex items-center justify-between">
@@ -834,17 +837,17 @@ const GlobalCalendar = () => {
 
       {selectedEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/60">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
               <div>
-                <h3 className="text-base font-semibold text-[#172033]">
+                <h3 className="text-base font-semibold text-[#172033] dark:text-white">
                   {selectedEvent.calendarTitle ||
                     selectedEvent.title ||
                     selectedEvent.name ||
                     "Calendar Event"}
                 </h3>
 
-                <p className="mt-1 text-xs text-[#64748B]">
+                <p className="mt-1 text-xs text-[#64748B] dark:text-slate-400">
                   {selectedEvent.calendarType ===
                   "chatbot"
                     ? "Calendar event"
@@ -857,7 +860,7 @@ const GlobalCalendar = () => {
                 onClick={() =>
                   setSelectedEvent(null)
                 }
-                className="rounded-lg p-2 text-[#64748B] transition hover:bg-[#F1F5F9] hover:text-[#172033]"
+                className="rounded-lg p-2 text-[#64748B] transition hover:bg-[#F1F5F9] hover:text-[#172033] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
                 aria-label="Close"
               >
                 <PiX size={20} />
@@ -865,12 +868,12 @@ const GlobalCalendar = () => {
             </div>
 
             <div className="space-y-4 p-5">
-              <div className="rounded-xl border border-slate-200 bg-[#F1F5F9] p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+              <div className="rounded-xl border border-slate-200 bg-[#F1F5F9] p-3 dark:border-slate-800 dark:bg-slate-800/50">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B] dark:text-slate-400">
                   Date
                 </p>
 
-                <p className="mt-1 text-sm font-semibold text-[#172033]">
+                <p className="mt-1 text-sm font-semibold text-[#172033] dark:text-white">
                   {formatDisplayDate(
                     selectedEvent.dueDate
                   )}
@@ -882,11 +885,11 @@ const GlobalCalendar = () => {
                 <>
                   {selectedEvent.description && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B] dark:text-slate-400">
                         Description
                       </p>
 
-                      <p className="mt-1 text-sm leading-5 text-[#475569]">
+                      <p className="mt-1 text-sm leading-5 text-[#475569] dark:text-slate-300">
                         {selectedEvent.description}
                       </p>
                     </div>
@@ -894,11 +897,11 @@ const GlobalCalendar = () => {
 
                   {selectedEvent.priority && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B] dark:text-slate-400">
                         Priority
                       </p>
 
-                      <span className="mt-1 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#1D4ED8]">
+                      <span className="mt-1 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#1D4ED8] dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
                         {selectedEvent.priority}
                       </span>
                     </div>
@@ -912,12 +915,12 @@ const GlobalCalendar = () => {
                   {projectName(
                     selectedEvent.projectId
                   ) && (
-                    <div className="rounded-xl border border-slate-200 bg-white p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-800/50">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B] dark:text-slate-400">
                         Project
                       </p>
 
-                      <p className="mt-1 text-sm font-medium text-[#172033]">
+                      <p className="mt-1 text-sm font-medium text-[#172033] dark:text-white">
                         {projectName(
                           selectedEvent.projectId
                         )}
@@ -928,12 +931,12 @@ const GlobalCalendar = () => {
                   {teamName(
                     selectedEvent.teamId
                   ) && (
-                    <div className="rounded-xl border border-slate-200 bg-white p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-800/50">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B] dark:text-slate-400">
                         Team
                       </p>
 
-                      <p className="mt-1 text-sm font-medium text-[#172033]">
+                      <p className="mt-1 text-sm font-medium text-[#172033] dark:text-white">
                         {teamName(
                           selectedEvent.teamId
                         )}
@@ -944,12 +947,12 @@ const GlobalCalendar = () => {
                   {userName(
                     selectedEvent.assigneeId
                   ) && (
-                    <div className="rounded-xl border border-slate-200 bg-white p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-800/50">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B] dark:text-slate-400">
                         Assignee
                       </p>
 
-                      <p className="mt-1 text-sm font-medium text-[#172033]">
+                      <p className="mt-1 text-sm font-medium text-[#172033] dark:text-white">
                         {userName(
                           selectedEvent.assigneeId
                         )}
@@ -959,8 +962,8 @@ const GlobalCalendar = () => {
                 </div>
               )}
 
-              <div className="border-t border-slate-200 pt-4">
-                <label className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+              <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
+                <label className="text-xs font-semibold uppercase tracking-wide text-[#64748B] dark:text-slate-400">
                   Reschedule
                 </label>
 
@@ -973,7 +976,7 @@ const GlobalCalendar = () => {
                         event.target.value
                       )
                     }
-                    className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                    className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
 
                   <button
@@ -990,8 +993,12 @@ const GlobalCalendar = () => {
                 "chatbot" &&
                 selectedEvent.taskId != null && (
                   <Link
-                    to={`/tasks/${selectedEvent.taskId}`}
-                    className="flex items-center gap-2 rounded-xl border border-slate-300 bg-[#F1F5F9] px-4 py-2.5 text-sm font-semibold text-[#475569] transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
+                    to={
+                      selectedEvent.projectId
+                        ? `/projects/${selectedEvent.projectId}/tasks/${selectedEvent.taskId}`
+                        : `/tasks/${selectedEvent.taskId}`
+                    }
+                    className="flex items-center gap-2 rounded-xl border border-slate-300 bg-[#F1F5F9] px-4 py-2.5 text-sm font-semibold text-[#475569] transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-blue-600 dark:hover:bg-slate-700 dark:hover:text-blue-400"
                   >
                     <PiCheckSquareOffset size={17} />
                     Open Subtask Workspace
@@ -999,7 +1006,7 @@ const GlobalCalendar = () => {
                 )}
 
               {selectedEvent.projectId != null && (
-                <div className="flex items-center gap-2 text-xs font-medium text-[#64748B]">
+                <div className="flex items-center gap-2 text-xs font-medium text-[#64748B] dark:text-slate-400">
                   <PiFolder size={15} />
 
                   <span>
@@ -1016,17 +1023,17 @@ const GlobalCalendar = () => {
       )}
 
       {filteredEvents.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center shadow-sm">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <PiCalendarBlank
             size={32}
-            className="mx-auto text-slate-300"
+            className="mx-auto text-slate-300 dark:text-slate-600"
           />
 
-          <p className="mt-3 text-sm font-semibold text-[#475569]">
+          <p className="mt-3 text-sm font-semibold text-[#475569] dark:text-slate-300">
             No calendar events found
           </p>
 
-          <p className="mt-1 text-xs text-[#64748B]">
+          <p className="mt-1 text-xs text-[#64748B] dark:text-slate-500">
             Subtask deadlines and chatbot-created events
             will appear here.
           </p>

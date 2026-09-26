@@ -222,10 +222,10 @@ const TeamManagement = () => {
             <button
               key={team.id}
               onClick={() => setActiveTeamId(team.id)}
-              className={`rounded-xl px-3 py-2 text-sm transition ${
+              className={`rounded-xl px-3.5 py-2 text-sm transition ${
                 String(team.id) === String(activeTeamId)
-                  ? "bg-[#172033] font-semibold text-white shadow-sm"
-                  : "text-[#475569] hover:bg-white hover:text-[#172033]"
+                  ? "bg-gradient-to-r from-[#2563EB] to-[#4F46E5] font-semibold text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               {team.name}
@@ -343,7 +343,7 @@ const TeamManagement = () => {
 
               <button
                 type="submit"
-                className="rounded-xl bg-[#172033] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#24324A]"
+                className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
               >
                 Add
               </button>

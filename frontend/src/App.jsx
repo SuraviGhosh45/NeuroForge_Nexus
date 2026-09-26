@@ -1,10 +1,12 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
+import { ThemeProvider } from "./context/ThemeContext.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { UsersProvider } from "./context/UsersContext.jsx";
 import { TeamsProvider } from "./context/TeamsContext.jsx";
 import { ProjectProvider } from "./context/ProjectContext.jsx";
 import { ProjectTeamProvider } from "./context/ProjectTeamContext.jsx";
-import { TasksProvider } from "./context/TasksContext.jsx";
+import { TasksProvider, useTasks } from "./context/TasksContext.jsx";
 
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import RoleRoute from "./routes/RoleRoute.jsx";
@@ -22,6 +24,7 @@ import UserManagement from "./pages/UserManagement/UserManagement.jsx";
 import UserDetails from "./pages/UserManagement/UserDetails.jsx";
 import ProjectManagement from "./pages/ProjectManagement/ProjectManagement.jsx";
 import ProjectWorkspace from "./pages/ProjectWorkspace/ProjectWorkspace.jsx";
+import TaskManagement from "./pages/TaskManagement/TaskManagement.jsx";
 import ParentTaskDetailsPage from "./pages/TaskManagement/ParentTaskDetailsPage.jsx";
 import SubtaskManagement from "./pages/SubtaskManagement/SubtaskManagement.jsx";
 import SubtaskDetails from "./components/Subtask/SubtaskDetails.jsx";
@@ -33,6 +36,29 @@ import KanbanBoard from "./components/KanbanBoard/KanbanBoard.jsx";
 
 import { ROLES, MEMBER_ROLES } from "./constants/roles.js";
 import "./App.css";
+
+const TaskRedirectHandler = () => {
+  const { taskId } = useParams();
+  const { tasks } = useTasks();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const task = tasks.find((t) => String(t.id) === String(taskId));
+    const projId = task?.projectId || task?.project?.id;
+
+    if (projId) {
+      navigate(`/projects/${projId}/tasks/${taskId}`, { replace: true });
+    } else {
+      navigate("/tasks", { replace: true });
+    }
+  }, [taskId, tasks, navigate]);
+
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+    </div>
+  );
+};
 
 const protect = (content) => (
   <ProtectedRoute>
@@ -109,7 +135,12 @@ const AppRoutes = () => {
 
       <Route
         path="/tasks"
-        element={<Navigate to="/projects" replace />}
+        element={protect(<TaskManagement />)}
+      />
+
+      <Route
+        path="/tasks/:taskId"
+        element={protect(<TaskRedirectHandler />)}
       />
 
       <Route
@@ -198,9 +229,11 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <AuthenticatedApp />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AuthenticatedApp />
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 
@@ -209,11 +242,11 @@ const AuthenticatedApp = () => {
 
   if (!authReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#e8eef7] p-8 text-slate-900">
+      <div className="flex min-h-screen items-center justify-center bg-[#f4f6fa] dark:bg-[#0b1120] p-8 text-slate-900 dark:text-slate-100">
         <div className="flex items-center gap-3">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
 
-          <span className="text-sm font-medium text-slate-600">
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
             Loading SDLC workspace...
           </span>
         </div>

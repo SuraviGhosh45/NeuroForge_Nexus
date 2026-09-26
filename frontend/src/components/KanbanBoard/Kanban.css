@@ -3,7 +3,7 @@
   min-height: 100%;
   padding: 28px 30px 40px;
   box-sizing: border-box;
-  background: #E8EEF7;
+  background: transparent;
 }
 
 .kanban-header {
@@ -491,4 +491,128 @@
   .kanban-board {
     padding: 12px;
   }
+}
+
+/* Dark Mode Overrides for Kanban */
+html.dark .kanban-page {
+  background: transparent;
+}
+html.dark .kanban-header {
+  border-color: #1e293b;
+}
+html.dark .kanban-title-area h1 {
+  color: #f8fafc;
+}
+html.dark .kanban-title-area p {
+  color: #94a3b8;
+}
+html.dark .project-selector label {
+  color: #94a3b8;
+}
+html.dark .project-selector select {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+html.dark .project-selector option {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+html.dark .selected-project {
+  background: rgba(30, 58, 138, 0.25);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: #93c5fd;
+}
+html.dark .summary-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+html.dark .summary-card strong {
+  color: #f8fafc;
+}
+html.dark .summary-card span {
+  color: #94a3b8;
+}
+html.dark .kanban-board {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+html.dark .kanban-column {
+  background: #111927;
+  border-color: #1e293b;
+}
+html.dark .kanban-column:hover {
+  background: #162032;
+  border-color: #334155;
+}
+html.dark .column-title h3 {
+  color: #f8fafc;
+}
+html.dark .task-count {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+html.dark .column-divider {
+  background: #1e293b;
+}
+html.dark .empty-column {
+  border-color: #334155;
+  background: rgba(15, 23, 42, 0.45);
+  color: #94a3b8;
+}
+html.dark .empty-icon {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+html.dark .kanban-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+html.dark .kanban-card:hover {
+  border-color: #475569;
+  box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
+}
+html.dark .task-id {
+  color: #94a3b8;
+}
+html.dark .task-title {
+  color: #f8fafc;
+}
+html.dark .task-description {
+  color: #94a3b8;
+}
+html.dark .task-assignee {
+  color: #cbd5e1;
+}
+html.dark .assignee-avatar {
+  background: #1e1b4b;
+  color: #818cf8;
+  border-color: #3730a3;
+}
+html.dark .task-card-footer {
+  border-color: #334155;
+  color: #94a3b8;
+}
+html.dark .task-status {
+  color: #cbd5e1;
+}
+html.dark .priority-badge.high,
+html.dark .priority-badge.critical {
+  background: rgba(153, 27, 27, 0.25);
+  color: #fca5a5;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+html.dark .priority-badge.medium {
+  background: rgba(180, 83, 9, 0.25);
+  color: #fde68a;
+  border-color: rgba(217, 119, 6, 0.4);
+}
+html.dark .priority-badge.low {
+  background: rgba(21, 128, 61, 0.25);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.4);
 }

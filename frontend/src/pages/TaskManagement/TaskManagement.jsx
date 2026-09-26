@@ -15,10 +15,10 @@ import {
 } from "react-icons/pi";
 
 const priorityColor = {
-  Critical: "border-red-200 bg-red-50 text-red-700",
-  High: "border-amber-200 bg-amber-50 text-amber-700",
-  Medium: "border-blue-200 bg-blue-50 text-blue-700",
-  Low: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  Critical: "border-red-200 bg-red-50 text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-300",
+  High: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300",
+  Medium: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300",
+  Low: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300",
 };
 
 const TaskManagement = () => {
@@ -34,17 +34,8 @@ const TaskManagement = () => {
     getVisibleTasks,
   } = useTasks();
 
-  const {
-    users,
-    loading: usersLoading,
-    error: usersError,
-  } = useUsers();
-
-  const {
-    projects,
-    loading: projectsLoading,
-    error: projectsError,
-  } = useProjects();
+  const { users } = useUsers();
+  const { projects } = useProjects();
 
   const { projectTeams } = useProjectTeam();
   const { teams } = useTeams();
@@ -251,25 +242,24 @@ const TaskManagement = () => {
       )}
 
       {(showAddForm || editingTaskId) && (
-        <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-[#172033]">
+              <h2 className="text-lg font-semibold text-[#172033] dark:text-white">
                 {editingTaskId
                   ? "Edit Parent Task"
                   : "Create Parent Task"}
               </h2>
 
-              <p className="mt-1 text-xs text-[#64748B]">
-                Parent tasks define the high-level work items that
-                contain subtasks.
+              <p className="mt-1 text-xs text-[#64748B] dark:text-slate-400">
+                Parent tasks define the high-level deliverable work items decomposed into subtasks.
               </p>
             </div>
 
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-[#172033]"
+              className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-[#172033] dark:hover:bg-slate-800 dark:hover:text-white"
             >
               ✕
             </button>
@@ -284,7 +274,7 @@ const TaskManagement = () => {
             className="grid grid-cols-1 gap-5 md:grid-cols-2"
           >
             <div>
-              <label className="mb-2 block text-xs font-semibold text-[#475569]">
+              <label className="mb-2 block text-xs font-semibold text-[#475569] dark:text-slate-300">
                 Task Title *
               </label>
 
@@ -293,24 +283,24 @@ const TaskManagement = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Implement Authorization Service"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] placeholder:text-slate-400 outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] placeholder:text-slate-400 outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold text-[#475569]">
+              <label className="mb-2 block text-xs font-semibold text-[#475569] dark:text-slate-300">
                 Project *
               </label>
 
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               >
-                <option value="">Select project</option>
+                <option value="" className="dark:bg-slate-800 dark:text-white">Select project</option>
 
                 {projects.map((proj) => (
-                  <option key={proj.id} value={proj.id}>
+                  <option key={proj.id} value={proj.id} className="dark:bg-slate-800 dark:text-white">
                     {proj.name}
                   </option>
                 ))}
@@ -318,19 +308,19 @@ const TaskManagement = () => {
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold text-[#475569]">
+              <label className="mb-2 block text-xs font-semibold text-[#475569] dark:text-slate-300">
                 Assignee *
               </label>
 
               <select
                 value={assigneeId}
                 onChange={(e) => setAssigneeId(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               >
-                <option value="">Select assignee</option>
+                <option value="" className="dark:bg-slate-800 dark:text-white">Select assignee</option>
 
                 {users.map((user) => (
-                  <option key={user.id} value={user.id}>
+                  <option key={user.id} value={user.id} className="dark:bg-slate-800 dark:text-white">
                     {user.fullName}
                   </option>
                 ))}
@@ -338,44 +328,44 @@ const TaskManagement = () => {
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold text-[#475569]">
+              <label className="mb-2 block text-xs font-semibold text-[#475569] dark:text-slate-300">
                 Priority *
               </label>
 
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               >
-                <option value="">Select priority</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Critical">Critical</option>
+                <option value="" className="dark:bg-slate-800 dark:text-white">Select priority</option>
+                <option value="Low" className="dark:bg-slate-800 dark:text-white">Low</option>
+                <option value="Medium" className="dark:bg-slate-800 dark:text-white">Medium</option>
+                <option value="High" className="dark:bg-slate-800 dark:text-white">High</option>
+                <option value="Critical" className="dark:bg-slate-800 dark:text-white">Critical</option>
               </select>
             </div>
 
             {editingTaskId && (
               <div>
-                <label className="mb-2 block text-xs font-semibold text-[#475569]">
+                <label className="mb-2 block text-xs font-semibold text-[#475569] dark:text-slate-300">
                   Status
                 </label>
 
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 >
-                  <option value="To Do">To Do</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="In Review">In Review</option>
-                  <option value="Done">Done</option>
+                  <option value="To Do" className="dark:bg-slate-800 dark:text-white">To Do</option>
+                  <option value="In Progress" className="dark:bg-slate-800 dark:text-white">In Progress</option>
+                  <option value="In Review" className="dark:bg-slate-800 dark:text-white">In Review</option>
+                  <option value="Done" className="dark:bg-slate-800 dark:text-white">Done</option>
                 </select>
               </div>
             )}
 
             <div>
-              <label className="mb-2 block text-xs font-semibold text-[#475569]">
+              <label className="mb-2 block text-xs font-semibold text-[#475569] dark:text-slate-300">
                 Due Date *
               </label>
 
@@ -383,7 +373,7 @@ const TaskManagement = () => {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </div>
 
@@ -391,7 +381,7 @@ const TaskManagement = () => {
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
               >
                 Cancel
               </button>
@@ -408,22 +398,22 @@ const TaskManagement = () => {
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-700 bg-[#172033] p-5 shadow-lg shadow-slate-900/10">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Total Tasks
           </span>
 
-          <p className="mt-2 text-2xl font-bold text-white">
+          <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
             {visibleTasks.length}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             To Do
           </span>
 
-          <p className="mt-2 text-2xl font-bold text-[#172033]">
+          <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
             {
               visibleTasks.filter(
                 (t) => t.status === "To Do"
@@ -432,12 +422,12 @@ const TaskManagement = () => {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             In Progress
           </span>
 
-          <p className="mt-2 text-2xl font-bold text-[#2563EB]">
+          <p className="mt-2 text-2xl font-bold text-blue-600 dark:text-blue-400">
             {
               visibleTasks.filter(
                 (t) => t.status === "In Progress"
@@ -446,12 +436,12 @@ const TaskManagement = () => {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Completed
           </span>
 
-          <p className="mt-2 text-2xl font-bold text-[#16A34A]">
+          <p className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             {
               visibleTasks.filter(
                 (t) => t.status === "Done"
@@ -461,37 +451,37 @@ const TaskManagement = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-3 border-b border-slate-200 px-6 py-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-[#172033]">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white">
               Parent Tasks
             </h2>
 
-            <p className="text-xs text-[#64748B]">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Click any parent task to open its workspace
             </p>
           </div>
 
-          <span className="text-xs font-medium text-[#64748B]">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Showing {visibleTasks.length} tasks
           </span>
         </div>
 
         {visibleTasks.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-sm font-medium text-[#172033]">
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
               No parent tasks found in your scope.
             </p>
 
-            <p className="mt-1 text-xs text-[#64748B]">
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Create a task or check your project assignments.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[#172033] text-left text-xs font-semibold uppercase tracking-wider text-slate-300">
+            <table className="w-full min-w-[750px]">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-300">
                 <tr>
                   <th className="px-6 py-3.5">Task</th>
                   <th className="px-6 py-3.5">Project</th>
@@ -505,26 +495,26 @@ const TaskManagement = () => {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-200 text-sm">
+              <tbody className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
                 {visibleTasks.map((task) => (
                   <tr
                     key={task.id}
                     onClick={() => handleTaskClick(task)}
-                    className="group cursor-pointer transition hover:bg-[#F1F5F9]"
+                    className="group cursor-pointer transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
                   >
                     <td className="px-6 py-4">
-                      <span className="font-semibold text-[#172033] transition group-hover:text-[#2563EB]">
+                      <span className="font-semibold text-slate-900 transition group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                         {task.title}
                       </span>
                     </td>
 
-                    <td className="px-6 py-4 text-xs text-[#475569]">
+                    <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">
                       {task.project
                         ? task.project.name
                         : `Project #${task.projectId}`}
                     </td>
 
-                    <td className="px-6 py-4 text-xs text-[#475569]">
+                    <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">
                       {task.assignee
                         ? task.assignee.fullName
                         : "Unassigned"}
@@ -534,10 +524,10 @@ const TaskManagement = () => {
                       <span
                         className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
                           task.status === "Done"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300"
                             : task.status === "In Progress"
-                            ? "border-blue-200 bg-blue-50 text-blue-700"
-                            : "border-slate-200 bg-slate-100 text-slate-600"
+                            ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300"
+                            : "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                         }`}
                       >
                         {task.status || "To Do"}
@@ -548,14 +538,14 @@ const TaskManagement = () => {
                       <span
                         className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
                           priorityColor[task.priority] ||
-                          "border-slate-200 bg-slate-100 text-slate-600"
+                          "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                         }`}
                       >
                         {task.priority || "Medium"}
                       </span>
                     </td>
 
-                    <td className="px-6 py-4 text-xs text-[#64748B]">
+                    <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
                       {task.dueDate || "No deadline"}
                     </td>
 
@@ -571,7 +561,7 @@ const TaskManagement = () => {
                               handleEditClick(task, e)
                             }
                             title="Edit task"
-                            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
+                            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-blue-700 dark:hover:text-blue-300"
                           >
                             <PiPencilSimple size={16} />
                           </button>
@@ -584,7 +574,7 @@ const TaskManagement = () => {
                               handleDeleteTask(task.id, e)
                             }
                             title="Delete task"
-                            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-[#DC2626]"
+                            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-[#DC2626] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-red-700 dark:hover:text-red-300"
                           >
                             <PiTrash size={16} />
                           </button>
