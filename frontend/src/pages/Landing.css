@@ -1,16 +1,45 @@
-/* ==========================================================================
-   Landing Page Modern Simple Animations
-   ========================================================================== */
-
 html {
   scroll-behavior: smooth;
 }
 
-/* Ambient glow floating */
+.landing-page {
+  background: #e8eef7;
+  color: #172033;
+}
+
+.landing-page h1,
+.landing-page h2,
+.landing-page h3,
+.landing-page h4 {
+  color: #172033;
+}
+
+.landing-page p {
+  color: #475569;
+}
+
+.landing-page .text-muted {
+  color: #64748b;
+}
+
+.landing-card-glow {
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.3s ease,
+    background-color 0.3s ease;
+}
+
+.landing-card-glow:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px -10px rgba(37, 99, 235, 0.15);
+}
+
 @keyframes floatSlow {
   0%, 100% {
     transform: translate(0, 0) scale(1);
   }
+
   50% {
     transform: translate(25px, -20px) scale(1.06);
   }
@@ -20,6 +49,7 @@ html {
   0%, 100% {
     transform: translate(0, 0) scale(1);
   }
+
   50% {
     transform: translate(-20px, 25px) scale(0.95);
   }
@@ -29,6 +59,7 @@ html {
   0%, 100% {
     transform: translate(0, 0);
   }
+
   50% {
     transform: translate(15px, 15px);
   }
@@ -49,11 +80,11 @@ html {
   will-change: transform;
 }
 
-/* Hero Mockup Floating Window */
 @keyframes heroMockupFloat {
   0%, 100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-7px);
   }
@@ -64,12 +95,12 @@ html {
   will-change: transform;
 }
 
-/* Staggered entrance animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -81,6 +112,7 @@ html {
     opacity: 0;
     transform: translateY(20px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -111,29 +143,16 @@ html {
   animation: fadeInScale 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
 }
 
-/* Soft pulse glow for badges & active states */
 @keyframes pulseGlow {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.12);
   }
+
   50% {
-    box-shadow: 0 0 25px rgba(59, 130, 246, 0.35);
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.25);
   }
 }
 
 .animate-pulse-glow {
   animation: pulseGlow 3.5s ease-in-out infinite;
-}
-
-/* Smooth lift and glow on hover */
-.landing-card-glow {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.3s ease,
-              background-color 0.3s ease;
-}
-
-.landing-card-glow:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 36px -10px rgba(37, 99, 235, 0.15);
 }

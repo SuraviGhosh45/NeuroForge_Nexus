@@ -1,5 +1,9 @@
-const UserFilter = ({ roleFilter, onRoleFilterChange, roles, showRoleFilter = true }) => {
-  // Hide entirely for roles that shouldn't filter by role (e.g. Team Lead, Employee)
+const UserFilter = ({
+  roleFilter,
+  onRoleFilterChange,
+  roles,
+  showRoleFilter = true,
+}) => {
   if (!showRoleFilter) return null;
 
   return (
@@ -7,9 +11,10 @@ const UserFilter = ({ roleFilter, onRoleFilterChange, roles, showRoleFilter = tr
       <select
         value={roleFilter}
         onChange={(e) => onRoleFilterChange(e.target.value)}
-        className="rounded-md border border-[#e8eef8]/15 bg-[#07111f] px-4 py-2.5 text-sm text-[#e8eef8] outline-none transition focus:border-[#e8eef8]/40 focus:ring-2 focus:ring-[#e8eef8]/10"
+        className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-[#172033] outline-none transition hover:border-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
       >
         <option value="All">All Roles</option>
+
         {roles.map((role) => (
           <option key={role} value={role}>
             {role}

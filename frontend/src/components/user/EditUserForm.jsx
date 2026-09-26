@@ -1,6 +1,15 @@
 import { useState } from "react";
-import { PiX, PiPlus, PiCheckCircle, PiXCircle, PiClock } from "react-icons/pi";
-import { ROLE_DEFAULT_SKILLS, normalizeUserRole } from "../../context/UsersContext.jsx";
+import {
+  PiX,
+  PiPlus,
+  PiCheckCircle,
+  PiXCircle,
+  PiClock,
+} from "react-icons/pi";
+import {
+  ROLE_DEFAULT_SKILLS,
+  normalizeUserRole,
+} from "../../context/UsersContext.jsx";
 import { formatRole } from "../../constants/roles.js";
 
 const AVAILABLE_ROLES = [
@@ -14,7 +23,9 @@ const AVAILABLE_ROLES = [
 ];
 
 const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
-  const isSelf = Boolean(currentUserId && String(user.id) === String(currentUserId));
+  const isSelf = Boolean(
+    currentUserId && String(user.id) === String(currentUserId)
+  );
 
   const [fullName, setFullName] = useState(user.fullName || "");
   const [email, setEmail] = useState(user.email || "");
@@ -30,10 +41,13 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
 
   const handleAddSkill = (skillToAdd) => {
     const trimmed = (skillToAdd || newSkillInput).trim();
+
     if (!trimmed) return;
+
     if (!skills.includes(trimmed)) {
       setSkills([...skills, trimmed]);
     }
+
     setNewSkillInput("");
   };
 
@@ -43,8 +57,10 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
 
   const handleRoleChange = (newRole) => {
     setRole(newRole);
+
     const newRoleKey = normalizeUserRole(newRole);
     const defaults = ROLE_DEFAULT_SKILLS[newRoleKey] || [];
+
     if (skills.length === 0) {
       setSkills(defaults);
     }
@@ -59,7 +75,7 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
       name: fullName.trim(),
       email: email.trim(),
       role,
-      status: isSelf ? status : (user.status || "Active"),
+      status: isSelf ? status : user.status || "Active",
       skills,
     };
 
@@ -67,74 +83,79 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-6 shadow-2xl shadow-black/50 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-300 bg-white p-6 shadow-2xl shadow-slate-900/20">
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold text-[#e8eef8]">Edit User Profile</h2>
-            <p className="mt-1 text-sm text-[#e8eef8]/50">
-              Update user details, role responsibilities, skills, and profile data
+            <h2 className="text-xl font-bold text-[#172033]">
+              Edit User Profile
+            </h2>
+
+            <p className="mt-1 text-sm text-[#64748B]">
+              Update user details, role responsibilities, skills, and profile
+              data
             </p>
           </div>
+
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg p-1.5 text-[#e8eef8]/40 hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-[#172033]"
           >
             <PiX size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* FULL NAME */}
           <div>
             <label
               htmlFor="edit-name"
-              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70"
+              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#475569]"
             >
               Full Name
             </label>
+
             <input
               id="edit-name"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-2.5 text-sm text-[#e8eef8] outline-none transition focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
             />
           </div>
 
-          {/* EMAIL */}
           <div>
             <label
               htmlFor="edit-email"
-              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70"
+              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#475569]"
             >
               Email Address
             </label>
+
             <input
               id="edit-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-2.5 text-sm text-[#e8eef8] outline-none transition focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
             />
           </div>
 
-          {/* ROLE */}
           <div>
             <label
               htmlFor="edit-role"
-              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70"
+              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#475569]"
             >
               System Role
             </label>
+
             <select
               id="edit-role"
               value={role}
               onChange={(e) => handleRoleChange(e.target.value)}
-              className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-2.5 text-sm text-[#e8eef8] outline-none transition focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
             >
               {AVAILABLE_ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -144,9 +165,8 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
             </select>
           </div>
 
-          {/* ACTIVE STATUS (ONLY SELF CAN MODIFY) */}
           <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#475569]">
               Active Status
             </label>
 
@@ -158,11 +178,18 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                     onClick={() => setStatus("Active")}
                     className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition ${
                       status === "Active"
-                        ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 shadow-sm shadow-emerald-500/10"
-                        : "border-[#e8eef8]/10 bg-[#07111f] text-[#e8eef8]/50 hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm"
+                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-[#172033]"
                     }`}
                   >
-                    <PiCheckCircle size={16} className="text-emerald-400" />
+                    <PiCheckCircle
+                      size={16}
+                      className={
+                        status === "Active"
+                          ? "text-emerald-600"
+                          : "text-slate-400"
+                      }
+                    />
                     <span>Active</span>
                   </button>
 
@@ -171,11 +198,18 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                     onClick={() => setStatus("In Meeting")}
                     className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition ${
                       status === "In Meeting"
-                        ? "border-amber-500/40 bg-amber-500/15 text-amber-300 shadow-sm shadow-amber-500/10"
-                        : "border-[#e8eef8]/10 bg-[#07111f] text-[#e8eef8]/50 hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                        ? "border-amber-200 bg-amber-50 text-amber-700 shadow-sm"
+                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-[#172033]"
                     }`}
                   >
-                    <PiClock size={16} className="text-amber-400" />
+                    <PiClock
+                      size={16}
+                      className={
+                        status === "In Meeting"
+                          ? "text-amber-600"
+                          : "text-slate-400"
+                      }
+                    />
                     <span>In Meeting</span>
                   </button>
 
@@ -184,78 +218,82 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                     onClick={() => setStatus("Inactive")}
                     className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition ${
                       status === "Inactive"
-                        ? "border-slate-500/40 bg-slate-500/20 text-slate-200 shadow-sm shadow-slate-500/10"
-                        : "border-[#e8eef8]/10 bg-[#07111f] text-[#e8eef8]/50 hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                        ? "border-slate-300 bg-slate-100 text-slate-700 shadow-sm"
+                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-[#172033]"
                     }`}
                   >
                     <PiXCircle size={16} className="text-slate-400" />
                     <span>Inactive</span>
                   </button>
                 </div>
-                <p className="mt-1.5 text-xs text-[#e8eef8]/40">
+
+                <p className="mt-1.5 text-xs text-[#64748B]">
                   Update your current working status visible across the team.
                 </p>
               </>
             ) : (
-              <div className="flex items-center justify-between rounded-xl border border-[#e8eef8]/10 bg-[#07111f] p-3 text-xs">
+              <div className="flex items-center justify-between rounded-xl border border-slate-300 bg-[#F1F5F9] p-3 text-xs">
                 <div className="flex items-center gap-2">
                   <span
                     className={`h-2.5 w-2.5 rounded-full ${
                       (user.status || "Active") === "Active"
-                        ? "bg-emerald-400 animate-pulse"
+                        ? "animate-pulse bg-emerald-500"
                         : (user.status || "Active") === "In Meeting"
-                        ? "bg-amber-400"
-                        : "bg-slate-500"
+                        ? "bg-amber-500"
+                        : "bg-slate-400"
                     }`}
                   />
-                  <span className="font-semibold text-white">
+
+                  <span className="font-semibold text-[#172033]">
                     {user.status || "Active"}
                   </span>
                 </div>
-                <span className="text-xs text-[#e8eef8]/40 italic">
+
+                <span className="text-xs italic text-[#64748B]">
                   (Members can only update their own status)
                 </span>
               </div>
             )}
           </div>
 
-          {/* SKILLS BASED ON ROLES & RESPONSIBILITIES */}
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70">
+              <label className="text-xs font-semibold uppercase tracking-wider text-[#475569]">
                 Skills & Responsibilities
               </label>
-              <span className="text-xs text-[#e8eef8]/40">
+
+              <span className="text-xs text-[#64748B]">
                 {skills.length} skills listed
               </span>
             </div>
 
-            {/* Current skill chips */}
-            <div className="mb-3 flex flex-wrap gap-1.5 min-h-[36px] rounded-xl border border-[#e8eef8]/10 bg-[#07111f] p-2.5">
+            <div className="mb-3 flex min-h-[36px] flex-wrap gap-1.5 rounded-xl border border-slate-300 bg-[#F1F5F9] p-2.5">
               {skills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-300"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700"
                 >
                   {skill}
+
                   <button
                     type="button"
                     onClick={() => handleRemoveSkill(skill)}
-                    className="rounded text-blue-400/70 hover:text-blue-200"
+                    className="rounded text-blue-500 transition hover:text-blue-800"
                   >
                     <PiX size={13} />
                   </button>
                 </span>
               ))}
+
               {skills.length === 0 && (
-                <span className="text-xs italic text-[#e8eef8]/30 py-1">
-                  No skills added yet. Add custom skills or choose from suggestions below.
+                <span className="py-1 text-xs italic text-slate-400">
+                  No skills added yet. Add custom skills or choose from
+                  suggestions below.
                 </span>
               )}
             </div>
 
-            {/* Add custom skill */}
-            <div className="flex gap-2 mb-3">
+            <div className="mb-3 flex gap-2">
               <input
                 type="text"
                 placeholder="Add custom skill (e.g. Docker, GraphQL, Kubernetes)..."
@@ -267,27 +305,29 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                     handleAddSkill();
                   }
                 }}
-                className="flex-1 rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-2 text-xs text-[#e8eef8] outline-none transition focus:border-blue-500/50"
+                className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs text-[#172033] placeholder:text-slate-400 outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
               />
+
               <button
                 type="button"
                 onClick={() => handleAddSkill()}
-                className="inline-flex items-center gap-1 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-400 hover:bg-blue-500/20 transition"
+                className="inline-flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
               >
                 <PiPlus size={14} />
                 <span>Add</span>
               </button>
             </div>
 
-            {/* Suggested skills for selected role */}
             {suggestedSkills.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[11px] font-medium text-[#e8eef8]/50">
+                <p className="mb-1.5 text-[11px] font-medium text-[#64748B]">
                   Suggested for {formatRole(role)}:
                 </p>
+
                 <div className="flex flex-wrap gap-1.5">
                   {suggestedSkills.map((suggested) => {
                     const isSelected = skills.includes(suggested);
+
                     return (
                       <button
                         key={suggested}
@@ -299,8 +339,8 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                         }
                         className={`rounded-lg border px-2 py-0.5 text-xs font-medium transition ${
                           isSelected
-                            ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
-                            : "border-[#e8eef8]/10 bg-[#07111f] text-[#e8eef8]/60 hover:border-blue-500/30 hover:text-[#e8eef8]"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                         }`}
                       >
                         {isSelected ? `✓ ${suggested}` : `+ ${suggested}`}
@@ -312,19 +352,18 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
             )}
           </div>
 
-          {/* ACTIONS */}
-          <div className="flex justify-end gap-3 pt-3 border-t border-[#e8eef8]/10">
+          <div className="flex justify-end gap-3 border-t border-slate-200 pt-3">
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-xl border border-[#e8eef8]/15 px-5 py-2.5 text-sm font-semibold text-[#e8eef8]/70 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+              className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
             >
               Cancel
             </button>
 
             <button
               type="submit"
-              className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:brightness-110"
+              className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:brightness-110"
             >
               Save Changes
             </button>

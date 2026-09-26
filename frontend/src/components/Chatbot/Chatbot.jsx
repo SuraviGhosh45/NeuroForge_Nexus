@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -7,7 +6,6 @@ import {
   PiRobot,
   PiX,
 } from "react-icons/pi";
-
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useProjects } from "../../context/ProjectContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
@@ -88,9 +86,6 @@ const monthIndex = (token) => {
   return idx === -1 ? null : idx;
 };
 
-/*
- * Find the first date mentioned in the user's message.
- */
 const extractDate = (text) => {
   const q = text.trim();
   const today = new Date();
@@ -111,11 +106,7 @@ const extractDate = (text) => {
     t.setDate(t.getDate() + 1);
 
     return {
-      iso: toISO(
-        t.getFullYear(),
-        t.getMonth() + 1,
-        t.getDate()
-      ),
+      iso: toISO(t.getFullYear(), t.getMonth() + 1, t.getDate()),
       matchText: "tomorrow",
     };
   }
@@ -125,18 +116,12 @@ const extractDate = (text) => {
     t.setDate(t.getDate() - 1);
 
     return {
-      iso: toISO(
-        t.getFullYear(),
-        t.getMonth() + 1,
-        t.getDate()
-      ),
+      iso: toISO(t.getFullYear(), t.getMonth() + 1, t.getDate()),
       matchText: "yesterday",
     };
   }
 
-  let m = q.match(
-    /\b(\d{4})-(\d{1,2})-(\d{1,2})\b/
-  );
+  let m = q.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
 
   if (m) {
     return {
@@ -145,9 +130,7 @@ const extractDate = (text) => {
     };
   }
 
-  m = q.match(
-    /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\b/
-  );
+  m = q.match(/\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})\b/);
 
   if (m) {
     let year = +m[3];
@@ -162,12 +145,6 @@ const extractDate = (text) => {
     };
   }
 
-  /*
-   * 25 Dec
-   * 25 December
-   * 25 Dec 2026
-   * 25th December 2026
-   */
   m = q.match(
     /\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s*,?\s*(\d{4}))?/i
   );
@@ -176,20 +153,10 @@ const extractDate = (text) => {
     const mi = monthIndex(m[2]);
 
     if (mi !== null) {
-      let year = m[3]
-        ? +m[3]
-        : today.getFullYear();
+      let year = m[3] ? +m[3] : today.getFullYear();
 
-      let iso = toISO(
-        year,
-        mi + 1,
-        +m[1]
-      );
+      let iso = toISO(year, mi + 1, +m[1]);
 
-      /*
-       * If a date without a year has already passed,
-       * use the next occurrence.
-       */
       if (
         !m[3] &&
         new Date(`${iso}T00:00:00`) <
@@ -202,12 +169,7 @@ const extractDate = (text) => {
           )
       ) {
         year += 1;
-
-        iso = toISO(
-          year,
-          mi + 1,
-          +m[1]
-        );
+        iso = toISO(year, mi + 1, +m[1]);
       }
 
       return {
@@ -217,11 +179,6 @@ const extractDate = (text) => {
     }
   }
 
-  /*
-   * Dec 25
-   * December 25
-   * Dec 25 2026
-   */
   m = q.match(
     /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?/i
   );
@@ -230,15 +187,9 @@ const extractDate = (text) => {
     const mi = monthIndex(m[1]);
 
     if (mi !== null) {
-      let year = m[3]
-        ? +m[3]
-        : today.getFullYear();
+      let year = m[3] ? +m[3] : today.getFullYear();
 
-      let iso = toISO(
-        year,
-        mi + 1,
-        +m[2]
-      );
+      let iso = toISO(year, mi + 1, +m[2]);
 
       if (
         !m[3] &&
@@ -252,12 +203,7 @@ const extractDate = (text) => {
           )
       ) {
         year += 1;
-
-        iso = toISO(
-          year,
-          mi + 1,
-          +m[2]
-        );
+        iso = toISO(year, mi + 1, +m[2]);
       }
 
       return {
@@ -270,12 +216,6 @@ const extractDate = (text) => {
   return null;
 };
 
-/*
- * Extract event name from:
- * Mark 25 Dec as Holiday
- * Add 25 Dec as Diwali
- * Save 25 Dec named Team Outing
- */
 const extractLabel = (text, dateMatchText) => {
   let rest = text;
 
@@ -285,21 +225,16 @@ const extractLabel = (text, dateMatchText) => {
       "\\$&"
     );
 
-    rest = rest.replace(
-      new RegExp(escapedDate, "i"),
-      " "
-    );
+    rest = rest.replace(new RegExp(escapedDate, "i"), " ");
   }
 
-  let m =
+  const m =
     rest.match(/\bas\s+(.+)$/i) ||
     rest.match(/\b(?:called|named|titled)\s+(.+)$/i) ||
     rest.match(/\bevent[: ]+([^,.]+)/i);
 
   if (m) {
-    return m[1]
-      .trim()
-      .replace(/[.?!]+$/, "");
+    return m[1].trim().replace(/[.?!]+$/, "");
   }
 
   const stripped = rest
@@ -310,14 +245,9 @@ const extractLabel = (text, dateMatchText) => {
     .replace(/\s+/g, " ")
     .trim();
 
-  return stripped.length > 1
-    ? stripped
-    : null;
+  return stripped.length > 1 ? stripped : null;
 };
 
-/*
- * Read chatbot calendar events.
- */
 const loadCalendarEvents = (userId) => {
   try {
     const raw = localStorage.getItem(
@@ -330,35 +260,20 @@ const loadCalendarEvents = (userId) => {
 
     const parsed = JSON.parse(raw);
 
-    return Array.isArray(parsed)
-      ? parsed
-      : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 };
 
-/*
- * Save chatbot calendar events.
- */
-const saveCalendarEvents = (
-  userId,
-  events
-) => {
+const saveCalendarEvents = (userId, events) => {
   try {
     localStorage.setItem(
       CHATBOT_EVENTS_KEY + (userId ?? "guest"),
       JSON.stringify(events)
     );
 
-    /*
-     * Tell GlobalCalendar that the data changed.
-     * This works even when both components are open
-     * in the same browser tab.
-     */
-    window.dispatchEvent(
-      new Event("nfn-calendar-events-updated")
-    );
+    window.dispatchEvent(new Event("nfn-calendar-events-updated"));
 
     return true;
   } catch {
@@ -375,19 +290,11 @@ const buildReply = ({
 }) => {
   const q = lower(question).trim();
 
-  /*
-   * Greeting
-   */
   if (/^(hi|hello|hey)\b/.test(q)) {
     return "Hi! I'm the NeuroForge assistant. Tell me how can i help you";
   }
 
-  /*
-   * Help
-   */
-  if (
-    /\b(help|what can you do)\b/.test(q)
-  ) {
+  if (/\b(help|what can you do)\b/.test(q)) {
     return (
       "You can ask me things like:\n" +
       "• How many projects do I have?\n" +
@@ -401,30 +308,14 @@ const buildReply = ({
   }
 
   const dateHit = extractDate(question);
+  const calendarEvents = loadCalendarEvents(userId);
 
-  /*
-   * Always load the SAME calendar data used by GlobalCalendar.
-   */
-  const calendarEvents =
-    loadCalendarEvents(userId);
-
-  /*
-   * Date-related commands.
-   */
   if (dateHit) {
     const isMarkIntent =
-      /\b(mark|set|save|add|remind|note down|reminder)\b/i.test(
-        q
-      );
+      /\b(mark|set|save|add|remind|note down|reminder)\b/i.test(q);
 
-    /*
-     * CREATE CALENDAR EVENT
-     */
     if (isMarkIntent) {
-      const label = extractLabel(
-        question,
-        dateHit.matchText
-      );
+      const label = extractLabel(question, dateHit.matchText);
 
       if (!label) {
         return `Got the date (${formatDisplayDate(
@@ -438,33 +329,19 @@ const buildReply = ({
         id: `chatbot-${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 8)}`,
-
         title: label,
-
         label,
-
         dueDate: dateHit.iso,
-
         priority: "Medium",
-
         type: "chatbot",
-
         calendarType: "chatbot",
-
         createdBy: userId ?? "guest",
-
         createdAt: new Date().toISOString(),
       };
 
-      const updatedEvents = [
-        ...calendarEvents,
-        newEvent,
-      ];
+      const updatedEvents = [...calendarEvents, newEvent];
 
-      const saved = saveCalendarEvents(
-        userId,
-        updatedEvents
-      );
+      const saved = saveCalendarEvents(userId, updatedEvents);
 
       if (!saved) {
         return "I couldn't save that calendar event because browser storage is unavailable.";
@@ -475,23 +352,15 @@ const buildReply = ({
       )} is now marked as "${label}". It will appear on your NeuroForge Calendar.`;
     }
 
-    /*
-     * READ EVENTS FOR A DATE
-     */
     const dayEvents = calendarEvents.filter(
-      (event) =>
-        event?.dueDate === dateHit.iso
+      (event) => event?.dueDate === dateHit.iso
     );
 
     const dueSubtasks = subtasks.filter(
-      (s) =>
-        s.dueDate === dateHit.iso
+      (s) => s.dueDate === dateHit.iso
     );
 
-    if (
-      dayEvents.length === 0 &&
-      dueSubtasks.length === 0
-    ) {
+    if (dayEvents.length === 0 && dueSubtasks.length === 0) {
       return `Nothing marked on ${formatDisplayDate(
         dateHit.iso
       )}. Want me to add something? Try "Mark ${formatDisplayDate(
@@ -500,37 +369,23 @@ const buildReply = ({
     }
 
     const lines = [
-      `Here's what's on ${formatDisplayDate(
-        dateHit.iso
-      )}:`,
+      `Here's what's on ${formatDisplayDate(dateHit.iso)}:`,
     ];
 
-    /*
-     * Chatbot calendar events
-     */
     dayEvents.forEach((event) => {
       lines.push(
         `• ${event.title || event.label || "Calendar event"}`
       );
     });
 
-    /*
-     * Existing application subtasks
-     */
     dueSubtasks.forEach((s) => {
       const parentTask = tasks.find(
-        (t) =>
-          String(t.id) ===
-          String(s.taskId)
+        (t) => String(t.id) === String(s.taskId)
       );
 
       lines.push(
-        `• ${
-          s.title || s.name || "Subtask"
-        } — deliverable due${
-          parentTask
-            ? ` (${parentTask.title})`
-            : ""
+        `• ${s.title || s.name || "Subtask"} — deliverable due${
+          parentTask ? ` (${parentTask.title})` : ""
         }`
       );
     });
@@ -538,13 +393,8 @@ const buildReply = ({
     return lines.join("\n");
   }
 
-  /*
-   * Saved calendar events.
-   */
   if (
-    /\b(my notes|my events|list events|all events|saved events)\b/.test(
-      q
-    )
+    /\b(my notes|my events|list events|all events|saved events)\b/.test(q)
   ) {
     if (calendarEvents.length === 0) {
       return "You haven't marked any calendar dates yet.";
@@ -555,35 +405,22 @@ const buildReply = ({
       calendarEvents
         .slice()
         .sort((a, b) =>
-          String(a.dueDate).localeCompare(
-            String(b.dueDate)
-          )
+          String(a.dueDate).localeCompare(String(b.dueDate))
         )
         .map(
           (event) =>
-            `• ${formatDisplayDate(
-              event.dueDate
-            )}: ${
-              event.title ||
-              event.label ||
-              "Calendar event"
+            `• ${formatDisplayDate(event.dueDate)}: ${
+              event.title || event.label || "Calendar event"
             }`
         )
         .join("\n")
     );
   }
 
-  /*
-   * If there are no projects, stop project-specific
-   * processing here.
-   */
   if (projects.length === 0) {
     return "There are no projects in your scope yet.";
   }
 
-  /*
-   * Specific project search.
-   */
   const match = projects.find((p) =>
     [p.name, p.code, p.projectKey].some(
       (v) =>
@@ -595,37 +432,16 @@ const buildReply = ({
 
   if (match) {
     return (
-      `${match.name}${
-        match.code
-          ? ` (${match.code})`
-          : ""
-      }\n` +
-      `Status: ${
-        match.status || "Not Started"
-      }\n` +
-      `Priority: ${
-        match.priority || "-"
-      }\n` +
-      `Project Lead: ${
-        match.projectLead?.fullName ||
-        "-"
-      }\n` +
-      `Project Manager: ${
-        match.projectManager?.fullName ||
-        "-"
-      }\n` +
-      `Start: ${
-        match.startDate || "-"
-      }\n` +
-      `End: ${
-        match.endDate || "-"
-      }`
+      `${match.name}${match.code ? ` (${match.code})` : ""}\n` +
+      `Status: ${match.status || "Not Started"}\n` +
+      `Priority: ${match.priority || "-"}\n` +
+      `Project Lead: ${match.projectLead?.fullName || "-"}\n` +
+      `Project Manager: ${match.projectManager?.fullName || "-"}\n` +
+      `Start: ${match.startDate || "-"}\n` +
+      `End: ${match.endDate || "-"}`
     );
   }
 
-  /*
-   * Not started.
-   */
   if (
     q.includes("not started") ||
     q.includes("pending") ||
@@ -634,16 +450,11 @@ const buildReply = ({
     return listOf(
       "Projects not started:",
       projects.filter(
-        (p) =>
-          !p.status ||
-          p.status === "Not Started"
+        (p) => !p.status || p.status === "Not Started"
       )
     );
   }
 
-  /*
-   * In progress.
-   */
   if (
     q.includes("in progress") ||
     q.includes("ongoing") ||
@@ -651,29 +462,17 @@ const buildReply = ({
   ) {
     return listOf(
       "Projects in progress:",
-      projects.filter(
-        (p) =>
-          p.status === "In Progress"
-      )
+      projects.filter((p) => p.status === "In Progress")
     );
   }
 
-  /*
-   * On hold.
-   */
   if (q.includes("hold")) {
     return listOf(
       "Projects on hold:",
-      projects.filter(
-        (p) =>
-          p.status === "On Hold"
-      )
+      projects.filter((p) => p.status === "On Hold")
     );
   }
 
-  /*
-   * Completed.
-   */
   if (
     q.includes("complete") ||
     q.includes("finished") ||
@@ -681,177 +480,96 @@ const buildReply = ({
   ) {
     return listOf(
       "Completed projects:",
-      projects.filter(
-        (p) =>
-          p.status === "Completed"
-      )
+      projects.filter((p) => p.status === "Completed")
     );
   }
 
-  /*
-   * Priority.
-   */
   if (q.includes("priority")) {
-    if (
-      !projects.some(
-        (p) => p.priority
-      )
-    ) {
+    if (!projects.some((p) => p.priority)) {
       return "Priority is not set on these projects yet.";
     }
 
-    const level = [
-      "high",
-      "medium",
-      "low",
-    ].find((l) =>
+    const level = ["high", "medium", "low"].find((l) =>
       q.includes(l)
     );
 
     if (level) {
       return listOf(
         `${
-          level[0].toUpperCase() +
-          level.slice(1)
+          level[0].toUpperCase() + level.slice(1)
         } priority projects:`,
         projects.filter(
-          (p) =>
-            lower(p.priority) ===
-            level
+          (p) => lower(p.priority) === level
         )
       );
     }
   }
 
-  /*
-   * Deadlines.
-   */
-  if (
-    /(deadline|due|ending|end date|overdue|late)/.test(
-      q
-    )
-  ) {
-    if (
-      !projects.some(
-        (p) => p.endDate
-      )
-    ) {
+  if (/(deadline|due|ending|end date|overdue|late)/.test(q)) {
+    if (!projects.some((p) => p.endDate)) {
       return "No end dates are set on these projects yet.";
     }
 
     const open = projects.filter(
-      (p) =>
-        p.status !== "Completed"
+      (p) => p.status !== "Completed"
     );
 
-    const overdue = open.filter(
-      (p) => {
-        const d = daysUntil(
-          p.endDate
-        );
+    const overdue = open.filter((p) => {
+      const d = daysUntil(p.endDate);
 
-        return (
-          d !== null &&
-          d < 0
-        );
-      }
-    );
+      return d !== null && d < 0;
+    });
 
-    const soon = open.filter(
-      (p) => {
-        const d = daysUntil(
-          p.endDate
-        );
+    const soon = open.filter((p) => {
+      const d = daysUntil(p.endDate);
 
-        return (
-          d !== null &&
-          d >= 0 &&
-          d <= 14
-        );
-      }
-    );
+      return d !== null && d >= 0 && d <= 14;
+    });
 
-    if (
-      overdue.length === 0 &&
-      soon.length === 0
-    ) {
+    if (overdue.length === 0 && soon.length === 0) {
       return "No overdue projects, and nothing ends in the next 14 days.";
     }
 
     return [
       overdue.length
-        ? listOf(
-            "Overdue:",
-            overdue
-          )
+        ? listOf("Overdue:", overdue)
         : "",
-
       soon.length
-        ? listOf(
-            "Ending within 14 days:",
-            soon
-          )
+        ? listOf("Ending within 14 days:", soon)
         : "",
     ]
       .filter(Boolean)
       .join("\n\n");
   }
 
-  /*
-   * Count projects.
-   */
-  if (
-    /(how many|count|total|number of)/.test(
-      q
-    )
-  ) {
+  if (/(how many|count|total|number of)/.test(q)) {
     const by = (status) =>
       projects.filter(
-        (p) =>
-          (p.status ||
-            "Not Started") ===
-          status
+        (p) => (p.status || "Not Started") === status
       ).length;
 
     return (
       `You have ${projects.length} project(s):\n` +
-      `• Not Started: ${by(
-        "Not Started"
-      )}\n` +
-      `• In Progress: ${by(
-        "In Progress"
-      )}\n` +
-      `• Completed: ${by(
-        "Completed"
-      )}`
+      `• Not Started: ${by("Not Started")}\n` +
+      `• In Progress: ${by("In Progress")}\n` +
+      `• Completed: ${by("Completed")}`
     );
   }
 
-  /*
-   * List all projects.
-   */
   if (
-    /(list|all projects|show projects|show all|everything)/.test(
-      q
-    )
+    /(list|all projects|show projects|show all|everything)/.test(q)
   ) {
-    return listOf(
-      "All projects:",
-      projects
-    );
+    return listOf("All projects:", projects);
   }
 
-  return "Sorry, I didn't get that. Type \"help\" to see what I can answer.";
+  return 'Sorry, I didn\'t get that. Type "help" to see what I can answer.';
 };
 
 const ChatBot = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
   const { currentUser } = useAuth();
-
-  const { getVisibleProjects } =
-    useProjects();
+  const { getVisibleProjects } = useProjects();
 
   const {
     tasks = [],
@@ -860,9 +578,7 @@ const ChatBot = () => {
   } = useTasks();
 
   const { teams = [] } = useTeams();
-
-  const { projectTeams = {} } =
-    useProjectTeam();
+  const { projectTeams = {} } = useProjectTeam();
 
   const projects = useMemo(
     () =>
@@ -901,25 +617,18 @@ const ChatBot = () => {
     ]
   );
 
-  const [open, setOpen] =
-    useState(false);
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
 
-  const [input, setInput] =
-    useState("");
+  const [messages, setMessages] = useState([
+    {
+      from: "bot",
+      text: "Hi! I'm the NeuroForge assistant. Tell me how can i help you",
+    },
+  ]);
 
-  const [sending, setSending] =
-    useState(false);
-
-  const [messages, setMessages] =
-    useState([
-      {
-        from: "bot",
-        text: "Hi! I'm the NeuroForge assistant. Tell me how can i help you",
-      },
-    ]);
-
-  const bottomRef =
-    useRef(null);
+  const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
@@ -995,13 +704,8 @@ const ChatBot = () => {
   const handleToggle = () => {
     if (!open) {
       const onProjectsSection =
-        location.pathname.startsWith(
-          "/projects"
-        );
+        location.pathname.startsWith("/projects");
 
-      /*
-       * Chatbot opens in the Projects tab.
-       */
       if (!onProjectsSection) {
         navigate("/projects");
       }
@@ -1019,12 +723,10 @@ const ChatBot = () => {
   return (
     <>
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex h-[28rem] w-[22rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-[#e8eef8]/10 bg-[#0d131f] shadow-2xl">
-          {/* Chat header */}
-          <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-white">
+        <div className="fixed bottom-24 right-6 z-50 flex h-[28rem] w-[22rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15">
+          <div className="flex items-center justify-between bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-4 py-3 text-white">
             <div className="flex items-center gap-2">
               <PiRobot size={22} />
-
               <span className="font-semibold">
                 Project Assistant
               </span>
@@ -1032,9 +734,7 @@ const ChatBot = () => {
 
             <button
               type="button"
-              onClick={() =>
-                setOpen(false)
-              }
+              onClick={() => setOpen(false)}
               aria-label="Close chat"
               className="text-white/80 transition hover:text-white"
             >
@@ -1042,35 +742,31 @@ const ChatBot = () => {
             </button>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 space-y-3 overflow-y-auto p-4">
-            {messages.map(
-              (message, index) => (
+          <div className="flex-1 space-y-3 overflow-y-auto bg-[#F1F5F9] p-4">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${
+                  message.from === "user"
+                    ? "justify-end"
+                    : "justify-start"
+                }`}
+              >
                 <div
-                  key={index}
-                  className={`flex ${
+                  className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
                     message.from === "user"
-                      ? "justify-end"
-                      : "justify-start"
+                      ? "bg-[#2563EB] text-white"
+                      : "border border-slate-200 bg-white text-[#172033] shadow-sm"
                   }`}
                 >
-                  <div
-                    className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
-                      message.from ===
-                      "user"
-                        ? "bg-blue-600 text-white"
-                        : "bg-[#0a0e17] text-[#e8eef8]/90"
-                    }`}
-                  >
-                    {message.text}
-                  </div>
+                  {message.text}
                 </div>
-              )
-            )}
+              </div>
+            ))}
 
             {sending && (
               <div className="flex justify-start">
-                <div className="rounded-2xl bg-[#0a0e17] px-3 py-2 text-sm text-[#e8eef8]/60">
+                <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-[#64748B] shadow-sm">
                   ...
                 </div>
               </div>
@@ -1078,30 +774,25 @@ const ChatBot = () => {
 
             {messages.length === 1 && (
               <div className="flex flex-wrap gap-2 pt-1">
-                {SUGGESTIONS.map(
-                  (suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() =>
-                        send(suggestion)
-                      }
-                      className="rounded-full border border-[#e8eef8]/15 px-3 py-1 text-xs text-[#e8eef8]/70 transition hover:border-blue-500 hover:text-white"
-                    >
-                      {suggestion}
-                    </button>
-                  )
-                )}
+                {SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => send(suggestion)}
+                    className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-[#475569] transition hover:border-[#2563EB] hover:bg-blue-50 hover:text-[#2563EB]"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
               </div>
             )}
 
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
           <form
             onSubmit={handleSubmit}
-            className="flex items-center gap-2 border-t border-[#e8eef8]/10 p-3"
+            className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
           >
             <input
               type="text"
@@ -1110,41 +801,32 @@ const ChatBot = () => {
                 setInput(event.target.value)
               }
               placeholder="Ask about projects or your calendar..."
-              className="flex-1 rounded-xl border border-[#e8eef8]/15 bg-[#0a0e17] px-3 py-2 text-sm text-white placeholder-[#e8eef8]/30 outline-none focus:border-blue-500"
+              className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] placeholder-[#94A3B8] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
             />
 
             <button
               type="submit"
               aria-label="Send message"
               disabled={sending}
-              className="rounded-xl bg-blue-600 p-2.5 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-[#2563EB] p-2.5 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <PiPaperPlaneRight
-                size={18}
-              />
+              <PiPaperPlaneRight size={18} />
             </button>
           </form>
         </div>
       )}
 
-      {/* Floating button */}
       <button
         type="button"
         onClick={handleToggle}
-        aria-label={
-          open
-            ? "Close chatbot"
-            : "Open chatbot"
-        }
+        aria-label={open ? "Close chatbot" : "Open chatbot"}
         title="Chat with assistant"
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105"
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#2563EB] to-[#4F46E5] text-white shadow-lg shadow-blue-600/25 transition hover:scale-105"
       >
         {open ? (
           <PiX size={26} />
         ) : (
-          <PiChatCircleDots
-            size={28}
-          />
+          <PiChatCircleDots size={28} />
         )}
       </button>
     </>
@@ -1152,4 +834,3 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
-

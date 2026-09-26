@@ -12,52 +12,56 @@ function KanbanColumn({
 }) {
   const getColumnClass = () => {
     if (column.id === "To Do") {
-      return "kanban-column todo-column";
+      return "min-h-[420px] rounded-xl border border-slate-300 bg-[#F1F5F9] p-3 shadow-sm";
     }
 
     if (column.id === "In Progress") {
-      return "kanban-column progress-column";
+      return "min-h-[420px] rounded-xl border border-slate-300 bg-[#F1F5F9] p-3 shadow-sm";
     }
 
-    return "kanban-column done-column";
+    return "min-h-[420px] rounded-xl border border-slate-300 bg-[#F1F5F9] p-3 shadow-sm";
   };
 
   return (
     <div
       className={getColumnClass()}
       onDragOver={onDragOver}
-      onDrop={(event) =>
-        onDrop(event, column.id)
-      }
+      onDrop={(event) => onDrop(event, column.id)}
     >
+      <div className="flex items-center justify-between px-1 py-2">
+        <div className="flex items-center gap-2">
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${
+              column.id === "To Do"
+                ? "bg-blue-500"
+                : column.id === "In Progress"
+                ? "bg-indigo-500"
+                : "bg-green-500"
+            }`}
+          ></span>
 
-      <div className="column-header">
-
-        <div className="column-title">
-
-          <span className="column-status-dot"></span>
-
-          <h3>{column.title}</h3>
-
+          <h3 className="text-sm font-semibold text-[#172033]">
+            {column.title}
+          </h3>
         </div>
 
-        <span className="task-count">
+        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#475569] shadow-sm ring-1 ring-slate-200">
           {tasks.length}
         </span>
-
       </div>
 
-      <div className="column-divider"></div>
+      <div className="my-2 border-b border-slate-300"></div>
 
-      <div className="column-tasks">
-
+      <div className="flex min-h-[350px] flex-col gap-3">
         {tasks.length === 0 ? (
-          <div className="empty-column">
-            <div className="empty-icon">
+          <div className="flex min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white/70 text-center">
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#E8EEF7] text-xl font-medium text-[#64748B]">
               +
             </div>
 
-            <span>Drop tasks here</span>
+            <span className="text-sm font-medium text-[#64748B]">
+              Drop tasks here
+            </span>
           </div>
         ) : (
           tasks.map((task) => (
@@ -70,9 +74,7 @@ function KanbanColumn({
             />
           ))
         )}
-
       </div>
-
     </div>
   );
 }

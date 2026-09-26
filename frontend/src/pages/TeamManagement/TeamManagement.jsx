@@ -42,18 +42,22 @@ const TeamManagement = () => {
 
   const handleCreateTeam = async (e) => {
     e.preventDefault();
+
     if (!newTeamName.trim()) return;
 
     const result = await createTeam(newTeamName.trim());
+
     if (!result.success) {
       alert(result.message);
       return;
     }
+
     setNewTeamName("");
   };
 
   const handleEditTeam = () => {
     if (!activeTeam) return;
+
     setEditingTeamId(activeTeam.id);
     setEditingTeamName(activeTeam.name);
   };
@@ -91,6 +95,7 @@ const TeamManagement = () => {
     const deletedTeamId = activeTeam.id;
 
     const result = await deleteTeam(deletedTeamId);
+
     if (!result.success) {
       alert(result.message);
       return;
@@ -100,7 +105,9 @@ const TeamManagement = () => {
       (team) => String(team.id) !== String(deletedTeamId)
     );
 
-    setActiveTeamId(remainingTeams.length > 0 ? remainingTeams[0].id : null);
+    setActiveTeamId(
+      remainingTeams.length > 0 ? remainingTeams[0].id : null
+    );
     setEditingMember(null);
     setShowAddMember(false);
     setEditingTeamId(null);
@@ -147,7 +154,11 @@ const TeamManagement = () => {
   const handleSaveMember = async (updated) => {
     if (!activeTeam) return;
 
-    const result = await updateMember(activeTeam.id, updated.user.id, updated);
+    const result = await updateMember(
+      activeTeam.id,
+      updated.user.id,
+      updated
+    );
 
     if (!result.success) {
       alert(result.message);
@@ -167,6 +178,7 @@ const TeamManagement = () => {
     if (!confirmed) return;
 
     const result = await removeMember(activeTeam.id, member.user.id);
+
     if (!result.success) {
       alert(result.message);
     }
@@ -176,8 +188,13 @@ const TeamManagement = () => {
     <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">Teams</h2>
-          <p className="mt-1 text-sm text-[#e8eef8]/50">Manage teams and members</p>
+          <h2 className="text-2xl font-semibold text-[#172033]">
+            Teams
+          </h2>
+
+          <p className="mt-1 text-sm text-[#64748B]">
+            Manage teams and members
+          </p>
         </div>
 
         <form onSubmit={handleCreateTeam} className="flex gap-2">
@@ -186,12 +203,12 @@ const TeamManagement = () => {
             placeholder="New team name"
             value={newTeamName}
             onChange={(e) => setNewTeamName(e.target.value)}
-            className="rounded-md border border-[#e8eef8]/15 bg-[#07111f] px-3 py-2 text-sm text-[#e8eef8] outline-none"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] placeholder:text-slate-400 outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
           />
 
           <button
             type="submit"
-            className="flex items-center gap-2 rounded-md bg-[#e8eef8] px-4 py-2 text-sm font-medium text-[#07111f]"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
           >
             <IoAddSharp size={18} />
             Create
@@ -200,15 +217,15 @@ const TeamManagement = () => {
       </div>
 
       {teams.length > 0 && (
-        <div className="mt-6 flex gap-2 overflow-x-auto border-b border-[#e8eef8]/10 pb-3">
+        <div className="mt-6 flex gap-2 overflow-x-auto border-b border-slate-300 pb-3">
           {teams.map((team) => (
             <button
               key={team.id}
               onClick={() => setActiveTeamId(team.id)}
-              className={`rounded-md px-3 py-2 text-sm transition ${
+              className={`rounded-xl px-3 py-2 text-sm transition ${
                 String(team.id) === String(activeTeamId)
-                  ? "bg-[#e8eef8]/10 font-medium text-[#e8eef8]"
-                  : "text-[#e8eef8]/60 hover:text-[#e8eef8]"
+                  ? "bg-[#172033] font-semibold text-white shadow-sm"
+                  : "text-[#475569] hover:bg-white hover:text-[#172033]"
               }`}
             >
               {team.name}
@@ -218,13 +235,15 @@ const TeamManagement = () => {
       )}
 
       {teams.length === 0 && (
-        <div className="mt-6 rounded-xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-10 text-center">
-          <p className="text-sm text-[#e8eef8]/40">No teams created yet.</p>
+        <div className="mt-6 rounded-2xl border border-slate-300 bg-white p-10 text-center shadow-sm">
+          <p className="text-sm text-[#64748B]">
+            No teams created yet.
+          </p>
         </div>
       )}
 
       {activeTeam && (
-        <div className="mt-6 rounded-xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
+        <div className="mt-6 rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               {editingTeamId ? (
@@ -233,30 +252,30 @@ const TeamManagement = () => {
                     type="text"
                     value={editingTeamName}
                     onChange={(e) => setEditingTeamName(e.target.value)}
-                    className="rounded-md border border-[#e8eef8]/15 bg-[#07111f] px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#e8eef8]/40"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   />
 
                   <button
                     onClick={handleSaveTeam}
-                    className="rounded-md bg-[#e8eef8] px-3 py-2 text-xs font-medium text-[#07111f]"
+                    className="rounded-xl bg-[#2563EB] px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
                   >
                     Save
                   </button>
 
                   <button
                     onClick={handleCancelEditTeam}
-                    className="rounded-md border border-[#e8eef8]/15 px-3 py-2 text-xs text-[#e8eef8]/70"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
                   >
                     Cancel
                   </button>
                 </div>
               ) : (
                 <>
-                  <h3 className="text-lg font-semibold text-[#e8eef8]">
+                  <h3 className="text-lg font-semibold text-[#172033]">
                     Team - {activeTeam.name}
                   </h3>
 
-                  <p className="mt-1 text-xs text-[#e8eef8]/40">
+                  <p className="mt-1 text-xs text-[#64748B]">
                     {(activeTeam.members || []).length} member(s)
                   </p>
                 </>
@@ -267,7 +286,7 @@ const TeamManagement = () => {
               {!editingTeamId && (
                 <button
                   onClick={handleEditTeam}
-                  className="rounded-md border border-[#e8eef8]/15 px-4 py-2 text-sm text-[#e8eef8]/70 transition hover:bg-[#e8eef8]/10 hover:text-[#e8eef8]"
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
                 >
                   Edit Team
                 </button>
@@ -275,14 +294,14 @@ const TeamManagement = () => {
 
               <button
                 onClick={handleDeleteTeam}
-                className="rounded-md border border-red-400/20 px-4 py-2 text-sm text-red-300 transition hover:bg-red-400/10"
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
               >
                 Delete Team
               </button>
 
               <button
                 onClick={() => setShowAddMember((value) => !value)}
-                className="flex items-center gap-2 rounded-md bg-[#378add] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#378add]/90"
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
               >
                 <IoAddSharp size={18} />
                 Add Member
@@ -293,13 +312,13 @@ const TeamManagement = () => {
           {showAddMember && (
             <form
               onSubmit={handleAddMember}
-              className="mb-5 flex flex-wrap gap-2 rounded-lg border border-[#e8eef8]/10 bg-[#07111f] p-4"
+              className="mb-5 flex flex-wrap gap-2 rounded-xl border border-slate-300 bg-[#F1F5F9] p-4"
             >
               <select
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
                 required
-                className="flex-1 rounded-md border border-[#e8eef8]/15 bg-[#07111f] px-3 py-2 text-sm text-[#e8eef8] outline-none"
+                className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
               >
                 <option value="">Select user</option>
 
@@ -313,7 +332,7 @@ const TeamManagement = () => {
               <select
                 value={teamRole}
                 onChange={(e) => setTeamRole(e.target.value)}
-                className="rounded-md border border-[#e8eef8]/15 bg-[#07111f] px-3 py-2 text-sm text-[#e8eef8] outline-none"
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
               >
                 {TEAM_ROLES.map((role) => (
                   <option key={role} value={role}>
@@ -324,7 +343,7 @@ const TeamManagement = () => {
 
               <button
                 type="submit"
-                className="rounded-md bg-[#e8eef8] px-4 py-2 text-sm font-medium text-[#07111f]"
+                className="rounded-xl bg-[#172033] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#24324A]"
               >
                 Add
               </button>

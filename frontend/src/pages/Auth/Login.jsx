@@ -64,24 +64,24 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#07111f] flex items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#E8EEF7] px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-[#172033]">
             NeuroForge Nexus
           </h1>
 
-          <p className="mt-2 text-sm text-[#9aa8bb]">
+          <p className="mt-2 text-sm text-[#475569]">
             Sign in to continue
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1929] p-6 shadow-xl">
+        <div className="rounded-2xl border border-[#CBD5E1] bg-white p-6 shadow-lg shadow-slate-900/5">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
                 htmlFor="email"
-                className="mb-2 block text-sm font-medium text-[#e8eef8]"
+                className="mb-2 block text-sm font-semibold text-[#172033]"
               >
                 Email
               </label>
@@ -89,7 +89,7 @@ const Login = () => {
               <div className="relative">
                 <PiEnvelope
                   size={19}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#728198]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]"
                 />
 
                 <input
@@ -101,7 +101,7 @@ const Login = () => {
                   placeholder="Enter your email"
                   autoComplete="email"
                   disabled={loading}
-                  className="w-full rounded-lg border border-[#e8eef8]/10 bg-[#07111f] py-3 pl-10 pr-4 text-sm text-white outline-none transition focus:border-blue-500 placeholder:text-[#65748a] disabled:opacity-60"
+                  className="w-full rounded-xl border border-[#CBD5E1] bg-white py-3 pl-10 pr-4 text-sm text-[#172033] outline-none transition placeholder:text-[#94A3B8] hover:border-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
             </div>
@@ -109,7 +109,7 @@ const Login = () => {
             <div>
               <label
                 htmlFor="password"
-                className="mb-2 block text-sm font-medium text-[#e8eef8]"
+                className="mb-2 block text-sm font-semibold text-[#172033]"
               >
                 Password
               </label>
@@ -117,7 +117,7 @@ const Login = () => {
               <div className="relative">
                 <PiLockKey
                   size={19}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#728198]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]"
                 />
 
                 <input
@@ -129,14 +129,14 @@ const Login = () => {
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   disabled={loading}
-                  className="w-full rounded-lg border border-[#e8eef8]/10 bg-[#07111f] py-3 pl-10 pr-11 text-sm text-white outline-none transition focus:border-blue-500 placeholder:text-[#65748a] disabled:opacity-60"
+                  className="w-full rounded-xl border border-[#CBD5E1] bg-white py-3 pl-10 pr-11 text-sm text-[#172033] outline-none transition placeholder:text-[#94A3B8] hover:border-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   disabled={loading}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#728198] hover:text-white disabled:opacity-50"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] transition hover:text-[#172033] disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label={
                     showPassword ? "Hide password" : "Show password"
                   }
@@ -153,7 +153,7 @@ const Login = () => {
             {error && (
               <div
                 role="alert"
-                className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400"
+                className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700"
               >
                 {error}
               </div>
@@ -162,7 +162,7 @@ const Login = () => {
             <div className="flex justify-end">
               <Link
                 to="/forgot-password"
-                className="text-sm text-blue-400 hover:text-blue-300"
+                className="text-sm font-medium text-[#2563EB] transition hover:text-[#1D4ED8]"
               >
                 Forgot password?
               </Link>
@@ -171,23 +171,23 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-[#9aa8bb]">
+          <div className="mt-6 text-center text-sm text-[#475569]">
             Don't have an account?{" "}
             <Link
               to="/register"
-              className="font-medium text-blue-400 hover:text-blue-300"
+              className="font-semibold text-[#2563EB] transition hover:text-[#1D4ED8]"
             >
               Create Account
             </Link>
           </div>
 
-          <div className="mt-4 border-t border-[#e8eef8]/10 pt-3 text-center text-[11px] text-[#e8eef8]/40">
+          <div className="mt-4 border-t border-[#E2E8F0] pt-3 text-center text-[11px] font-medium text-[#94A3B8]">
             Enterprise IAM • 256-Bit SSL Encrypted
           </div>
         </div>

@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 html,
 body,
 #root {
@@ -5,8 +7,197 @@ body,
   min-height: 100%;
 }
 
-body {
-  margin: 0;
+html {
+  background: #172033;
 }
 
-@import "tailwindcss";
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #172033;
+  color: #ffffff;
+}
+
+/* =========================================================
+   NEUROFORGE THEME
+   Dark slate background
+   Existing white text remains visible
+   ========================================================= */
+
+:root {
+  --nf-bg: #172033;
+  --nf-surface: #1e293b;
+  --nf-surface-soft: #243244;
+  --nf-border: #334155;
+  --nf-border-soft: #3f4d61;
+
+  --nf-text: #ffffff;
+  --nf-text-secondary: #cbd5e1;
+  --nf-text-muted: #94a3b8;
+
+  --nf-primary: #2563eb;
+  --nf-primary-soft: #1e3a8a;
+  --nf-primary-border: #3b82f6;
+
+  --nf-sidebar: #1e293b;
+  --nf-navbar: rgba(30, 41, 59, 0.92);
+
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* =========================================================
+   EXISTING DARK BACKGROUNDS
+   Keep them dark so existing white text stays visible.
+   ========================================================= */
+
+[class*="bg-[#070b14]"],
+[class*="bg-[#07111f]"],
+[class*="bg-[#0d1a2b]"],
+[class*="bg-[#0f1422]"],
+[class*="bg-[#0d1322]"],
+[class*="bg-[#090d18]"],
+[class*="bg-[#0d1320]"],
+[class*="bg-[#151d2f]"] {
+  background-color: #1e293b !important;
+}
+
+/* =========================================================
+   KEEP EXISTING WHITE TEXT VISIBLE
+   ========================================================= */
+
+[class*="text-[#e8eef8]"] {
+  color: #ffffff !important;
+}
+
+[class*="text-[#e8eef8]/75"] {
+  color: #e2e8f0 !important;
+}
+
+[class*="text-[#e8eef8]/70"] {
+  color: #e2e8f0 !important;
+}
+
+[class*="text-[#e8eef8]/65"] {
+  color: #cbd5e1 !important;
+}
+
+[class*="text-[#e8eef8]/60"] {
+  color: #cbd5e1 !important;
+}
+
+[class*="text-[#e8eef8]/50"] {
+  color: #94a3b8 !important;
+}
+
+[class*="text-[#e8eef8]/40"] {
+  color: #94a3b8 !important;
+}
+
+[class*="text-[#e8eef8]/30"] {
+  color: #64748b !important;
+}
+
+/* =========================================================
+   BORDERS
+   ========================================================= */
+
+[class*="border-[#e8eef8]"] {
+  border-color: #334155 !important;
+}
+
+/* =========================================================
+   HOVER BACKGROUNDS
+   ========================================================= */
+
+[class*="hover:bg-[#e8eef8]"]:hover {
+  background-color: #334155 !important;
+}
+
+[class*="hover:bg-[#151d2f]"]:hover {
+  background-color: #334155 !important;
+}
+
+/* =========================================================
+   SHADOWS
+   ========================================================= */
+
+[class*="shadow-black/30"] {
+  --tw-shadow-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* =========================================================
+   INPUTS / SELECTS
+   ========================================================= */
+
+[class*="bg-[#07111f]"] input,
+[class*="bg-[#07111f]"] select,
+select[class*="bg-[#07111f]"],
+input[class*="bg-[#07111f]"] {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* =========================================================
+   PLACEHOLDER TEXT
+   ========================================================= */
+
+input::placeholder {
+  color: #94a3b8;
+}
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #172033;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+table {
+  color: #ffffff;
+}
+
+/* =========================================================
+   SMOOTH TRANSITIONS
+   ========================================================= */
+
+body,
+button,
+input,
+select,
+textarea,
+[class*="bg-[#"],
+[class*="border-[#"] {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}

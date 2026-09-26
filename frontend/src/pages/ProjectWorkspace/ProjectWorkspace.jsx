@@ -43,8 +43,6 @@ const ProjectWorkspace = () => {
 
   const { currentUser } = useAuth();
 
-  /* ================= PROJECT CONTEXT ================= */
-
   const {
     getProjectById,
     selectedProject,
@@ -52,11 +50,8 @@ const ProjectWorkspace = () => {
     updateProject,
   } = useProjects();
 
-  /* ================= PROJECT TEAM ================= */
-
   const {
     getProjectMembers,
-    isUserAssignedToProject,
     addProjectMember,
     updateProjectMember,
     removeProjectMember,
@@ -64,8 +59,6 @@ const ProjectWorkspace = () => {
   } = useProjectTeam();
 
   const { users } = useUsers();
-
-  /* ================= TASKS ================= */
 
   const {
     tasks,
@@ -77,11 +70,7 @@ const ProjectWorkspace = () => {
     getSubtasksByTaskId,
   } = useTasks();
 
-  /* ================= PROJECT ================= */
-
   const project = getProjectById(projectId) || selectedProject;
-
-  /* ================= STATE ================= */
 
   const [activeSection, setActiveSection] = useState("overview");
 
@@ -115,15 +104,11 @@ const ProjectWorkspace = () => {
 
   const [confirmDeleteMember, setConfirmDeleteMember] = useState(null);
 
-  /* ================= SELECT PROJECT ================= */
-
   useEffect(() => {
     if (project?.id) {
       selectProject(project.id);
     }
   }, [project?.id, selectProject]);
-
-  /* ================= LOAD PROJECT FORM ================= */
 
   useEffect(() => {
     if (project) {
@@ -138,8 +123,6 @@ const ProjectWorkspace = () => {
       });
     }
   }, [project]);
-
-  /* ================= PROJECT MEMBERS ================= */
 
   const projectMembers = useMemo(() => {
     if (!project?.id) return [];
@@ -159,8 +142,6 @@ const ProjectWorkspace = () => {
     });
   }, [project?.id, getProjectMembers, users]);
 
-  /* ================= TEAM LEAD ================= */
-
   const teamLeadMember = useMemo(() => {
     return projectMembers.find(
       (member) => member.projectRole === "Team Lead"
@@ -174,8 +155,6 @@ const ProjectWorkspace = () => {
     teamLeadMember?.user?.name ||
     "No Team Lead assigned";
 
-  /* ================= AVAILABLE USERS ================= */
-
   const availableUsers = useMemo(() => {
     if (!project?.id) return [];
 
@@ -188,8 +167,6 @@ const ProjectWorkspace = () => {
     });
   }, [users, project?.id, projectMembers]);
 
-  /* ================= PROJECT TASKS ================= */
-
   const projectTasks = useMemo(() => {
     if (!project?.id) return [];
 
@@ -198,8 +175,6 @@ const ProjectWorkspace = () => {
       return String(taskProjId) === String(project.id);
     });
   }, [tasks, project?.id]);
-
-  /* ================= USER HELPERS ================= */
 
   const getUserName = (userId) => {
     const user = users.find(
@@ -225,60 +200,55 @@ const ProjectWorkspace = () => {
     return "Unassigned";
   };
 
-  /* ================= PRIORITY STYLE ================= */
-
   const getPriorityClass = (priority) => {
     switch (priority) {
       case "Critical":
-        return "border-[#f0a0a0]/30 bg-[#f0a0a0]/5 text-[#f0a0a0]";
+        return "border-red-200 bg-red-50 text-red-700";
 
       case "High":
-        return "border-[#f0a0a0]/30 bg-[#f0a0a0]/5 text-[#f0a0a0]";
+        return "border-orange-200 bg-orange-50 text-orange-700";
 
       case "Medium":
-        return "border-[#f0d090]/30 bg-[#f0d090]/5 text-[#f0d090]";
+        return "border-amber-200 bg-amber-50 text-amber-700";
 
       case "Low":
-        return "border-[#a0d0a0]/30 bg-[#a0d0a0]/5 text-[#a0d0a0]";
+        return "border-emerald-200 bg-emerald-50 text-emerald-700";
 
       default:
-        return "border-slate-400/20 bg-slate-400/5 text-slate-300";
+        return "border-slate-200 bg-slate-50 text-slate-600";
     }
   };
-
-  /* ================= TASK STATUS STYLE ================= */
 
   const getStatusClass = (status) => {
     switch (status) {
       case "Done":
-        return "border-emerald-400/20 bg-emerald-400/5 text-emerald-400";
+        return "border-emerald-200 bg-emerald-50 text-emerald-700";
 
       case "In Progress":
-        return "border-blue-400/20 bg-blue-400/5 text-blue-400";
+        return "border-blue-200 bg-blue-50 text-blue-700";
+
+      case "In Review":
+        return "border-indigo-200 bg-indigo-50 text-indigo-700";
 
       case "To Do":
       default:
-        return "border-slate-400/20 bg-slate-400/5 text-slate-300";
+        return "border-slate-200 bg-slate-50 text-slate-600";
     }
   };
-
-  /* ================= MEMBER STATUS STYLE ================= */
 
   const getMemberStatusClass = (status) => {
     switch (status) {
       case "Active":
-        return "border-emerald-400/20 bg-emerald-400/5 text-emerald-400";
+        return "border-emerald-200 bg-emerald-50 text-emerald-700";
 
       case "In Meeting":
-        return "border-[#f0d090]/30 bg-[#f0d090]/5 text-[#f0d090]";
+        return "border-amber-200 bg-amber-50 text-amber-700";
 
       case "Inactive":
       default:
-        return "border-slate-400/20 bg-slate-400/5 text-slate-300";
+        return "border-slate-200 bg-slate-50 text-slate-600";
     }
   };
-
-  /* ================= CURRENT USER CHECK ================= */
 
   const isCurrentUser = (member) => {
     const currentUserId = currentUser?.id ?? currentUser?._id;
@@ -288,8 +258,6 @@ const ProjectWorkspace = () => {
       String(member.userId) === String(currentUserId)
     );
   };
-
-  /* ================= PERMISSIONS ================= */
 
   const currentRole = normalizeRole(currentUser?.role);
 
@@ -312,8 +280,6 @@ const ProjectWorkspace = () => {
     ROLES.PROJECT_LEAD,
   ].includes(currentRole);
 
-  /* ================= PROJECT FORM ================= */
-
   const handleProjectFormChange = (event) => {
     const { name, value } = event.target;
 
@@ -328,21 +294,14 @@ const ProjectWorkspace = () => {
 
     if (!project?.id) return;
 
-    const result = await updateProject(
-      project.id,
-      projectForm
-    );
+    const result = await updateProject(project.id, projectForm);
 
     if (result?.success) {
       setShowEditProject(false);
     } else {
-      alert(
-        result?.message || "Failed to update project."
-      );
+      alert(result?.message || "Failed to update project.");
     }
   };
-
-  /* ================= ADD MEMBER ================= */
 
   const openAddMember = () => {
     setEditingMember(null);
@@ -355,8 +314,6 @@ const ProjectWorkspace = () => {
     setShowAddMember(true);
   };
 
-  /* ================= EDIT MEMBER ================= */
-
   const openEditMember = (member) => {
     setEditingMember(member);
 
@@ -368,8 +325,6 @@ const ProjectWorkspace = () => {
     setShowAddMember(true);
   };
 
-  /* ================= MEMBER SUBMIT ================= */
-
   const handleMemberSubmit = async (event) => {
     event.preventDefault();
 
@@ -380,10 +335,7 @@ const ProjectWorkspace = () => {
       return;
     }
 
-    if (
-      memberForm.projectRole === "Team Lead" &&
-      !editingMember
-    ) {
+    if (memberForm.projectRole === "Team Lead" && !editingMember) {
       const existingTeamLead = projectMembers.find(
         (member) => member.projectRole === "Team Lead"
       );
@@ -402,8 +354,7 @@ const ProjectWorkspace = () => {
       const existingTeamLead = projectMembers.find(
         (member) =>
           member.projectRole === "Team Lead" &&
-          String(member.userId) !==
-            String(editingMember.userId)
+          String(member.userId) !== String(editingMember.userId)
       );
 
       if (existingTeamLead) {
@@ -437,19 +388,11 @@ const ProjectWorkspace = () => {
         projectRole: "Developer",
       });
     } else {
-      alert(
-        result?.message ||
-          "Failed to update project team."
-      );
+      alert(result?.message || "Failed to update project team.");
     }
   };
 
-  /* ================= MEMBER STATUS ================= */
-
-  const handleMemberStatusChange = async (
-    member,
-    status
-  ) => {
+  const handleMemberStatusChange = async (member, status) => {
     if (!project?.id || !member?.userId) return;
 
     if (!isCurrentUser(member)) {
@@ -463,14 +406,9 @@ const ProjectWorkspace = () => {
     );
 
     if (!result?.success) {
-      alert(
-        result?.message ||
-          "Failed to update your status."
-      );
+      alert(result?.message || "Failed to update your status.");
     }
   };
-
-  /* ================= DELETE MEMBER ================= */
 
   const handleDeleteMember = async () => {
     if (!project?.id || !confirmDeleteMember) return;
@@ -481,23 +419,20 @@ const ProjectWorkspace = () => {
     );
 
     if (!result?.success) {
-      alert(
-        result?.message ||
-          "Failed to remove team member."
-      );
+      alert(result?.message || "Failed to remove team member.");
     }
 
     setConfirmDeleteMember(null);
   };
-
-  /* ================= CREATE TASK ================= */
 
   const openCreateTask = () => {
     setEditingTask(null);
 
     const defaultAssignee = teamLeadId
       ? String(teamLeadId)
-      : (projectMembers[0]?.userId ? String(projectMembers[0].userId) : "");
+      : projectMembers[0]?.userId
+      ? String(projectMembers[0].userId)
+      : "";
 
     setTaskForm({
       ...EMPTY_TASK_FORM,
@@ -506,8 +441,6 @@ const ProjectWorkspace = () => {
 
     setShowTaskModal(true);
   };
-
-  /* ================= EDIT TASK ================= */
 
   const openEditTask = (task) => {
     setEditingTask(task);
@@ -526,8 +459,6 @@ const ProjectWorkspace = () => {
     setShowTaskModal(true);
   };
 
-  /* ================= TASK FORM ================= */
-
   const handleTaskFormChange = (event) => {
     const { name, value } = event.target;
 
@@ -536,8 +467,6 @@ const ProjectWorkspace = () => {
       [name]: value,
     }));
   };
-
-  /* ================= TASK SUBMIT ================= */
 
   const handleTaskSubmit = async (event) => {
     event.preventDefault();
@@ -556,7 +485,7 @@ const ProjectWorkspace = () => {
 
     const chosenAssigneeId = taskForm.assigneeId
       ? Number(taskForm.assigneeId)
-      : (existingAssigneeId ?? (teamLeadId ? Number(teamLeadId) : null));
+      : existingAssigneeId ?? (teamLeadId ? Number(teamLeadId) : null);
 
     const payload = {
       ...(editingTask || {}),
@@ -585,33 +514,21 @@ const ProjectWorkspace = () => {
         ...EMPTY_TASK_FORM,
       });
     } else {
-      alert(
-        result?.message ||
-          "Failed to save parent task."
-      );
+      alert(result?.message || "Failed to save parent task.");
     }
   };
-
-  /* ================= DELETE TASK ================= */
 
   const handleDeleteTask = async () => {
     if (!confirmDeleteTask) return;
 
-    const result = await deleteTask(
-      confirmDeleteTask.id
-    );
+    const result = await deleteTask(confirmDeleteTask.id);
 
     if (!result?.success) {
-      alert(
-        result?.message ||
-          "Failed to delete task."
-      );
+      alert(result?.message || "Failed to delete task.");
     }
 
     setConfirmDeleteTask(null);
   };
-
-  /* ================= TASK STATS ================= */
 
   const taskStats = useMemo(() => {
     const total = projectTasks.length;
@@ -636,26 +553,24 @@ const ProjectWorkspace = () => {
     };
   }, [projectTasks]);
 
-  /* ================= PROJECT NOT FOUND ================= */
-
   if (!project) {
     return (
-      <div className="min-h-screen bg-[#07111f] p-6 text-[#e8eef8]">
+      <div className="min-h-screen bg-[#E8EEF7] p-6 text-[#172033]">
         <div className="mx-auto max-w-7xl">
           <button
             onClick={() => navigate("/projects")}
-            className="mb-6 flex items-center gap-2 text-sm font-medium text-[#e8eef8]/50 transition hover:text-[#e8eef8]"
+            className="mb-6 flex items-center gap-2 text-sm font-medium text-[#64748B] transition hover:text-[#172033]"
           >
             <PiArrowLeft size={20} />
             Back to Projects
           </button>
 
-          <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-10 text-center">
-            <h2 className="text-xl font-semibold text-[#e8eef8]">
+          <div className="rounded-2xl border border-slate-300 bg-white p-10 text-center shadow-sm">
+            <h2 className="text-xl font-semibold text-[#172033]">
               Project not found
             </h2>
 
-            <p className="mt-2 text-[#e8eef8]/50">
+            <p className="mt-2 text-[#64748B]">
               The project you are looking for does not exist.
             </p>
           </div>
@@ -665,29 +580,27 @@ const ProjectWorkspace = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#07111f] p-4 text-[#e8eef8] md:p-6">
+    <div className="min-h-screen bg-[#E8EEF7] p-4 text-[#172033] md:p-6">
       <div className="mx-auto max-w-7xl">
-        {/* ================= PROJECT HEADER ================= */}
-
         <div className="mb-6">
           <button
             onClick={() => navigate("/projects")}
-            className="mb-4 flex items-center gap-2 text-sm font-medium text-[#e8eef8]/50 transition hover:text-[#e8eef8]"
+            className="mb-4 flex items-center gap-2 text-sm font-medium text-[#64748B] transition hover:text-[#172033]"
           >
             <PiArrowLeft size={20} />
             Back to Projects
           </button>
 
-          <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
+          <div className="rounded-2xl border border-slate-300 bg-[#172033] p-5 shadow-lg shadow-slate-900/10">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-2xl font-bold text-[#e8eef8]">
+                  <h1 className="text-2xl font-bold text-white">
                     {project.name}
                   </h1>
 
                   {project.code && (
-                    <span className="rounded-lg border border-[#e8eef8]/10 bg-[#e8eef8]/5 px-3 py-1 text-xs font-semibold text-[#e8eef8]/50">
+                    <span className="rounded-lg border border-slate-600 bg-[#24324A] px-3 py-1 text-xs font-semibold text-slate-300">
                       {project.code}
                     </span>
                   )}
@@ -696,12 +609,12 @@ const ProjectWorkspace = () => {
                     <span
                       className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                         project.status === "Completed"
-                          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                          ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
                           : project.status === "In Progress"
-                          ? "border-blue-400/20 bg-blue-400/10 text-blue-400"
+                          ? "border-blue-400/30 bg-blue-400/10 text-blue-300"
                           : project.status === "On Hold"
-                          ? "border-amber-400/20 bg-amber-400/10 text-amber-400"
-                          : "border-slate-400/20 bg-slate-400/10 text-slate-300"
+                          ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
+                          : "border-slate-500/30 bg-slate-500/10 text-slate-300"
                       }`}
                     >
                       {project.status}
@@ -709,7 +622,7 @@ const ProjectWorkspace = () => {
                   )}
                 </div>
 
-                <p className="mt-2 max-w-3xl text-sm text-[#e8eef8]/50">
+                <p className="mt-2 max-w-3xl text-sm text-slate-300">
                   {project.description ||
                     "Manage project details, team members and tasks."}
                 </p>
@@ -717,10 +630,8 @@ const ProjectWorkspace = () => {
 
               {canManageProjects && (
                 <button
-                  onClick={() =>
-                    setShowEditProject(true)
-                  }
-                  className="flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-400"
+                  onClick={() => setShowEditProject(true)}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:brightness-110"
                 >
                   <PiPencilSimple size={18} />
                   Edit Project
@@ -730,18 +641,14 @@ const ProjectWorkspace = () => {
           </div>
         </div>
 
-        {/* ================= TABS ================= */}
-
-        <div className="mb-6 overflow-x-auto rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b]">
+        <div className="mb-6 overflow-x-auto rounded-2xl border border-slate-300 bg-white shadow-sm">
           <div className="flex min-w-max">
             <button
-              onClick={() =>
-                setActiveSection("overview")
-              }
+              onClick={() => setActiveSection("overview")}
               className={`border-b-2 px-5 py-4 text-sm font-semibold transition ${
                 activeSection === "overview"
-                  ? "border-blue-400 text-blue-400"
-                  : "border-transparent text-[#e8eef8]/50 hover:text-[#e8eef8]"
+                  ? "border-[#2563EB] text-[#2563EB]"
+                  : "border-transparent text-[#64748B] hover:text-[#172033]"
               }`}
             >
               Overview
@@ -751,16 +658,17 @@ const ProjectWorkspace = () => {
               onClick={() => setActiveSection("team")}
               className={`flex items-center gap-2 border-b-2 px-5 py-4 text-sm font-semibold transition ${
                 activeSection === "team"
-                  ? "border-blue-400 text-blue-400"
-                  : "border-transparent text-[#e8eef8]/50 hover:text-[#e8eef8]"
+                  ? "border-[#2563EB] text-[#2563EB]"
+                  : "border-transparent text-[#64748B] hover:text-[#172033]"
               }`}
             >
               Team
+
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                   activeSection === "team"
-                    ? "bg-blue-400/20 text-blue-400"
-                    : "bg-[#e8eef8]/10 text-[#e8eef8]/50"
+                    ? "bg-blue-50 text-[#2563EB]"
+                    : "bg-slate-100 text-[#64748B]"
                 }`}
               >
                 {projectMembers.length}
@@ -771,16 +679,17 @@ const ProjectWorkspace = () => {
               onClick={() => setActiveSection("tasks")}
               className={`flex items-center gap-2 border-b-2 px-5 py-4 text-sm font-semibold transition ${
                 activeSection === "tasks"
-                  ? "border-blue-400 text-blue-400"
-                  : "border-transparent text-[#e8eef8]/50 hover:text-[#e8eef8]"
+                  ? "border-[#2563EB] text-[#2563EB]"
+                  : "border-transparent text-[#64748B] hover:text-[#172033]"
               }`}
             >
               Parent Tasks
+
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                   activeSection === "tasks"
-                    ? "bg-blue-400/20 text-blue-400"
-                    : "bg-[#e8eef8]/10 text-[#e8eef8]/50"
+                    ? "bg-blue-50 text-[#2563EB]"
+                    : "bg-slate-100 text-[#64748B]"
                 }`}
               >
                 {projectTasks.length}
@@ -789,27 +698,19 @@ const ProjectWorkspace = () => {
           </div>
         </div>
 
-        {/* ================= OVERVIEW ================= */}
-
         {activeSection === "overview" && (
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-                <p className="text-sm text-[#e8eef8]/50">
-                  Project Status
-                </p>
-
-                <p className="mt-2 text-xl font-bold text-[#e8eef8]">
+              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+                <p className="text-sm text-[#64748B]">Project Status</p>
+                <p className="mt-2 text-xl font-bold text-[#172033]">
                   {project.status || "Not Started"}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-                <p className="text-sm text-[#e8eef8]/50">
-                  Project Lead
-                </p>
-
-                <p className="mt-2 text-xl font-bold text-[#e8eef8]">
+              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+                <p className="text-sm text-[#64748B]">Project Lead</p>
+                <p className="mt-2 text-xl font-bold text-[#172033]">
                   {project.projectLead?.fullName ||
                     project.projectLead?.name ||
                     project.projectLeadName ||
@@ -817,12 +718,9 @@ const ProjectWorkspace = () => {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-                <p className="text-sm text-[#e8eef8]/50">
-                  Project Manager
-                </p>
-
-                <p className="mt-2 text-xl font-bold text-[#e8eef8]">
+              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+                <p className="text-sm text-[#64748B]">Project Manager</p>
+                <p className="mt-2 text-xl font-bold text-[#172033]">
                   {project.projectManager?.fullName ||
                     project.projectManager?.name ||
                     project.projectManagerName ||
@@ -830,67 +728,57 @@ const ProjectWorkspace = () => {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-                <p className="text-sm text-[#e8eef8]/50">
-                  Team Members
-                </p>
-
-                <p className="mt-2 text-xl font-bold text-[#e8eef8]">
+              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+                <p className="text-sm text-[#64748B]">Team Members</p>
+                <p className="mt-2 text-xl font-bold text-[#172033]">
                   {projectMembers.length}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-                <p className="text-sm text-[#e8eef8]/50">
-                  Repositary
-                </p>
+              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+                <p className="text-sm text-[#64748B]">Repository</p>
 
                 <div className="mt-2">
                   {project.repository ? (
                     <a
-                      href={project.repository.startsWith("http") ? project.repository : `https://${project.repository}`}
+                      href={
+                        project.repository.startsWith("http")
+                          ? project.repository
+                          : `https://${project.repository}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xl font-bold text-blue-400 hover:text-blue-300 underline transition"
+                      className="inline-flex items-center gap-1.5 text-xl font-bold text-[#2563EB] underline transition hover:text-[#4F46E5]"
                     >
                       Link
                     </a>
                   ) : (
-                    <p className="text-xl font-bold text-[#e8eef8]/40">__</p>
+                    <p className="text-xl font-bold text-slate-400">__</p>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-6">
+            <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-sm">
               <div className="mb-5 flex items-center gap-3">
-                <PiCalendarBlank
-                  size={22}
-                  className="text-blue-400"
-                />
+                <PiCalendarBlank size={22} className="text-[#2563EB]" />
 
-                <h2 className="text-lg font-bold text-[#e8eef8]">
+                <h2 className="text-lg font-bold text-[#172033]">
                   Project Timeline
                 </h2>
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <p className="text-sm text-[#e8eef8]/50">
-                    Start Date
-                  </p>
-
-                  <p className="mt-1 font-semibold text-[#e8eef8]/80">
+                  <p className="text-sm text-[#64748B]">Start Date</p>
+                  <p className="mt-1 font-semibold text-[#172033]">
                     {project.startDate || "Not set"}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-[#e8eef8]/50">
-                    End Date
-                  </p>
-
-                  <p className="mt-1 font-semibold text-[#e8eef8]/80">
+                  <p className="text-sm text-[#64748B]">End Date</p>
+                  <p className="mt-1 font-semibold text-[#172033]">
                     {project.endDate || "Not set"}
                   </p>
                 </div>
@@ -899,24 +787,19 @@ const ProjectWorkspace = () => {
           </div>
         )}
 
-        {/* ================= TEAM ================= */}
-
         {activeSection === "team" && (
-          <div className="overflow-hidden rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b]">
-            <div className="flex flex-col justify-between gap-4 border-b border-[#e8eef8]/10 p-5 md:flex-row md:items-center">
+          <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+            <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-5 md:flex-row md:items-center">
               <div>
                 <div className="flex items-center gap-2">
-                  <PiUsersThree
-                    size={24}
-                    className="text-blue-400"
-                  />
+                  <PiUsersThree size={24} className="text-[#2563EB]" />
 
-                  <h2 className="text-xl font-bold text-[#e8eef8]">
+                  <h2 className="text-xl font-bold text-[#172033]">
                     Project Team
                   </h2>
                 </div>
 
-                <p className="mt-1 text-sm text-[#e8eef8]/50">
+                <p className="mt-1 text-sm text-[#64748B]">
                   Manage members assigned to this project.
                 </p>
               </div>
@@ -924,7 +807,7 @@ const ProjectWorkspace = () => {
               {canManageTeam && (
                 <button
                   onClick={openAddMember}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-400"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
                 >
                   <PiPlus size={18} />
                   Add Member
@@ -932,18 +815,18 @@ const ProjectWorkspace = () => {
               )}
             </div>
 
-            <div className="border-b border-[#e8eef8]/10 bg-[#07111f]/50 p-5">
+            <div className="border-b border-slate-200 bg-[#F1F5F9] p-5">
               <div className="flex flex-col gap-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#e8eef8]/30">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                   Project Team Lead
                 </p>
 
-                <p className="font-semibold text-[#e8eef8]/80">
+                <p className="font-semibold text-[#172033]">
                   {teamLeadName}
                 </p>
 
                 {!teamLeadMember && (
-                  <p className="text-xs text-[#f0a060]">
+                  <p className="text-xs text-[#D97706]">
                     A Team Lead is required before creating tasks.
                   </p>
                 )}
@@ -954,14 +837,14 @@ const ProjectWorkspace = () => {
               <div className="p-10 text-center">
                 <PiUsersThree
                   size={42}
-                  className="mx-auto text-[#e8eef8]/20"
+                  className="mx-auto text-slate-300"
                 />
 
-                <h3 className="mt-4 font-semibold text-[#e8eef8]">
+                <h3 className="mt-4 font-semibold text-[#172033]">
                   No team members
                 </h3>
 
-                <p className="mt-1 text-sm text-[#e8eef8]/50">
+                <p className="mt-1 text-sm text-[#64748B]">
                   Add members to start building the project team.
                 </p>
               </div>
@@ -969,22 +852,11 @@ const ProjectWorkspace = () => {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[850px]">
                   <thead>
-                    <tr className="border-b border-[#e8eef8]/10 bg-[#07111f]/50 text-left text-xs uppercase tracking-wide text-[#e8eef8]/30">
-                      <th className="px-5 py-4">
-                        Member
-                      </th>
-
-                      <th className="px-5 py-4">
-                        Email
-                      </th>
-
-                      <th className="px-5 py-4">
-                        Project Role
-                      </th>
-
-                      <th className="px-5 py-4">
-                        Status
-                      </th>
+                    <tr className="border-b border-slate-200 bg-[#172033] text-left text-xs uppercase tracking-wide text-slate-300">
+                      <th className="px-5 py-4">Member</th>
+                      <th className="px-5 py-4">Email</th>
+                      <th className="px-5 py-4">Project Role</th>
+                      <th className="px-5 py-4">Status</th>
 
                       {canManageTeam && (
                         <th className="px-5 py-4 text-right">
@@ -998,21 +870,19 @@ const ProjectWorkspace = () => {
                     {projectMembers.map((member) => (
                       <tr
                         key={`${member.userId}-${member.projectRole}`}
-                        className="border-b border-[#e8eef8]/10 last:border-0 hover:bg-[#e8eef8]/5"
+                        className="border-b border-slate-200 last:border-0 hover:bg-[#F1F5F9]"
                       >
-                        {/* MEMBER */}
-
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e8eef8]/10 bg-[#07111f]">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100">
                               <PiUserCircle
                                 size={25}
-                                className="text-[#e8eef8]/40"
+                                className="text-slate-500"
                               />
                             </div>
 
                             <div>
-                              <p className="font-semibold text-[#e8eef8]/80">
+                              <p className="font-semibold text-[#172033]">
                                 {member.user?.fullName ||
                                   member.user?.name ||
                                   "Unknown User"}
@@ -1021,49 +891,36 @@ const ProjectWorkspace = () => {
                           </div>
                         </td>
 
-                        {/* EMAIL */}
-
-                        <td className="px-5 py-4 text-sm text-[#e8eef8]/50">
+                        <td className="px-5 py-4 text-sm text-[#475569]">
                           {member.user?.email || "-"}
                         </td>
 
-                        {/* PROJECT ROLE */}
-
                         <td className="px-5 py-4">
-                          <span className="rounded-full border border-blue-400/20 bg-blue-400/5 px-3 py-1 text-xs font-semibold text-blue-400">
+                          <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-[#2563EB]">
                             {member.projectRole}
                           </span>
                         </td>
 
-                        {/* STATUS */}
-
                         <td className="px-5 py-4">
                           {isCurrentUser(member) ? (
                             <select
-                              value={
-                                member.status || "Active"
-                              }
+                              value={member.status || "Active"}
                               onChange={(event) =>
                                 handleMemberStatusChange(
                                   member,
                                   event.target.value
                                 )
                               }
-                              className={`rounded-full border bg-[#07111f] px-3 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-400 ${getMemberStatusClass(
+                              className={`rounded-full border px-3 py-1.5 text-xs font-semibold outline-none transition focus:border-[#2563EB] ${getMemberStatusClass(
                                 member.status || "Active"
                               )}`}
                               title="Update your status"
                             >
-                              {MEMBER_STATUSES.map(
-                                (status) => (
-                                  <option
-                                    key={status}
-                                    value={status}
-                                  >
-                                    {status}
-                                  </option>
-                                )
-                              )}
+                              {MEMBER_STATUSES.map((status) => (
+                                <option key={status} value={status}>
+                                  {status}
+                                </option>
+                              ))}
                             </select>
                           ) : (
                             <span
@@ -1076,30 +933,22 @@ const ProjectWorkspace = () => {
                           )}
                         </td>
 
-                        {/* ACTIONS */}
-
                         {canManageTeam && (
                           <td className="px-5 py-4">
                             <div className="flex justify-end gap-2">
                               <button
-                                onClick={() =>
-                                  openEditMember(member)
-                                }
-                                className="rounded-lg p-2 text-[#e8eef8]/40 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                                onClick={() => openEditMember(member)}
+                                className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033]"
                                 title="Edit"
                               >
-                                <PiPencilSimple
-                                  size={18}
-                                />
+                                <PiPencilSimple size={18} />
                               </button>
 
                               <button
                                 onClick={() =>
-                                  setConfirmDeleteMember(
-                                    member
-                                  )
+                                  setConfirmDeleteMember(member)
                                 }
-                                className="rounded-lg p-2 text-red-400 transition hover:bg-red-400/10"
+                                className="rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 transition hover:bg-red-100"
                                 title="Delete"
                               >
                                 <PiTrash size={18} />
@@ -1116,31 +965,36 @@ const ProjectWorkspace = () => {
           </div>
         )}
 
-        {/* ================= TASKS ================= */}
-
         {activeSection === "tasks" && (
           <div className="space-y-6">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <PiListChecks size={26} className="text-cyan-400" />
-                  <h2 className="text-2xl font-bold text-[#e8eef8]">
+                  <PiListChecks size={26} className="text-[#2563EB]" />
+
+                  <h2 className="text-2xl font-bold text-[#172033]">
                     Task Management
                   </h2>
-                  <span className="ml-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-0.5 text-xs font-semibold text-cyan-400">
-                    {projectTasks.length} {projectTasks.length === 1 ? "parent task" : "parent tasks"}
+
+                  <span className="ml-2 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-[#4F46E5]">
+                    {projectTasks.length}{" "}
+                    {projectTasks.length === 1
+                      ? "parent task"
+                      : "parent tasks"}
                   </span>
                 </div>
 
-                <p className="mt-1 text-sm text-[#e8eef8]/50">
-                  Decompose {project.name} into major deliverable parent work items. Click any task to enter its workspace and manage subtasks.
+                <p className="mt-1 text-sm text-[#64748B]">
+                  Decompose {project.name} into major deliverable parent work
+                  items. Click any task to enter its workspace and manage
+                  subtasks.
                 </p>
               </div>
 
               {canManageTasks && (
                 <button
                   onClick={openCreateTask}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-500 active:scale-95"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:brightness-110 active:scale-95"
                 >
                   <PiPlus size={18} />
                   Add Task
@@ -1148,114 +1002,85 @@ const ProjectWorkspace = () => {
               )}
             </div>
 
-            {/* TASK STATS */}
-
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-                <p className="text-sm text-[#e8eef8]/50">
+              <div className="rounded-2xl border border-slate-700 bg-[#172033] p-5 shadow-lg shadow-slate-900/10">
+                <p className="text-sm text-slate-400">
                   Total Parent Tasks
                 </p>
 
-                <p className="mt-2 text-2xl font-bold text-[#e8eef8]">
+                <p className="mt-2 text-2xl font-bold text-white">
                   {taskStats.total}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-                <p className="text-sm text-[#e8eef8]/50">
-                  To Do
-                </p>
+              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+                <p className="text-sm text-[#64748B]">To Do</p>
 
-                <p className="mt-2 text-2xl font-bold text-[#e8eef8]">
+                <p className="mt-2 text-2xl font-bold text-[#172033]">
                   {taskStats.toDo}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-                <p className="text-sm text-[#e8eef8]/50">
-                  In Progress
-                </p>
+              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+                <p className="text-sm text-[#64748B]">In Progress</p>
 
-                <p className="mt-2 text-2xl font-bold text-[#e8eef8]">
+                <p className="mt-2 text-2xl font-bold text-[#172033]">
                   {taskStats.inProgress}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-                <p className="text-sm text-[#e8eef8]/50">
-                  Completed
-                </p>
+              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+                <p className="text-sm text-[#64748B]">Completed</p>
 
-                <p className="mt-2 text-2xl font-bold text-[#e8eef8]">
+                <p className="mt-2 text-2xl font-bold text-[#172033]">
                   {taskStats.completed}
                 </p>
               </div>
             </div>
 
-            {/* TASK TABLE */}
-
-            <div className="overflow-hidden rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b]">
-              <div className="border-b border-[#e8eef8]/10 p-5">
-                <h3 className="text-lg font-bold text-[#e8eef8]">
+            <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+              <div className="border-b border-slate-200 p-5">
+                <h3 className="text-lg font-bold text-[#172033]">
                   All Parent Tasks
                 </h3>
               </div>
 
               {tasksLoading ? (
-                <div className="p-10 text-center text-sm text-[#e8eef8]/50">
+                <div className="p-10 text-center text-sm text-[#64748B]">
                   Loading tasks...
                 </div>
               ) : tasksError ? (
-                <div className="p-10 text-center text-sm text-red-400">
+                <div className="p-10 text-center text-sm text-[#DC2626]">
                   {tasksError}
                 </div>
               ) : projectTasks.length === 0 ? (
                 <div className="p-10 text-center">
                   <PiCheck
                     size={40}
-                    className="mx-auto text-[#e8eef8]/20"
+                    className="mx-auto text-slate-300"
                   />
 
-                  <h3 className="mt-4 font-semibold text-[#e8eef8]">
+                  <h3 className="mt-4 font-semibold text-[#172033]">
                     No parent tasks yet
                   </h3>
 
-                  <p className="mt-1 text-sm text-[#e8eef8]/50">
-                    Create a parent task to decompose project deliverables into subtasks.
+                  <p className="mt-1 text-sm text-[#64748B]">
+                    Create a parent task to decompose project deliverables
+                    into subtasks.
                   </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[900px]">
                     <thead>
-                      <tr className="border-b border-[#e8eef8]/10 bg-[#07111f]/50 text-left text-xs uppercase tracking-wide text-[#e8eef8]/30">
-                        <th className="px-5 py-4">
-                          #
-                        </th>
-
-                        <th className="px-5 py-4">
-                          Parent Task
-                        </th>
-
-                        <th className="px-5 py-4">
-                          Assignee
-                        </th>
-
-                        <th className="px-5 py-4">
-                          Subtasks
-                        </th>
-
-                        <th className="px-5 py-4">
-                          Status
-                        </th>
-
-                        <th className="px-5 py-4">
-                          Priority
-                        </th>
-
-                        <th className="px-5 py-4">
-                          Deadline
-                        </th>
+                      <tr className="border-b border-slate-700 bg-[#172033] text-left text-xs uppercase tracking-wide text-slate-300">
+                        <th className="px-5 py-4">#</th>
+                        <th className="px-5 py-4">Parent Task</th>
+                        <th className="px-5 py-4">Assignee</th>
+                        <th className="px-5 py-4">Subtasks</th>
+                        <th className="px-5 py-4">Status</th>
+                        <th className="px-5 py-4">Priority</th>
+                        <th className="px-5 py-4">Deadline</th>
 
                         {canManageTasks && (
                           <th className="px-5 py-4 text-right">
@@ -1266,141 +1091,124 @@ const ProjectWorkspace = () => {
                     </thead>
 
                     <tbody>
-                      {projectTasks.map(
-                        (task, index) => (
-                          <tr
-                            key={task.id}
-                            onClick={() =>
-                              navigate(
-                                `/projects/${project.id}/tasks/${task.id}`
-                              )
-                            }
-                            className="group cursor-pointer border-b border-[#e8eef8]/10 transition hover:bg-[#e8eef8]/5 last:border-0"
-                          >
-                            <td className="px-5 py-4 text-sm font-medium text-[#e8eef8]/40">
-                              {index + 1}
-                            </td>
+                      {projectTasks.map((task, index) => (
+                        <tr
+                          key={task.id}
+                          onClick={() =>
+                            navigate(
+                              `/projects/${project.id}/tasks/${task.id}`
+                            )
+                          }
+                          className="group cursor-pointer border-b border-slate-200 transition last:border-0 hover:bg-[#F1F5F9]"
+                        >
+                          <td className="px-5 py-4 text-sm font-medium text-slate-500">
+                            {index + 1}
+                          </td>
 
-                            <td className="px-5 py-4">
-                              <div>
-                                <p className="font-semibold text-[#e8eef8] transition group-hover:text-blue-400">
-                                  {task.title}
+                          <td className="px-5 py-4">
+                            <div>
+                              <p className="font-semibold text-[#172033] transition group-hover:text-[#2563EB]">
+                                {task.title}
+                              </p>
+
+                              {task.description && (
+                                <p className="mt-1 max-w-md truncate text-xs text-[#64748B]">
+                                  {task.description}
                                 </p>
+                              )}
+                            </div>
+                          </td>
 
-                                {task.description && (
-                                  <p className="mt-1 max-w-md truncate text-xs text-[#e8eef8]/40">
-                                    {task.description}
-                                  </p>
-                                )}
-                              </div>
-                            </td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2">
+                              <PiUserCircle
+                                size={22}
+                                className="text-slate-400"
+                              />
 
-                            <td className="px-5 py-4">
-                              <div className="flex items-center gap-2">
-                                <PiUserCircle
-                                  size={22}
-                                  className="text-[#e8eef8]/30"
-                                />
+                              <span className="text-sm text-[#475569]">
+                                {getTaskAssigneeName(task)}
+                              </span>
+                            </div>
+                          </td>
 
-                                <span className="text-sm text-[#e8eef8]/80">
-                                  {getTaskAssigneeName(
-                                    task
-                                  )}
+                          <td className="px-5 py-4">
+                            {(() => {
+                              const subCount = getSubtasksByTaskId
+                                ? getSubtasksByTaskId(task.id).length
+                                : 0;
+
+                              return (
+                                <span
+                                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
+                                    subCount > 0
+                                      ? "border-indigo-200 bg-indigo-50 text-[#4F46E5] group-hover:border-indigo-300"
+                                      : "border-slate-200 bg-slate-50 text-slate-500"
+                                  }`}
+                                >
+                                  <PiListChecks size={14} />
+                                  {subCount}{" "}
+                                  {subCount === 1 ? "subtask" : "subtasks"}
                                 </span>
+                              );
+                            })()}
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-block rounded-full border px-3 py-1 text-xs font-medium ${getStatusClass(
+                                task.status
+                              )}`}
+                            >
+                              {task.status}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-block rounded-full border px-3 py-1 text-xs font-medium ${getPriorityClass(
+                                task.priority
+                              )}`}
+                            >
+                              {task.priority}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2 text-sm text-[#64748B]">
+                              <PiCalendarBlank size={18} />
+                              {task.dueDate || "No deadline"}
+                            </div>
+                          </td>
+
+                          {canManageTasks && (
+                            <td
+                              className="px-5 py-4"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => openEditTask(task)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-[#2563EB]"
+                                  title="Edit Parent Task"
+                                >
+                                  <PiPencilSimple size={14} />
+                                  <span>Edit</span>
+                                </button>
+
+                                <button
+                                  onClick={() => setConfirmDeleteTask(task)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:border-red-300 hover:bg-red-100"
+                                  title="Delete Parent Task"
+                                >
+                                  <PiTrash size={14} />
+                                  <span>Delete</span>
+                                </button>
                               </div>
                             </td>
-
-                            {/* SUBTASKS */}
-                            <td className="px-5 py-4">
-                              {(() => {
-                                const subCount = getSubtasksByTaskId ? getSubtasksByTaskId(task.id).length : 0;
-                                return (
-                                  <span
-                                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
-                                      subCount > 0
-                                        ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-400 group-hover:border-cyan-500/50"
-                                        : "border-[#e8eef8]/10 bg-[#07111f] text-[#e8eef8]/40"
-                                    }`}
-                                  >
-                                    <PiListChecks size={14} />
-                                    {subCount} {subCount === 1 ? "subtask" : "subtasks"}
-                                  </span>
-                                );
-                              })()}
-                            </td>
-
-                            <td className="px-5 py-4">
-                              <span
-                                className={`inline-block rounded-full border px-3 py-1 text-xs font-medium ${getStatusClass(
-                                  task.status
-                                )}`}
-                              >
-                                {task.status}
-                              </span>
-                            </td>
-
-                            <td className="px-5 py-4">
-                              <span
-                                className={`inline-block rounded-full border px-3 py-1 text-xs font-medium ${getPriorityClass(
-                                  task.priority
-                                )}`}
-                              >
-                                {task.priority}
-                              </span>
-                            </td>
-
-                            <td className="px-5 py-4">
-                              <div className="flex items-center gap-2 text-sm text-[#e8eef8]/50">
-                                <PiCalendarBlank
-                                  size={18}
-                                />
-
-                                {task.dueDate ||
-                                  "No deadline"}
-                              </div>
-                            </td>
-
-                            {canManageTasks && (
-                              <td
-                                className="px-5 py-4"
-                                onClick={(event) =>
-                                  event.stopPropagation()
-                                }
-                              >
-                                <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() =>
-                                      openEditTask(task)
-                                    }
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8eef8]/10 bg-[#e8eef8]/5 px-3 py-1.5 text-xs font-medium text-[#e8eef8]/75 transition hover:border-blue-400/40 hover:bg-blue-500/10 hover:text-blue-300"
-                                    title="Edit Parent Task"
-                                  >
-                                    <PiPencilSimple
-                                      size={14}
-                                    />
-                                    <span>Edit</span>
-                                  </button>
-
-                                  <button
-                                    onClick={() =>
-                                      setConfirmDeleteTask(
-                                        task
-                                      )
-                                    }
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:border-red-500/40 hover:bg-red-500/15 hover:text-red-300"
-                                    title="Delete Parent Task"
-                                  >
-                                    <PiTrash
-                                      size={14}
-                                    />
-                                    <span>Delete</span>
-                                  </button>
-                                </div>
-                              </td>
-                            )}
-                          </tr>
-                        )
-                      )}
+                          )}
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -1410,38 +1218,31 @@ const ProjectWorkspace = () => {
         )}
       </div>
 
-      {/* ================= EDIT PROJECT MODAL ================= */}
-
       {showEditProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] shadow-2xl shadow-black/40">
-            <div className="flex items-center justify-between border-b border-[#e8eef8]/10 p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-300 bg-white shadow-2xl shadow-slate-900/20">
+            <div className="flex items-center justify-between border-b border-slate-200 p-5">
               <div>
-                <h2 className="text-xl font-bold text-[#e8eef8]">
+                <h2 className="text-xl font-bold text-[#172033]">
                   Edit Project
                 </h2>
 
-                <p className="mt-1 text-sm text-[#e8eef8]/50">
+                <p className="mt-1 text-sm text-[#64748B]">
                   Update project information.
                 </p>
               </div>
 
               <button
-                onClick={() =>
-                  setShowEditProject(false)
-                }
-                className="rounded-lg p-2 text-[#e8eef8]/40 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                onClick={() => setShowEditProject(false)}
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033]"
               >
                 <PiX size={22} />
               </button>
             </div>
 
-            <form
-              onSubmit={handleProjectSubmit}
-              className="space-y-5 p-5"
-            >
+            <form onSubmit={handleProjectSubmit} className="space-y-5 p-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                <label className="mb-2 block text-sm font-semibold text-[#172033]">
                   Project Name
                 </label>
 
@@ -1450,13 +1251,13 @@ const ProjectWorkspace = () => {
                   name="name"
                   value={projectForm.name}
                   onChange={handleProjectFormChange}
-                  className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition placeholder:text-[#e8eef8]/30 focus:border-blue-400"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   required
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                <label className="mb-2 block text-sm font-semibold text-[#172033]">
                   Project Code
                 </label>
 
@@ -1465,12 +1266,12 @@ const ProjectWorkspace = () => {
                   name="code"
                   value={projectForm.code}
                   onChange={handleProjectFormChange}
-                  className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition placeholder:text-[#e8eef8]/30 focus:border-blue-400"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                <label className="mb-2 block text-sm font-semibold text-[#172033]">
                   Description
                 </label>
 
@@ -1479,12 +1280,12 @@ const ProjectWorkspace = () => {
                   value={projectForm.description}
                   onChange={handleProjectFormChange}
                   rows={4}
-                  className="w-full resize-none rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition placeholder:text-[#e8eef8]/30 focus:border-blue-400"
+                  className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                <label className="mb-2 block text-sm font-semibold text-[#172033]">
                   Repository Link
                 </label>
 
@@ -1494,13 +1295,13 @@ const ProjectWorkspace = () => {
                   value={projectForm.repository}
                   onChange={handleProjectFormChange}
                   placeholder="e.g. https://github.com/organization/repository"
-                  className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition placeholder:text-[#e8eef8]/30 focus:border-blue-400"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                 />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
                     Status
                   </label>
 
@@ -1508,28 +1309,17 @@ const ProjectWorkspace = () => {
                     name="status"
                     value={projectForm.status}
                     onChange={handleProjectFormChange}
-                    className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   >
-                    <option value="Not Started">
-                      Not Started
-                    </option>
-
-                    <option value="In Progress">
-                      In Progress
-                    </option>
-
-                    <option value="On Hold">
-                      On Hold
-                    </option>
-
-                    <option value="Completed">
-                      Completed
-                    </option>
+                    <option value="Not Started">Not Started</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="On Hold">On Hold</option>
+                    <option value="Completed">Completed</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
                     Start Date
                   </label>
 
@@ -1538,12 +1328,12 @@ const ProjectWorkspace = () => {
                     name="startDate"
                     value={projectForm.startDate}
                     onChange={handleProjectFormChange}
-                    className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
                     End Date
                   </label>
 
@@ -1552,25 +1342,23 @@ const ProjectWorkspace = () => {
                     name="endDate"
                     value={projectForm.endDate}
                     onChange={handleProjectFormChange}
-                    className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-[#e8eef8]/10 pt-5">
+              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowEditProject(false)
-                  }
-                  className="rounded-xl border border-[#e8eef8]/10 px-5 py-2.5 text-sm font-semibold text-[#e8eef8]/60 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                  onClick={() => setShowEditProject(false)}
+                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-400"
+                  className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
                 >
                   Save Changes
                 </button>
@@ -1580,20 +1368,16 @@ const ProjectWorkspace = () => {
         </div>
       )}
 
-      {/* ================= ADD / EDIT MEMBER MODAL ================= */}
-
       {showAddMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] shadow-2xl shadow-black/40">
-            <div className="flex items-center justify-between border-b border-[#e8eef8]/10 p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-300 bg-white shadow-2xl shadow-slate-900/20">
+            <div className="flex items-center justify-between border-b border-slate-200 p-5">
               <div>
-                <h2 className="text-xl font-bold text-[#e8eef8]">
-                  {editingMember
-                    ? "Edit Team Member"
-                    : "Add Team Member"}
+                <h2 className="text-xl font-bold text-[#172033]">
+                  {editingMember ? "Edit Team Member" : "Add Team Member"}
                 </h2>
 
-                <p className="mt-1 text-sm text-[#e8eef8]/50">
+                <p className="mt-1 text-sm text-[#64748B]">
                   Assign a project role to the member.
                 </p>
               </div>
@@ -1603,19 +1387,16 @@ const ProjectWorkspace = () => {
                   setShowAddMember(false);
                   setEditingMember(null);
                 }}
-                className="rounded-lg p-2 text-[#e8eef8]/40 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033]"
               >
                 <PiX size={22} />
               </button>
             </div>
 
-            <form
-              onSubmit={handleMemberSubmit}
-              className="space-y-5 p-5"
-            >
+            <form onSubmit={handleMemberSubmit} className="space-y-5 p-5">
               {!editingMember ? (
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
                     User
                   </label>
 
@@ -1624,59 +1405,49 @@ const ProjectWorkspace = () => {
                     onChange={(event) =>
                       setMemberForm((previous) => ({
                         ...previous,
-                        userId:
-                          event.target.value,
+                        userId: event.target.value,
                       }))
                     }
-                    className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                     required
                   >
-                    <option value="">
-                      Select a user
-                    </option>
+                    <option value="">Select a user</option>
 
                     {availableUsers.map((user) => (
-                      <option
-                        key={user.id}
-                        value={user.id}
-                      >
-                        {user.fullName ||
-                          user.name}{" "}
-                        — {user.email}
+                      <option key={user.id} value={user.id}>
+                        {user.fullName || user.name} — {user.email}
                       </option>
                     ))}
                   </select>
 
                   {availableUsers.length === 0 && (
-                    <p className="mt-2 text-xs text-[#e8eef8]/40">
+                    <p className="mt-2 text-xs text-[#64748B]">
                       No available users to add.
                     </p>
                   )}
                 </div>
               ) : (
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
                     User
                   </label>
 
-                  <div className="rounded-xl border border-[#e8eef8]/10 bg-[#07111f] px-4 py-3">
-                    <p className="font-semibold text-[#e8eef8]/80">
-                      {editingMember.user
-                        ?.fullName ||
+                  <div className="rounded-xl border border-slate-300 bg-[#F1F5F9] px-4 py-3">
+                    <p className="font-semibold text-[#172033]">
+                      {editingMember.user?.fullName ||
                         editingMember.user?.name ||
                         "Unknown User"}
                     </p>
 
-                    <p className="text-sm text-[#e8eef8]/40">
-                      {editingMember.user
-                        ?.email || ""}
+                    <p className="text-sm text-[#64748B]">
+                      {editingMember.user?.email || ""}
                     </p>
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                <label className="mb-2 block text-sm font-semibold text-[#172033]">
                   Project Role
                 </label>
 
@@ -1685,43 +1456,37 @@ const ProjectWorkspace = () => {
                   onChange={(event) =>
                     setMemberForm((previous) => ({
                       ...previous,
-                      projectRole:
-                        event.target.value,
+                      projectRole: event.target.value,
                     }))
                   }
-                  className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   required
                 >
                   {PROJECT_ROLES.map((role) => (
-                    <option
-                      key={role}
-                      value={role}
-                    >
+                    <option key={role} value={role}>
                       {role}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-[#e8eef8]/10 pt-5">
+              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddMember(false);
                     setEditingMember(null);
                   }}
-                  className="rounded-xl border border-[#e8eef8]/10 px-5 py-2.5 text-sm font-semibold text-[#e8eef8]/60 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-400"
+                  className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
                 >
-                  {editingMember
-                    ? "Save Changes"
-                    : "Add Member"}
+                  {editingMember ? "Save Changes" : "Add Member"}
                 </button>
               </div>
             </form>
@@ -1729,20 +1494,16 @@ const ProjectWorkspace = () => {
         </div>
       )}
 
-      {/* ================= TASK MODAL ================= */}
-
       {showTaskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] shadow-2xl shadow-black/40">
-            <div className="flex items-center justify-between border-b border-[#e8eef8]/10 p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-300 bg-white shadow-2xl shadow-slate-900/20">
+            <div className="flex items-center justify-between border-b border-slate-200 p-5">
               <div>
-                <h2 className="text-xl font-bold text-[#e8eef8]">
-                  {editingTask
-                    ? "Edit Parent Task"
-                    : "Create Parent Task"}
+                <h2 className="text-xl font-bold text-[#172033]">
+                  {editingTask ? "Edit Parent Task" : "Create Parent Task"}
                 </h2>
 
-                <p className="mt-1 text-sm text-[#e8eef8]/50">
+                <p className="mt-1 text-sm text-[#64748B]">
                   {editingTask
                     ? "Update parent task information."
                     : "Define a deliverable parent work item decomposed into subtasks."}
@@ -1754,18 +1515,15 @@ const ProjectWorkspace = () => {
                   setShowTaskModal(false);
                   setEditingTask(null);
                 }}
-                className="rounded-lg p-2 text-[#e8eef8]/40 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033]"
               >
                 <PiX size={22} />
               </button>
             </div>
 
-            <form
-              onSubmit={handleTaskSubmit}
-              className="space-y-5 p-5"
-            >
+            <form onSubmit={handleTaskSubmit} className="space-y-5 p-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                <label className="mb-2 block text-sm font-semibold text-[#172033]">
                   Parent Task Title *
                 </label>
 
@@ -1775,13 +1533,13 @@ const ProjectWorkspace = () => {
                   value={taskForm.title}
                   onChange={handleTaskFormChange}
                   placeholder="e.g. Implement Core Authentication Service"
-                  className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition placeholder:text-[#e8eef8]/30 focus:border-blue-400"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   required
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                <label className="mb-2 block text-sm font-semibold text-[#172033]">
                   Description
                 </label>
 
@@ -1791,12 +1549,12 @@ const ProjectWorkspace = () => {
                   onChange={handleTaskFormChange}
                   rows={4}
                   placeholder="Describe the high-level work item and deliverables..."
-                  className="w-full resize-none rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition placeholder:text-[#e8eef8]/30 focus:border-blue-400"
+                  className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                <label className="mb-2 block text-sm font-semibold text-[#172033]">
                   Assignee
                 </label>
 
@@ -1804,14 +1562,19 @@ const ProjectWorkspace = () => {
                   name="assigneeId"
                   value={taskForm.assigneeId}
                   onChange={handleTaskFormChange}
-                  className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none transition focus:border-blue-400"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                 >
                   <option value="">Select Assignee</option>
+
                   {projectMembers.map((m) => (
                     <option key={m.userId} value={m.userId}>
-                      {m.user?.fullName || m.user?.name || `User #${m.userId}`} — {m.projectRole}
+                      {m.user?.fullName ||
+                        m.user?.name ||
+                        `User #${m.userId}`}{" "}
+                      — {m.projectRole}
                     </option>
                   ))}
+
                   {projectMembers.length === 0 &&
                     users.map((u) => (
                       <option key={u.id} value={u.id}>
@@ -1819,14 +1582,15 @@ const ProjectWorkspace = () => {
                       </option>
                     ))}
                 </select>
-                <p className="mt-1 text-xs text-[#e8eef8]/40">
+
+                <p className="mt-1 text-xs text-[#64748B]">
                   Assign to any team member or lead on this project.
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
                     Priority
                   </label>
 
@@ -1834,23 +1598,18 @@ const ProjectWorkspace = () => {
                     name="priority"
                     value={taskForm.priority}
                     onChange={handleTaskFormChange}
-                    className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   >
-                    {PRIORITIES.map(
-                      (priority) => (
-                        <option
-                          key={priority}
-                          value={priority}
-                        >
-                          {priority}
-                        </option>
-                      )
-                    )}
+                    {PRIORITIES.map((priority) => (
+                      <option key={priority} value={priority}>
+                        {priority}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
                     Status
                   </label>
 
@@ -1858,24 +1617,19 @@ const ProjectWorkspace = () => {
                     name="status"
                     value={taskForm.status}
                     onChange={handleTaskFormChange}
-                    className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   >
-                    {TASK_STATUSES.map(
-                      (status) => (
-                        <option
-                          key={status}
-                          value={status}
-                        >
-                          {status}
-                        </option>
-                      )
-                    )}
+                    {TASK_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#e8eef8]/70">
+                <label className="mb-2 block text-sm font-semibold text-[#172033]">
                   Due Date
                 </label>
 
@@ -1884,29 +1638,27 @@ const ProjectWorkspace = () => {
                   name="dueDate"
                   value={taskForm.dueDate}
                   onChange={handleTaskFormChange}
-                  className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-[#e8eef8] outline-none focus:border-blue-400"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-[#e8eef8]/10 pt-5">
+              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
                 <button
                   type="button"
                   onClick={() => {
                     setShowTaskModal(false);
                     setEditingTask(null);
                   }}
-                  className="rounded-xl border border-[#e8eef8]/10 px-5 py-2.5 text-sm font-semibold text-[#e8eef8]/60 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-500"
+                  className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:brightness-110"
                 >
-                  {editingTask
-                    ? "Save Changes"
-                    : "Create Parent Task"}
+                  {editingTask ? "Save Changes" : "Create Parent Task"}
                 </button>
               </div>
             </form>
@@ -1914,27 +1666,21 @@ const ProjectWorkspace = () => {
         </div>
       )}
 
-      {/* ================= DELETE MEMBER MODAL ================= */}
-
       {confirmDeleteMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-6 shadow-2xl shadow-black/40">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-400/10">
-              <PiTrash
-                size={24}
-                className="text-red-400"
-              />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-6 shadow-2xl shadow-slate-900/20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+              <PiTrash size={24} className="text-[#DC2626]" />
             </div>
 
-            <h2 className="mt-4 text-xl font-bold text-[#e8eef8]">
+            <h2 className="mt-4 text-xl font-bold text-[#172033]">
               Remove Team Member?
             </h2>
 
-            <p className="mt-2 text-sm text-[#e8eef8]/50">
+            <p className="mt-2 text-sm text-[#64748B]">
               Are you sure you want to remove{" "}
-              <span className="font-semibold text-[#e8eef8]/80">
-                {confirmDeleteMember.user
-                  ?.fullName ||
+              <span className="font-semibold text-[#172033]">
+                {confirmDeleteMember.user?.fullName ||
                   confirmDeleteMember.user?.name}
               </span>{" "}
               from this project?
@@ -1942,17 +1688,15 @@ const ProjectWorkspace = () => {
 
             <div className="mt-6 flex justify-end gap-3">
               <button
-                onClick={() =>
-                  setConfirmDeleteMember(null)
-                }
-                className="rounded-xl border border-[#e8eef8]/10 px-5 py-2.5 text-sm font-semibold text-[#e8eef8]/60 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                onClick={() => setConfirmDeleteMember(null)}
+                className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
               >
                 Cancel
               </button>
 
               <button
                 onClick={handleDeleteMember}
-                className="rounded-xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-400"
+                className="rounded-xl bg-[#DC2626] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
               >
                 Remove
               </button>
@@ -1961,43 +1705,37 @@ const ProjectWorkspace = () => {
         </div>
       )}
 
-      {/* ================= DELETE TASK MODAL ================= */}
-
       {confirmDeleteTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-6 shadow-2xl shadow-black/40">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-400/10">
-              <PiTrash
-                size={24}
-                className="text-red-400"
-              />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-6 shadow-2xl shadow-slate-900/20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+              <PiTrash size={24} className="text-[#DC2626]" />
             </div>
 
-            <h2 className="mt-4 text-xl font-bold text-[#e8eef8]">
+            <h2 className="mt-4 text-xl font-bold text-[#172033]">
               Delete Parent Task?
             </h2>
 
-            <p className="mt-2 text-sm text-[#e8eef8]/50">
+            <p className="mt-2 text-sm text-[#64748B]">
               Are you sure you want to delete{" "}
-              <span className="font-semibold text-[#e8eef8]/80">
+              <span className="font-semibold text-[#172033]">
                 {confirmDeleteTask.title}
               </span>
-              ? This will also remove any decomposed subtasks under this parent task.
+              ? This will also remove any decomposed subtasks under this
+              parent task.
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
               <button
-                onClick={() =>
-                  setConfirmDeleteTask(null)
-                }
-                className="rounded-xl border border-[#e8eef8]/10 px-5 py-2.5 text-sm font-semibold text-[#e8eef8]/60 transition hover:bg-[#e8eef8]/5 hover:text-[#e8eef8]"
+                onClick={() => setConfirmDeleteTask(null)}
+                className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
               >
                 Cancel
               </button>
 
               <button
                 onClick={handleDeleteTask}
-                className="rounded-xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-400"
+                className="rounded-xl bg-[#DC2626] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
               >
                 Delete Parent Task
               </button>

@@ -49,9 +49,9 @@ const MONTHS = [
 const pad2 = (value) => String(value).padStart(2, "0");
 
 const toISO = (date) => {
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(
-    date.getDate()
-  )}`;
+  return `${date.getFullYear()}-${pad2(
+    date.getMonth() + 1
+  )}-${pad2(date.getDate())}`;
 };
 
 const formatDisplayDate = (dateString) => {
@@ -97,28 +97,34 @@ const GlobalCalendar = () => {
 
   const { can } = usePermission();
 
-  const [currentDate, setCurrentDate] = useState(new Date());
-
-  const [selectedProjectId, setSelectedProjectId] = useState("ALL");
-  const [selectedTeamId, setSelectedTeamId] = useState("ALL");
-  const [selectedUserId, setSelectedUserId] = useState("ALL");
-
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [newDueDate, setNewDueDate] = useState("");
-
-  const [chatbotEvents, setChatbotEvents] = useState(() =>
-    getChatbotEvents(currentUser?.id)
+  const [currentDate, setCurrentDate] = useState(
+    new Date()
   );
 
-  /*
-   * Reload chatbot events when:
-   * 1. Calendar opens
-   * 2. Chatbot creates a new event in the same browser tab
-   * 3. Another browser tab changes localStorage
-   */
+  const [selectedProjectId, setSelectedProjectId] =
+    useState("ALL");
+
+  const [selectedTeamId, setSelectedTeamId] =
+    useState("ALL");
+
+  const [selectedUserId, setSelectedUserId] =
+    useState("ALL");
+
+  const [selectedEvent, setSelectedEvent] =
+    useState(null);
+
+  const [newDueDate, setNewDueDate] =
+    useState("");
+
+  const [chatbotEvents, setChatbotEvents] = useState(
+    () => getChatbotEvents(currentUser?.id)
+  );
+
   useEffect(() => {
     const reloadEvents = () => {
-      setChatbotEvents(getChatbotEvents(currentUser?.id));
+      setChatbotEvents(
+        getChatbotEvents(currentUser?.id)
+      );
     };
 
     reloadEvents();
@@ -128,7 +134,10 @@ const GlobalCalendar = () => {
       reloadEvents
     );
 
-    window.addEventListener("storage", reloadEvents);
+    window.addEventListener(
+      "storage",
+      reloadEvents
+    );
 
     return () => {
       window.removeEventListener(
@@ -136,23 +145,19 @@ const GlobalCalendar = () => {
         reloadEvents
       );
 
-      window.removeEventListener("storage", reloadEvents);
+      window.removeEventListener(
+        "storage",
+        reloadEvents
+      );
     };
   }, [currentUser?.id]);
 
-  /*
-   * Visible projects according to the existing application permissions.
-   */
   const visibleProjects = useMemo(() => {
     if (!currentUser) return [];
 
     try {
       const role = normalizeRole(currentUser.role);
 
-      /*
-       * Admin/project-manager users can normally see all projects.
-       * For other roles, projectTeams/teams are used where available.
-       */
       if (
         role === ROLES.ADMIN ||
         role === ROLES.PROJECT_MANAGER
@@ -166,12 +171,13 @@ const GlobalCalendar = () => {
         projectTeams
           .filter(
             (pt) =>
-              String(pt.userId ?? pt.memberId ?? pt.employeeId) ===
-              userId
+              String(
+                pt.userId ??
+                  pt.memberId ??
+                  pt.employeeId
+              ) === userId
           )
-          .map((pt) =>
-            String(pt.projectId)
-          )
+          .map((pt) => String(pt.projectId))
       );
 
       if (assignedProjectIds.size === 0) {
@@ -179,7 +185,9 @@ const GlobalCalendar = () => {
       }
 
       return projects.filter((project) =>
-        assignedProjectIds.has(String(project.id))
+        assignedProjectIds.has(
+          String(project.id)
+        )
       );
     } catch {
       return projects;
@@ -190,14 +198,13 @@ const GlobalCalendar = () => {
     projectTeams,
   ]);
 
-  /*
-   * Subtasks which already belong to the application's calendar.
-   */
   const visibleSubtasks = useMemo(() => {
     if (!currentUser) return [];
 
     const visibleProjectIds = new Set(
-      visibleProjects.map((project) => String(project.id))
+      visibleProjects.map((project) =>
+        String(project.id)
+      )
     );
 
     const allSubtasks = tasks.flatMap((task) => {
@@ -219,7 +226,9 @@ const GlobalCalendar = () => {
       if (
         visibleProjectIds.size > 0 &&
         subtask.projectId != null &&
-        !visibleProjectIds.has(String(subtask.projectId))
+        !visibleProjectIds.has(
+          String(subtask.projectId)
+        )
       ) {
         return false;
       }
@@ -232,62 +241,22 @@ const GlobalCalendar = () => {
     visibleProjects,
   ]);
 
-  /*
-   * Existing subtask calendar events + chatbot events.
-   */
   const filteredEvents = useMemo(() => {
-    const subtaskEvents = visibleSubtasks.filter((subtask) => {
-      const parentTask = tasks.find(
-        (task) =>
-          String(task.id) === String(subtask.taskId)
-      );
+    const subtaskEvents =
+      visibleSubtasks.filter((subtask) => {
+        const parentTask = tasks.find(
+          (task) =>
+            String(task.id) ===
+            String(subtask.taskId)
+        );
 
-      const projId =
-        subtask.projectId ?? parentTask?.projectId;
-
-      if (
-        selectedProjectId !== "ALL" &&
-        String(projId) !== String(selectedProjectId)
-      ) {
-        return false;
-      }
-
-      if (
-        selectedTeamId !== "ALL" &&
-        String(subtask.teamId) !== String(selectedTeamId)
-      ) {
-        return false;
-      }
-
-      if (
-        selectedUserId !== "ALL" &&
-        String(subtask.assigneeId) !== String(selectedUserId)
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-
-    const normalizedSubtaskEvents = subtaskEvents.map(
-      (subtask) => ({
-        ...subtask,
-        calendarType: "subtask",
-        calendarTitle:
-          subtask.title ||
-          subtask.name ||
-          "Subtask",
-      })
-    );
-
-    const normalizedChatbotEvents = chatbotEvents
-      .filter((event) => {
-        if (!event?.dueDate) return false;
+        const projId =
+          subtask.projectId ??
+          parentTask?.projectId;
 
         if (
           selectedProjectId !== "ALL" &&
-          event.projectId != null &&
-          String(event.projectId) !==
+          String(projId) !==
             String(selectedProjectId)
         ) {
           return false;
@@ -295,8 +264,7 @@ const GlobalCalendar = () => {
 
         if (
           selectedTeamId !== "ALL" &&
-          event.teamId != null &&
-          String(event.teamId) !==
+          String(subtask.teamId) !==
             String(selectedTeamId)
         ) {
           return false;
@@ -304,23 +272,67 @@ const GlobalCalendar = () => {
 
         if (
           selectedUserId !== "ALL" &&
-          event.assigneeId != null &&
-          String(event.assigneeId) !==
+          String(subtask.assigneeId) !==
             String(selectedUserId)
         ) {
           return false;
         }
 
         return true;
-      })
-      .map((event) => ({
-        ...event,
-        calendarType: "chatbot",
+      });
+
+    const normalizedSubtaskEvents =
+      subtaskEvents.map((subtask) => ({
+        ...subtask,
+        calendarType: "subtask",
         calendarTitle:
-          event.title ||
-          event.label ||
-          "Calendar Event",
+          subtask.title ||
+          subtask.name ||
+          "Subtask",
       }));
+
+    const normalizedChatbotEvents =
+      chatbotEvents
+        .filter((event) => {
+          if (!event?.dueDate) return false;
+
+          if (
+            selectedProjectId !== "ALL" &&
+            event.projectId != null &&
+            String(event.projectId) !==
+              String(selectedProjectId)
+          ) {
+            return false;
+          }
+
+          if (
+            selectedTeamId !== "ALL" &&
+            event.teamId != null &&
+            String(event.teamId) !==
+              String(selectedTeamId)
+          ) {
+            return false;
+          }
+
+          if (
+            selectedUserId !== "ALL" &&
+            event.assigneeId != null &&
+            String(event.assigneeId) !==
+              String(selectedUserId)
+          ) {
+            return false;
+          }
+
+          return true;
+        })
+        .map((event) => ({
+          ...event,
+          calendarType: "chatbot",
+          calendarTitle:
+            event.title ||
+            event.label ||
+            "Calendar Event",
+        }));
 
     return [
       ...normalizedSubtaskEvents,
@@ -335,24 +347,27 @@ const GlobalCalendar = () => {
     selectedUserId,
   ]);
 
-  /*
-   * Calendar month information.
-   */
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
+    const firstDay = new Date(
+      year,
+      month,
+      1
+    );
+
+    const lastDay = new Date(
+      year,
+      month + 1,
+      0
+    );
 
     const startDay = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
 
     const cells = [];
 
-    /*
-     * Previous month padding.
-     */
     for (let i = 0; i < startDay; i++) {
       const date = new Date(
         year,
@@ -366,24 +381,34 @@ const GlobalCalendar = () => {
       });
     }
 
-    /*
-     * Current month.
-     */
-    for (let day = 1; day <= daysInMonth; day++) {
+    for (
+      let day = 1;
+      day <= daysInMonth;
+      day++
+    ) {
       cells.push({
-        date: new Date(year, month, day),
+        date: new Date(
+          year,
+          month,
+          day
+        ),
         currentMonth: true,
       });
     }
 
-    /*
-     * Next month padding.
-     */
     while (cells.length < 42) {
-      const day = cells.length - startDay - daysInMonth + 1;
+      const day =
+        cells.length -
+        startDay -
+        daysInMonth +
+        1;
 
       cells.push({
-        date: new Date(year, month + 1, day),
+        date: new Date(
+          year,
+          month + 1,
+          day
+        ),
         currentMonth: false,
       });
     }
@@ -395,7 +420,8 @@ const GlobalCalendar = () => {
     const dateString = toISO(day);
 
     return filteredEvents.filter(
-      (event) => event.dueDate === dateString
+      (event) =>
+        event.dueDate === dateString
     );
   };
 
@@ -427,24 +453,27 @@ const GlobalCalendar = () => {
 
   const handleEventClick = (event) => {
     setSelectedEvent(event);
-
     setNewDueDate(event.dueDate || "");
   };
 
   const handleReschedule = () => {
-    if (!selectedEvent || !newDueDate) return;
+    if (!selectedEvent || !newDueDate) {
+      return;
+    }
 
-    /*
-     * Chatbot events are stored directly in localStorage.
-     */
-    if (selectedEvent.calendarType === "chatbot") {
+    if (
+      selectedEvent.calendarType ===
+      "chatbot"
+    ) {
       try {
-        const userId = currentUser?.id ?? "guest";
+        const userId =
+          currentUser?.id ?? "guest";
 
-        const existingEvents = getChatbotEvents(userId);
+        const existingEvents =
+          getChatbotEvents(userId);
 
-        const updatedEvents = existingEvents.map(
-          (event) =>
+        const updatedEvents =
+          existingEvents.map((event) =>
             String(event.id) ===
             String(selectedEvent.id)
               ? {
@@ -452,7 +481,7 @@ const GlobalCalendar = () => {
                   dueDate: newDueDate,
                 }
               : event
-        );
+          );
 
         localStorage.setItem(
           CHATBOT_EVENTS_KEY + userId,
@@ -462,7 +491,9 @@ const GlobalCalendar = () => {
         setChatbotEvents(updatedEvents);
 
         window.dispatchEvent(
-          new Event("nfn-calendar-events-updated")
+          new Event(
+            "nfn-calendar-events-updated"
+          )
         );
 
         setSelectedEvent({
@@ -476,11 +507,9 @@ const GlobalCalendar = () => {
       }
     }
 
-    /*
-     * Existing subtask events continue using the application's
-     * TasksContext update function.
-     */
-    if (typeof updateSubtask === "function") {
+    if (
+      typeof updateSubtask === "function"
+    ) {
       updateSubtask(selectedEvent.taskId, {
         id: selectedEvent.id,
         dueDate: newDueDate,
@@ -498,7 +527,8 @@ const GlobalCalendar = () => {
 
     const project = projects.find(
       (item) =>
-        String(item.id) === String(projectId)
+        String(item.id) ===
+        String(projectId)
     );
 
     return (
@@ -514,10 +544,15 @@ const GlobalCalendar = () => {
 
     const team = teams.find(
       (item) =>
-        String(item.id) === String(teamId)
+        String(item.id) ===
+        String(teamId)
     );
 
-    return team?.name || team?.teamName || "";
+    return (
+      team?.name ||
+      team?.teamName ||
+      ""
+    );
   };
 
   const userName = (userId) => {
@@ -525,7 +560,8 @@ const GlobalCalendar = () => {
 
     const user = users.find(
       (item) =>
-        String(item.id) === String(userId)
+        String(item.id) ===
+        String(userId)
     );
 
     return (
@@ -539,21 +575,20 @@ const GlobalCalendar = () => {
   const todayISO = toISO(new Date());
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="min-h-full bg-[#E8EEF7] space-y-6 p-4 text-[#172033] sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#2563EB]">
               <PiCalendarBlank size={24} />
             </div>
 
             <div>
-              <h1 className="text-2xl font-semibold text-white">
+              <h1 className="text-2xl font-semibold text-[#172033]">
                 SDLC Master Calendar
               </h1>
 
-              <p className="mt-1 text-sm text-white/50">
+              <p className="mt-1 text-sm text-[#475569]">
                 Track subtasks, milestones, delivery deadlines
                 and calendar events.
               </p>
@@ -564,52 +599,55 @@ const GlobalCalendar = () => {
         <button
           type="button"
           onClick={goToToday}
-          className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#475569] shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
         >
           Today
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="rounded-xl border border-white/10 bg-[#0d1320] p-4">
-        <div className="mb-4 flex items-center gap-2 text-sm font-medium text-white">
-          <PiFunnel size={18} />
+      <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#172033]">
+          <PiFunnel size={18} className="text-[#2563EB]" />
           Filters
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
-          {/* Project */}
           <select
             value={selectedProjectId}
             onChange={(event) =>
-              setSelectedProjectId(event.target.value)
+              setSelectedProjectId(
+                event.target.value
+              )
             }
-            className="rounded-lg border border-white/10 bg-[#111827] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
           >
             <option value="ALL">
               All Projects
             </option>
 
-            {visibleProjects.map((project) => (
-              <option
-                key={project.id}
-                value={project.id}
-              >
-                {project.name ||
-                  project.title ||
-                  project.projectName ||
-                  `Project ${project.id}`}
-              </option>
-            ))}
+            {visibleProjects.map(
+              (project) => (
+                <option
+                  key={project.id}
+                  value={project.id}
+                >
+                  {project.name ||
+                    project.title ||
+                    project.projectName ||
+                    `Project ${project.id}`}
+                </option>
+              )
+            )}
           </select>
 
-          {/* Team */}
           <select
             value={selectedTeamId}
             onChange={(event) =>
-              setSelectedTeamId(event.target.value)
+              setSelectedTeamId(
+                event.target.value
+              )
             }
-            className="rounded-lg border border-white/10 bg-[#111827] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
           >
             <option value="ALL">
               All Teams
@@ -627,13 +665,14 @@ const GlobalCalendar = () => {
             ))}
           </select>
 
-          {/* User */}
           <select
             value={selectedUserId}
             onChange={(event) =>
-              setSelectedUserId(event.target.value)
+              setSelectedUserId(
+                event.target.value
+              )
             }
-            className="rounded-lg border border-white/10 bg-[#111827] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
           >
             <option value="ALL">
               All Users
@@ -654,14 +693,12 @@ const GlobalCalendar = () => {
         </div>
       </div>
 
-      {/* Calendar */}
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0d1320]">
-        {/* Month navigation */}
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+      <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-300 bg-[#172033] px-5 py-4">
           <button
             type="button"
             onClick={goToPreviousMonth}
-            className="rounded-lg p-2 text-white/60 transition hover:bg-white/5 hover:text-white"
+            className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
             aria-label="Previous month"
           >
             <PiCaretLeft size={20} />
@@ -675,26 +712,24 @@ const GlobalCalendar = () => {
           <button
             type="button"
             onClick={goToNextMonth}
-            className="rounded-lg p-2 text-white/60 transition hover:bg-white/5 hover:text-white"
+            className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
             aria-label="Next month"
           >
             <PiCaretRight size={20} />
           </button>
         </div>
 
-        {/* Day headings */}
-        <div className="grid grid-cols-7 border-b border-white/10">
+        <div className="grid grid-cols-7 border-b border-slate-300 bg-[#24324A]">
           {DAYS.map((day) => (
             <div
               key={day}
-              className="border-r border-white/5 px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-white/40 last:border-r-0"
+              className="border-r border-white/10 px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-200 last:border-r-0"
             >
               {day}
             </div>
           ))}
         </div>
 
-        {/* Calendar grid */}
         <div className="grid grid-cols-7">
           {calendarDays.map(
             ({ date, currentMonth }, index) => {
@@ -708,34 +743,32 @@ const GlobalCalendar = () => {
               return (
                 <div
                   key={`${dateISO}-${index}`}
-                  className={`min-h-[125px] border-r border-b border-white/5 p-2 last:border-r-0 ${
+                  className={`min-h-[125px] border-r border-b border-slate-200 p-2 last:border-r-0 ${
                     currentMonth
-                      ? "bg-[#0d1320]"
-                      : "bg-[#0a0f19]/60"
+                      ? "bg-white"
+                      : "bg-[#F1F5F9]"
                   }`}
                 >
-                  {/* Date number */}
                   <div className="mb-2 flex items-center justify-between">
                     <span
-                      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${
+                      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                         isToday
-                          ? "bg-blue-600 text-white"
+                          ? "bg-[#2563EB] text-white"
                           : currentMonth
-                          ? "text-white/70"
-                          : "text-white/20"
+                          ? "text-[#475569]"
+                          : "text-[#94A3B8]"
                       }`}
                     >
                       {date.getDate()}
                     </span>
 
                     {dayEvents.length > 0 && (
-                      <span className="text-[10px] text-white/30">
+                      <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-semibold text-[#64748B]">
                         {dayEvents.length}
                       </span>
                     )}
                   </div>
 
-                  {/* Events */}
                   <div className="space-y-1.5">
                     {dayEvents
                       .slice(0, 4)
@@ -749,32 +782,34 @@ const GlobalCalendar = () => {
                             key={`${event.calendarType}-${event.id}`}
                             type="button"
                             onClick={() =>
-                              handleEventClick(event)
+                              handleEventClick(
+                                event
+                              )
                             }
-                            className={`w-full rounded-md border px-2 py-1.5 text-left transition ${
+                            className={`w-full rounded-lg border px-2 py-1.5 text-left transition ${
                               isChatbotEvent
-                                ? "border-amber-500/20 bg-amber-500/10 hover:bg-amber-500/15"
-                                : "border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/15"
+                                ? "border-amber-200 bg-amber-50 hover:bg-amber-100"
+                                : "border-blue-200 bg-blue-50 hover:bg-blue-100"
                             }`}
                           >
                             <div className="flex items-start gap-1.5">
                               {isChatbotEvent ? (
                                 <PiCalendarBlank
                                   size={13}
-                                  className="mt-0.5 shrink-0 text-amber-400"
+                                  className="mt-0.5 shrink-0 text-[#D97706]"
                                 />
                               ) : (
                                 <PiCheckSquareOffset
                                   size={13}
-                                  className="mt-0.5 shrink-0 text-blue-400"
+                                  className="mt-0.5 shrink-0 text-[#2563EB]"
                                 />
                               )}
 
                               <span
-                                className={`line-clamp-2 text-[11px] font-medium ${
+                                className={`line-clamp-2 text-[11px] font-semibold ${
                                   isChatbotEvent
-                                    ? "text-amber-200"
-                                    : "text-blue-200"
+                                    ? "text-[#92400E]"
+                                    : "text-[#1D4ED8]"
                                 }`}
                               >
                                 {event.calendarTitle}
@@ -785,7 +820,7 @@ const GlobalCalendar = () => {
                       })}
 
                     {dayEvents.length > 4 && (
-                      <div className="px-1 text-[10px] text-white/35">
+                      <div className="px-1 text-[10px] font-medium text-[#64748B]">
                         +{dayEvents.length - 4} more
                       </div>
                     )}
@@ -797,20 +832,19 @@ const GlobalCalendar = () => {
         </div>
       </div>
 
-      {/* Event details */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#101722] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
-                <h3 className="text-base font-semibold text-white">
+                <h3 className="text-base font-semibold text-[#172033]">
                   {selectedEvent.calendarTitle ||
                     selectedEvent.title ||
                     selectedEvent.name ||
                     "Calendar Event"}
                 </h3>
 
-                <p className="mt-1 text-xs text-white/40">
+                <p className="mt-1 text-xs text-[#64748B]">
                   {selectedEvent.calendarType ===
                   "chatbot"
                     ? "Calendar event"
@@ -823,7 +857,7 @@ const GlobalCalendar = () => {
                 onClick={() =>
                   setSelectedEvent(null)
                 }
-                className="rounded-lg p-2 text-white/50 transition hover:bg-white/5 hover:text-white"
+                className="rounded-lg p-2 text-[#64748B] transition hover:bg-[#F1F5F9] hover:text-[#172033]"
                 aria-label="Close"
               >
                 <PiX size={20} />
@@ -831,30 +865,28 @@ const GlobalCalendar = () => {
             </div>
 
             <div className="space-y-4 p-5">
-              {/* Date */}
-              <div>
-                <p className="text-xs uppercase tracking-wide text-white/35">
+              <div className="rounded-xl border border-slate-200 bg-[#F1F5F9] p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                   Date
                 </p>
 
-                <p className="mt-1 text-sm text-white">
+                <p className="mt-1 text-sm font-semibold text-[#172033]">
                   {formatDisplayDate(
                     selectedEvent.dueDate
                   )}
                 </p>
               </div>
 
-              {/* Chatbot event details */}
               {selectedEvent.calendarType ===
                 "chatbot" && (
                 <>
                   {selectedEvent.description && (
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-white/35">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                         Description
                       </p>
 
-                      <p className="mt-1 text-sm text-white/70">
+                      <p className="mt-1 text-sm leading-5 text-[#475569]">
                         {selectedEvent.description}
                       </p>
                     </div>
@@ -862,31 +894,30 @@ const GlobalCalendar = () => {
 
                   {selectedEvent.priority && (
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-white/35">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                         Priority
                       </p>
 
-                      <p className="mt-1 text-sm text-white/70">
+                      <span className="mt-1 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#1D4ED8]">
                         {selectedEvent.priority}
-                      </p>
+                      </span>
                     </div>
                   )}
                 </>
               )}
 
-              {/* Subtask details */}
               {selectedEvent.calendarType !==
                 "chatbot" && (
-                <>
+                <div className="grid gap-3 sm:grid-cols-3">
                   {projectName(
                     selectedEvent.projectId
                   ) && (
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-white/35">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                         Project
                       </p>
 
-                      <p className="mt-1 text-sm text-white/70">
+                      <p className="mt-1 text-sm font-medium text-[#172033]">
                         {projectName(
                           selectedEvent.projectId
                         )}
@@ -897,12 +928,12 @@ const GlobalCalendar = () => {
                   {teamName(
                     selectedEvent.teamId
                   ) && (
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-white/35">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                         Team
                       </p>
 
-                      <p className="mt-1 text-sm text-white/70">
+                      <p className="mt-1 text-sm font-medium text-[#172033]">
                         {teamName(
                           selectedEvent.teamId
                         )}
@@ -913,24 +944,23 @@ const GlobalCalendar = () => {
                   {userName(
                     selectedEvent.assigneeId
                   ) && (
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-white/35">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                         Assignee
                       </p>
 
-                      <p className="mt-1 text-sm text-white/70">
+                      <p className="mt-1 text-sm font-medium text-[#172033]">
                         {userName(
                           selectedEvent.assigneeId
                         )}
                       </p>
                     </div>
                   )}
-                </>
+                </div>
               )}
 
-              {/* Reschedule */}
-              <div className="border-t border-white/10 pt-4">
-                <label className="text-xs uppercase tracking-wide text-white/35">
+              <div className="border-t border-slate-200 pt-4">
+                <label className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                   Reschedule
                 </label>
 
@@ -943,35 +973,33 @@ const GlobalCalendar = () => {
                         event.target.value
                       )
                     }
-                    className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#0b111c] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50"
+                    className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   />
 
                   <button
                     type="button"
                     onClick={handleReschedule}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+                    className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
                   >
                     Save
                   </button>
                 </div>
               </div>
 
-              {/* Existing subtask workspace */}
               {selectedEvent.calendarType !==
                 "chatbot" &&
                 selectedEvent.taskId != null && (
                   <Link
                     to={`/tasks/${selectedEvent.taskId}`}
-                    className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/80 transition hover:bg-white/10"
+                    className="flex items-center gap-2 rounded-xl border border-slate-300 bg-[#F1F5F9] px-4 py-2.5 text-sm font-semibold text-[#475569] transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
                   >
                     <PiCheckSquareOffset size={17} />
                     Open Subtask Workspace
                   </Link>
                 )}
 
-              {/* Project information */}
               {selectedEvent.projectId != null && (
-                <div className="flex items-center gap-2 text-xs text-white/40">
+                <div className="flex items-center gap-2 text-xs font-medium text-[#64748B]">
                   <PiFolder size={15} />
 
                   <span>
@@ -987,19 +1015,18 @@ const GlobalCalendar = () => {
         </div>
       )}
 
-      {/* Empty state */}
       {filteredEvents.length === 0 && (
-        <div className="rounded-xl border border-dashed border-white/10 bg-[#0d1320] px-6 py-10 text-center">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center shadow-sm">
           <PiCalendarBlank
             size={32}
-            className="mx-auto text-white/20"
+            className="mx-auto text-slate-300"
           />
 
-          <p className="mt-3 text-sm font-medium text-white/60">
+          <p className="mt-3 text-sm font-semibold text-[#475569]">
             No calendar events found
           </p>
 
-          <p className="mt-1 text-xs text-white/35">
+          <p className="mt-1 text-xs text-[#64748B]">
             Subtask deadlines and chatbot-created events
             will appear here.
           </p>

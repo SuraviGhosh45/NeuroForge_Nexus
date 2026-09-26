@@ -1,18 +1,10 @@
-/* =========================================================
-   KANBAN PAGE
-========================================================= */
-
 .kanban-page {
   width: 100%;
   min-height: 100%;
   padding: 28px 30px 40px;
   box-sizing: border-box;
+  background: #E8EEF7;
 }
-
-
-/* =========================================================
-   HEADER
-========================================================= */
 
 .kanban-header {
   display: flex;
@@ -32,7 +24,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: #8b5cf6;
+  color: #2563EB;
 }
 
 .kanban-title-area h1 {
@@ -40,20 +32,15 @@
   font-size: 30px;
   line-height: 1.2;
   font-weight: 750;
-  color: #f8fafc;
+  color: #172033;
 }
 
 .kanban-title-area p {
   margin: 9px 0 0;
   font-size: 14px;
   line-height: 1.6;
-  color: #94a3b8;
+  color: #64748B;
 }
-
-
-/* =========================================================
-   PROJECT SELECTOR
-========================================================= */
 
 .project-selector {
   display: flex;
@@ -65,64 +52,50 @@
 .project-selector label {
   font-size: 13px;
   font-weight: 650;
-  color: #cbd5e1;
+  color: #475569;
 }
 
 .project-selector select {
   min-width: 230px;
   height: 42px;
   padding: 0 38px 0 14px;
-
-  border: 1px solid #334155;
+  border: 1px solid #CBD5E1;
   border-radius: 10px;
-
-  background-color: #151b2b;
-  color: #f8fafc;
-
+  background-color: #FFFFFF;
+  color: #172033;
   font-size: 13px;
   font-weight: 600;
-
   outline: none;
   cursor: pointer;
-
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
 .project-selector select:hover {
-  border-color: #64748b;
+  border-color: #94A3B8;
 }
 
 .project-selector select:focus {
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .project-selector option {
-  background: #151b2b;
-  color: #f8fafc;
+  background: #FFFFFF;
+  color: #172033;
 }
-
-
-/* =========================================================
-   SELECTED PROJECT
-========================================================= */
 
 .selected-project {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-
   margin-bottom: 20px;
   padding: 7px 12px;
-
-  border: 1px solid #2d3748;
+  border: 1px solid #BFDBFE;
   border-radius: 8px;
-
-  background: #111827;
-
-  color: #cbd5e1;
+  background: #EFF6FF;
+  color: #1E40AF;
   font-size: 13px;
   font-weight: 600;
 }
@@ -131,13 +104,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #8b5cf6;
+  background: #2563EB;
 }
-
-
-/* =========================================================
-   SUMMARY
-========================================================= */
 
 .kanban-summary {
   display: grid;
@@ -150,31 +118,26 @@
   display: flex;
   align-items: center;
   gap: 13px;
-
   min-height: 82px;
   padding: 16px;
-
-  border: 1px solid #263044;
+  border: 1px solid #CBD5E1;
   border-radius: 12px;
-
-  background: #111827;
-
+  background: #FFFFFF;
   box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(23, 32, 51, 0.05);
 }
 
 .summary-card span {
   display: block;
   margin-bottom: 5px;
-
-  color: #94a3b8;
+  color: #64748B;
   font-size: 12px;
   font-weight: 550;
 }
 
 .summary-card strong {
   display: block;
-
-  color: #f8fafc;
+  color: #172033;
   font-size: 24px;
   line-height: 1;
   font-weight: 750;
@@ -184,73 +147,62 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 38px;
   height: 38px;
-
   flex-shrink: 0;
-
   border-radius: 9px;
-
   font-size: 14px;
   font-weight: 800;
 }
 
 .summary-icon.total {
-  background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
+  background: #EEF2FF;
+  color: #4F46E5;
 }
 
 .summary-icon.todo {
-  background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
+  background: #F1F5F9;
+  color: #475569;
 }
 
 .summary-icon.progress {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
+  background: #EFF6FF;
+  color: #2563EB;
 }
 
 .summary-icon.done {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
+  background: #F0FDF4;
+  color: #16A34A;
 }
-
-
-/* =========================================================
-   BOARD
-========================================================= */
 
 .kanban-board {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   width: 100%;
+  padding: 18px;
+  border: 1px solid #CBD5E1;
+  border-radius: 14px;
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(23, 32, 51, 0.05);
+  box-sizing: border-box;
 }
-
-
-/* =========================================================
-   COLUMNS
-========================================================= */
 
 .kanban-column {
   min-width: 0;
   min-height: 460px;
-
   padding: 15px;
-
-  border: 1px solid #263044;
+  border: 1px solid #CBD5E1;
   border-radius: 13px;
-
-  background: #0f172a;
-
+  background: #F1F5F9;
   transition:
     border-color 0.2s ease,
     background 0.2s ease;
 }
 
 .kanban-column:hover {
-  border-color: #334155;
+  border-color: #94A3B8;
+  background: #EEF2F7;
 }
 
 .column-header {
@@ -268,8 +220,7 @@
 
 .column-title h3 {
   margin: 0;
-
-  color: #e2e8f0;
+  color: #172033;
   font-size: 14px;
   font-weight: 700;
 }
@@ -278,72 +229,60 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #94a3b8;
+  background: #64748B;
 }
 
 .todo-column .column-status-dot {
-  background: #94a3b8;
+  background: #64748B;
 }
 
 .progress-column .column-status-dot {
-  background: #60a5fa;
+  background: #2563EB;
 }
 
 .done-column .column-status-dot {
-  background: #4ade80;
+  background: #16A34A;
 }
 
 .task-count {
   display: flex;
   align-items: center;
   justify-content: center;
-
   min-width: 25px;
   height: 25px;
   padding: 0 7px;
-
   border-radius: 7px;
-
-  background: #1e293b;
-  color: #cbd5e1;
-
+  background: #FFFFFF;
+  color: #475569;
   font-size: 11px;
   font-weight: 700;
+  border: 1px solid #CBD5E1;
 }
 
 .column-divider {
   height: 1px;
   margin: 14px 0;
-
-  background: #1e293b;
+  background: #CBD5E1;
 }
 
 .column-tasks {
   display: flex;
   flex-direction: column;
   gap: 11px;
-
   min-height: 390px;
 }
-
-
-/* =========================================================
-   EMPTY COLUMN
-========================================================= */
 
 .empty-column {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
   min-height: 180px;
   padding: 20px;
-
-  border: 1px dashed #334155;
+  border: 1px dashed #94A3B8;
   border-radius: 10px;
-
-  color: #64748b;
+  background: rgba(255, 255, 255, 0.55);
+  color: #64748B;
   text-align: center;
 }
 
@@ -351,15 +290,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 32px;
   height: 32px;
   margin-bottom: 10px;
-
-  border: 1px solid #334155;
+  border: 1px solid #CBD5E1;
   border-radius: 50%;
-
-  color: #64748b;
+  background: #FFFFFF;
+  color: #64748B;
   font-size: 20px;
 }
 
@@ -367,25 +304,14 @@
   font-size: 12px;
 }
 
-
-/* =========================================================
-   TASK CARD
-========================================================= */
-
 .kanban-card {
   position: relative;
-
   padding: 15px;
-
-  border: 1px solid #293548;
+  border: 1px solid #CBD5E1;
   border-radius: 11px;
-
-  background: #151c2c;
-
+  background: #FFFFFF;
   cursor: grab;
-
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
-
+  box-shadow: 0 3px 12px rgba(23, 32, 51, 0.07);
   transition:
     transform 0.18s ease,
     border-color 0.18s ease,
@@ -394,10 +320,8 @@
 
 .kanban-card:hover {
   transform: translateY(-2px);
-  border-color: #475569;
-
-  box-shadow:
-    0 7px 20px rgba(0, 0, 0, 0.22);
+  border-color: #94A3B8;
+  box-shadow: 0 7px 20px rgba(23, 32, 51, 0.11);
 }
 
 .kanban-card:active {
@@ -409,73 +333,56 @@
   transform: rotate(1deg);
 }
 
-
-/* =========================================================
-   CARD TOP
-========================================================= */
-
 .card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-
   margin-bottom: 12px;
 }
 
 .task-id {
-  color: #64748b;
+  color: #64748B;
   font-size: 11px;
   font-weight: 700;
 }
 
-
-/* =========================================================
-   PRIORITY
-========================================================= */
-
 .priority-badge {
   display: inline-flex;
   align-items: center;
-
   padding: 4px 8px;
-
   border-radius: 6px;
-
   font-size: 10px;
   font-weight: 750;
 }
 
 .priority-badge.high {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
 }
 
 .priority-badge.medium {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+  background: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FDE68A;
 }
 
 .priority-badge.low {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
+  background: #F0FDF4;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
 }
 
 .priority-badge.critical {
-  background: rgba(220, 38, 38, 0.2);
-  color: #fb7185;
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FCA5A5;
 }
-
-
-/* =========================================================
-   TASK CONTENT
-========================================================= */
 
 .task-title {
   margin: 0 0 7px;
-
-  color: #f8fafc;
-
+  color: #172033;
   font-size: 15px;
   line-height: 1.4;
   font-weight: 700;
@@ -484,31 +391,20 @@
 .task-description {
   display: -webkit-box;
   overflow: hidden;
-
   margin: 0 0 14px;
-
-  color: #94a3b8;
-
+  color: #64748B;
   font-size: 12px;
   line-height: 1.55;
-
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
-
-
-/* =========================================================
-   ASSIGNEE
-========================================================= */
 
 .task-assignee {
   display: flex;
   align-items: center;
   gap: 8px;
-
   margin-bottom: 13px;
-
-  color: #cbd5e1;
+  color: #475569;
   font-size: 11px;
   font-weight: 600;
 }
@@ -517,51 +413,35 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 25px;
   height: 25px;
-
   border-radius: 50%;
-
-  background: #312e81;
-  color: #c4b5fd;
-
+  background: #EEF2FF;
+  color: #4F46E5;
+  border: 1px solid #C7D2FE;
   font-size: 10px;
   font-weight: 800;
 }
-
-
-/* =========================================================
-   CARD FOOTER
-========================================================= */
 
 .task-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-
   padding-top: 10px;
-
-  border-top: 1px solid #263044;
-
-  color: #64748b;
+  border-top: 1px solid #E2E8F0;
+  color: #64748B;
   font-size: 10px;
 }
 
 .task-status {
-  color: #94a3b8;
+  color: #475569;
   font-weight: 600;
 }
 
 .task-due-date {
   text-align: right;
 }
-
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
 
 @media (max-width: 1100px) {
   .kanban-summary {
@@ -606,5 +486,9 @@
 
   .kanban-title-area h1 {
     font-size: 25px;
+  }
+
+  .kanban-board {
+    padding: 12px;
   }
 }

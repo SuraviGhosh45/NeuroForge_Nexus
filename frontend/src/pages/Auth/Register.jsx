@@ -126,21 +126,21 @@ const Register = () => {
   return (
     <AuthLayout>
       <div className="w-full max-w-xl">
-        <section className="relative overflow-hidden rounded-2xl border border-[#e8eef8]/15 bg-[#0d1a2b]/90 p-6 sm:p-10 backdrop-blur-2xl shadow-2xl shadow-black/70 transition-all">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600" />
+        <section className="relative overflow-hidden rounded-2xl border border-[#CBD5E1] bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-10">
+          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#2563EB] via-[#4F46E5] to-[#2563EB]" />
 
-          <div className="text-left mb-7">
-            <h2 className="text-2xl font-bold tracking-tight text-white">
+          <div className="mb-7 text-left">
+            <h2 className="text-2xl font-bold tracking-tight text-[#172033]">
               Create your account
             </h2>
 
-            <p className="mt-1.5 text-sm text-[#e8eef8]/60">
+            <p className="mt-1.5 text-sm text-[#64748B]">
               Join your team on the NeuroForge Nexus SDLC platform
             </p>
           </div>
 
           {message && (
-            <div className="mb-5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-300">
+            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-medium text-red-700">
               {message}
             </div>
           )}
@@ -150,7 +150,7 @@ const Register = () => {
               <div>
                 <label
                   htmlFor="fullName"
-                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70"
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#475569]"
                 >
                   Full Name
                 </label>
@@ -163,15 +163,15 @@ const Register = () => {
                   placeholder="Jane Doe"
                   value={form.fullName}
                   onChange={handleChange}
-                  className={`w-full rounded-xl border bg-[#07111f]/90 px-4 py-2.5 text-sm text-[#e8eef8] placeholder:text-[#e8eef8]/45 outline-none transition ${
+                  className={`w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition placeholder:text-[#94A3B8] ${
                     errors.fullName
-                      ? "border-rose-500/60 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
-                      : "border-[#e8eef8]/15 hover:border-[#e8eef8]/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                      ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/15"
+                      : "border-[#CBD5E1] hover:border-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   }`}
                 />
 
                 {errors.fullName && (
-                  <p className="mt-1 text-xs text-rose-400">
+                  <p className="mt-1 text-xs text-red-600">
                     {errors.fullName}
                   </p>
                 )}
@@ -180,7 +180,7 @@ const Register = () => {
               <div>
                 <label
                   htmlFor="email"
-                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70"
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#475569]"
                 >
                   Work Email
                 </label>
@@ -193,15 +193,15 @@ const Register = () => {
                   placeholder="jane@company.com"
                   value={form.email}
                   onChange={handleChange}
-                  className={`w-full rounded-xl border bg-[#07111f]/90 px-4 py-2.5 text-sm text-[#e8eef8] placeholder:text-[#e8eef8]/45 outline-none transition ${
+                  className={`w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition placeholder:text-[#94A3B8] ${
                     errors.email
-                      ? "border-rose-500/60 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
-                      : "border-[#e8eef8]/15 hover:border-[#e8eef8]/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                      ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/15"
+                      : "border-[#CBD5E1] hover:border-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                   }`}
                 />
 
                 {errors.email && (
-                  <p className="mt-1 text-xs text-rose-400">
+                  <p className="mt-1 text-xs text-red-600">
                     {errors.email}
                   </p>
                 )}
@@ -212,7 +212,7 @@ const Register = () => {
               <div>
                 <label
                   htmlFor="password"
-                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70"
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#475569]"
                 >
                   Password
                 </label>
@@ -226,17 +226,17 @@ const Register = () => {
                     placeholder="Min. 6 characters"
                     value={form.password}
                     onChange={handleChange}
-                    className={`w-full rounded-xl border bg-[#07111f]/90 pl-4 pr-16 py-2.5 text-sm text-[#e8eef8] placeholder:text-[#e8eef8]/45 outline-none transition ${
+                    className={`w-full rounded-xl border bg-white py-2.5 pl-4 pr-16 text-sm text-[#172033] outline-none transition placeholder:text-[#94A3B8] ${
                       errors.password
-                        ? "border-rose-500/60 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
-                        : "border-[#e8eef8]/15 hover:border-[#e8eef8]/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/15"
+                        : "border-[#CBD5E1] hover:border-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                     }`}
                   />
 
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 flex items-center px-3.5 text-xs font-medium text-[#e8eef8]/40 hover:text-white transition"
+                    className="absolute inset-y-0 right-0 flex items-center px-3.5 text-xs font-medium text-[#64748B] transition hover:text-[#172033]"
                     aria-label={
                       showPassword ? "Hide password" : "Show password"
                     }
@@ -246,7 +246,7 @@ const Register = () => {
                 </div>
 
                 {errors.password && (
-                  <p className="mt-1 text-xs text-rose-400">
+                  <p className="mt-1 text-xs text-red-600">
                     {errors.password}
                   </p>
                 )}
@@ -256,19 +256,19 @@ const Register = () => {
                 <div className="mb-1.5 flex items-center justify-between">
                   <label
                     htmlFor="confirmPassword"
-                    className="text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/70"
+                    className="text-xs font-semibold uppercase tracking-wider text-[#475569]"
                   >
                     Confirm Password
                   </label>
 
                   {passwordsMatch && (
-                    <span className="text-[11px] font-medium text-emerald-400">
+                    <span className="text-[11px] font-medium text-emerald-600">
                       Passwords match
                     </span>
                   )}
 
                   {passwordsMismatch && (
-                    <span className="text-[11px] font-medium text-rose-400">
+                    <span className="text-[11px] font-medium text-red-600">
                       Passwords don't match
                     </span>
                   )}
@@ -283,12 +283,12 @@ const Register = () => {
                     placeholder="Repeat password"
                     value={form.confirmPassword}
                     onChange={handleChange}
-                    className={`w-full rounded-xl border bg-[#07111f]/90 pl-4 pr-16 py-2.5 text-sm text-[#e8eef8] placeholder:text-[#e8eef8]/45 outline-none transition ${
+                    className={`w-full rounded-xl border bg-white py-2.5 pl-4 pr-16 text-sm text-[#172033] outline-none transition placeholder:text-[#94A3B8] ${
                       errors.confirmPassword
-                        ? "border-rose-500/60 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                        ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/15"
                         : passwordsMatch
-                        ? "border-emerald-500/50 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                        : "border-[#e8eef8]/15 hover:border-[#e8eef8]/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        ? "border-emerald-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15"
+                        : "border-[#CBD5E1] hover:border-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
                     }`}
                   />
 
@@ -297,7 +297,7 @@ const Register = () => {
                     onClick={() =>
                       setShowConfirmPassword((prev) => !prev)
                     }
-                    className="absolute inset-y-0 right-0 flex items-center px-3.5 text-xs font-medium text-[#e8eef8]/40 hover:text-white transition"
+                    className="absolute inset-y-0 right-0 flex items-center px-3.5 text-xs font-medium text-[#64748B] transition hover:text-[#172033]"
                     aria-label={
                       showConfirmPassword
                         ? "Hide password"
@@ -309,7 +309,7 @@ const Register = () => {
                 </div>
 
                 {errors.confirmPassword && (
-                  <p className="mt-1 text-xs text-rose-400">
+                  <p className="mt-1 text-xs text-red-600">
                     {errors.confirmPassword}
                   </p>
                 )}
@@ -318,23 +318,23 @@ const Register = () => {
 
             <div className="pt-1">
               <div className="flex items-start justify-start">
-                <label className="flex items-start gap-2.5 cursor-pointer select-none text-[11px] text-[#e8eef8]/60 hover:text-[#e8eef8]/80 transition leading-normal">
+                <label className="flex cursor-pointer select-none items-start gap-2.5 text-[11px] leading-normal text-[#64748B] transition hover:text-[#475569]">
                   <input
                     type="checkbox"
                     id="terms"
                     name="terms"
                     checked={form.terms}
                     onChange={handleChange}
-                    className="mt-0.5 h-3.5 w-3.5 rounded border-[#e8eef8]/20 bg-[#07111f] text-blue-600 focus:ring-0 cursor-pointer accent-blue-500 shrink-0"
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-slate-300 bg-white text-blue-600 accent-blue-600 focus:ring-0"
                   />
 
                   <span>
                     I agree to the{" "}
-                    <span className="text-blue-400 hover:text-blue-300 underline underline-offset-2 cursor-pointer">
+                    <span className="cursor-pointer text-[#2563EB] underline underline-offset-2 hover:text-[#1D4ED8]">
                       Terms & Conditions
                     </span>{" "}
                     and{" "}
-                    <span className="text-blue-400 hover:text-blue-300 underline underline-offset-2 cursor-pointer">
+                    <span className="cursor-pointer text-[#2563EB] underline underline-offset-2 hover:text-[#1D4ED8]">
                       Privacy Policy
                     </span>
                   </span>
@@ -342,7 +342,7 @@ const Register = () => {
               </div>
 
               {errors.terms && (
-                <p className="mt-1 text-xs text-rose-400">
+                <p className="mt-1 text-xs text-red-600">
                   {errors.terms}
                 </p>
               )}
@@ -351,7 +351,7 @@ const Register = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="mt-2 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:brightness-110 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+              className="mt-2 flex w-full items-center justify-center rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white shadow-md shadow-blue-500/15 transition-all hover:bg-[#1D4ED8] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? "Creating Account..." : "Create Account"}
             </button>
@@ -359,25 +359,25 @@ const Register = () => {
 
           <div className="relative my-6 text-center">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#e8eef8]/10" />
+              <div className="w-full border-t border-[#E2E8F0]" />
             </div>
 
-            <span className="relative bg-[#0d1a2b] px-3 text-[10px] font-semibold uppercase tracking-widest text-[#e8eef8]/40">
+            <span className="relative bg-white px-3 text-[10px] font-semibold uppercase tracking-widest text-[#94A3B8]">
               OR
             </span>
           </div>
 
-          <p className="text-center text-xs text-[#e8eef8]/60">
+          <p className="text-center text-xs text-[#64748B]">
             Already have an account?{" "}
             <Link
               to="/login"
-              className="font-semibold text-blue-400 hover:text-blue-300 underline underline-offset-4 transition"
+              className="font-semibold text-[#2563EB] underline underline-offset-4 transition hover:text-[#1D4ED8]"
             >
               Sign in to your account
             </Link>
           </p>
 
-          <div className="mt-6 border-t border-[#e8eef8]/10 pt-4 text-center text-[11px] text-[#e8eef8]/40">
+          <div className="mt-6 border-t border-[#E2E8F0] pt-4 text-center text-[11px] font-medium text-[#94A3B8]">
             IAM Powered by Keycloak • Enterprise-Grade Protection
           </div>
         </section>

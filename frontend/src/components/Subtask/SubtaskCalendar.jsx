@@ -18,10 +18,10 @@ import { canRescheduleSubtask } from "../../utils/access.js";
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const priorityColor = {
-  Critical: "border-rose-500/40 bg-rose-500/10 text-rose-300",
-  High: "border-amber-500/40 bg-amber-500/10 text-amber-300",
-  Medium: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-  Low: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+  Critical: "border-red-200 bg-red-50 text-red-700",
+  High: "border-red-200 bg-red-50 text-red-700",
+  Medium: "border-blue-200 bg-blue-50 text-blue-700",
+  Low: "border-emerald-200 bg-emerald-50 text-emerald-700",
 };
 
 const SubtaskCalendar = () => {
@@ -30,277 +30,407 @@ const SubtaskCalendar = () => {
   const { currentUser } = useAuth();
   const { can } = usePermission();
 
-  const { getTaskById, getSubtasksByTaskId, updateSubtask } = useTasks();
+  const {
+    getTaskById,
+    getSubtasksByTaskId,
+    updateSubtask,
+  } = useTasks();
+
   const { users } = useUsers();
 
   const parentTask = getTaskById(taskId);
   const subtasks = getSubtasksByTaskId(taskId);
-  const currentSubtask = subtasks.find((s) => String(s.id) === String(subtaskId));
 
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedSubtask, setSelectedSubtask] = useState(currentSubtask || null);
-  const [newDueDate, setNewDueDate] = useState("");
+  const currentSubtask = subtasks.find(
+    (s) => String(s.id) === String(subtaskId)
+  );
+
+  const [currentDate, setCurrentDate] =
+    useState(new Date());
+
+  const [selectedSubtask, setSelectedSubtask] =
+    useState(currentSubtask || null);
+
+  const [newDueDate, setNewDueDate] =
+    useState("");
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
   const prevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
+    setCurrentDate(
+      new Date(year, month - 1, 1)
+    );
   };
 
   const nextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+    setCurrentDate(
+      new Date(year, month + 1, 1)
+    );
   };
 
-  const monthName = currentDate.toLocaleString("default", { month: "long" });
+  const monthName = currentDate.toLocaleString(
+    "default",
+    { month: "long" }
+  );
 
-  // Compute calendar grid days
   const calendarDays = useMemo(() => {
-    const firstDay = new Date(year, month, 1).getDay();
-    const totalDays = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(
+      year,
+      month,
+      1
+    ).getDay();
+
+    const totalDays = new Date(
+      year,
+      month + 1,
+      0
+    ).getDate();
 
     const daysArray = [];
+
     for (let i = 0; i < firstDay; i++) {
       daysArray.push(null);
     }
+
     for (let d = 1; d <= totalDays; d++) {
       daysArray.push(d);
     }
+
     return daysArray;
   }, [year, month]);
 
   const getSubtasksForDay = (day) => {
     if (!day) return [];
-    const formattedDay = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return subtasks.filter((s) => s.dueDate === formattedDay);
+
+    const formattedDay = `${year}-${String(
+      month + 1
+    ).padStart(2, "0")}-${String(day).padStart(
+      2,
+      "0"
+    )}`;
+
+    return subtasks.filter(
+      (s) => s.dueDate === formattedDay
+    );
   };
 
-  const canReschedule = canRescheduleSubtask(currentUser, selectedSubtask);
+  const canReschedule =
+    canRescheduleSubtask(
+      currentUser,
+      selectedSubtask
+    );
 
   const handleReschedule = async () => {
-    if (!selectedSubtask || !newDueDate) return;
+    if (!selectedSubtask || !newDueDate) {
+      return;
+    }
+
     await updateSubtask(taskId, {
       id: selectedSubtask.id,
       dueDate: newDueDate,
     });
+
     setNewDueDate("");
-    setSelectedSubtask((prev) => ({ ...prev, dueDate: newDueDate }));
+
+    setSelectedSubtask((prev) => ({
+      ...prev,
+      dueDate: newDueDate,
+    }));
   };
 
   if (!parentTask) {
     return (
-      <div className="py-16 text-center">
-        <h2 className="text-lg font-semibold text-white">Task not found</h2>
-        <button
-          onClick={() => navigate("/tasks")}
-          className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-xs font-medium text-white"
-        >
-          Back to Tasks
-        </button>
+      <div className="min-h-full bg-[#E8EEF7] p-6">
+        <div className="py-16 text-center">
+          <h2 className="text-lg font-semibold text-[#172033]">
+            Task not found
+          </h2>
+
+          <button
+            type="button"
+            onClick={() => navigate("/tasks")}
+            className="mt-4 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:brightness-110"
+          >
+            Back to Tasks
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Back button */}
-      <button
-        type="button"
-        onClick={() => navigate(`/projects/${projectId}/tasks/${taskId}/${subtaskId}`)}
-        className="inline-flex items-center gap-2 text-xs font-medium text-[#e8eef8]/50 hover:text-white transition"
-      >
-        <PiArrowLeft size={16} />
-        Back to Sub Task Details
-      </button>
+    <div className="min-h-full bg-[#E8EEF7] px-4 py-6 text-[#172033] sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1400px]">
+        <button
+          type="button"
+          onClick={() =>
+            navigate(
+              `/projects/${projectId}/tasks/${taskId}/${subtaskId}`
+            )
+          }
+          className="mb-5 inline-flex items-center gap-2 text-xs font-semibold text-[#475569] transition hover:text-[#2563EB]"
+        >
+          <PiArrowLeft size={16} />
+          Back to Subtask Details
+        </button>
 
-      {/* Main Workspace Wrapper */}
-      <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0d131f] shadow-xl overflow-hidden">
-        {/* Workspace Header */}
-        <div className="border-b border-[#e8eef8]/10 p-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-lg border border-[#e8eef8]/10 bg-[#0a0e17] px-2.5 py-1 text-xs text-[#e8eef8]/50 font-mono">
-              TASK-{parentTask.id}
-            </span>
-            <span className="text-xs text-[#e8eef8]/40">Subtask Schedule</span>
-          </div>
+        <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+          <div className="border-b border-slate-200 p-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="rounded-lg border border-slate-300 bg-[#F1F5F9] px-2.5 py-1 font-mono text-xs text-[#475569]">
+                TASK-{parentTask.id}
+              </span>
 
-          <h1 className="mt-3 text-2xl font-bold text-white sm:text-3xl">
-            {parentTask.title} • Calendar
-          </h1>
-          <p className="mt-1 text-sm text-[#e8eef8]/50">
-            Timeline schedule and deadlines for subtasks belonging to this parent work item.
-          </p>
-        </div>
-
-        {/* Workspace Navbar per Section 11 & 13 */}
-        <div className="border-b border-[#e8eef8]/10 bg-[#0a0e17] p-2">
-          <div className="flex min-w-max gap-1">
-            <button
-              type="button"
-              onClick={() => navigate(`/projects/${projectId}/tasks/${taskId}/${subtaskId}`)}
-              className="rounded-xl px-5 py-2 text-xs font-semibold text-[#e8eef8]/60 transition hover:bg-[#e8eef8]/5 hover:text-white"
-            >
-              Sub Task Details
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate(`/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban`)}
-              className="rounded-xl px-5 py-2 text-xs font-semibold text-[#e8eef8]/60 transition hover:bg-[#e8eef8]/5 hover:text-white"
-            >
-              Kanban
-            </button>
-
-            <button
-              type="button"
-              className="rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-md shadow-blue-600/20"
-            >
-              Calendar
-            </button>
-          </div>
-        </div>
-
-        {/* Calendar Body & Side Inspector */}
-        <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-3">
-          {/* Calendar Grid */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Month Navigation */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-white">
-                {monthName} {year}
-              </h2>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={prevMonth}
-                  className="rounded-lg border border-[#e8eef8]/10 p-1.5 text-[#e8eef8]/60 hover:bg-[#e8eef8]/5 hover:text-white"
-                >
-                  <PiCaretLeft size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={nextMonth}
-                  className="rounded-lg border border-[#e8eef8]/10 p-1.5 text-[#e8eef8]/60 hover:bg-[#e8eef8]/5 hover:text-white"
-                >
-                  <PiCaretRight size={16} />
-                </button>
-              </div>
+              <span className="text-xs text-[#64748B]">
+                Subtask Schedule
+              </span>
             </div>
 
-            {/* Days Header */}
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-[#e8eef8]/40 pb-2">
-              {DAYS.map((day) => (
-                <div key={day}>{day}</div>
-              ))}
-            </div>
+            <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#172033] sm:text-3xl">
+              {parentTask.title} • Calendar
+            </h1>
 
-            {/* Dates Grid */}
-            <div className="grid grid-cols-7 gap-1.5">
-              {calendarDays.map((day, idx) => {
-                if (!day) {
-                  return <div key={`empty-${idx}`} className="h-20 rounded-xl bg-[#0a0e17]/30" />;
+            <p className="mt-1 text-sm text-[#475569]">
+              Timeline schedule and deadlines for subtasks
+              belonging to this parent work item.
+            </p>
+          </div>
+
+          <div className="border-b border-slate-200 bg-[#F1F5F9] p-2">
+            <div className="flex min-w-max gap-1">
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}`
+                  )
                 }
+                className="rounded-xl px-5 py-2 text-xs font-semibold text-[#475569] transition hover:bg-white hover:text-[#172033]"
+              >
+                Subtask Details
+              </button>
 
-                const daySubtasks = getSubtasksForDay(day);
-                const isSelected =
-                  selectedSubtask?.dueDate ===
-                  `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban`
+                  )
+                }
+                className="rounded-xl px-5 py-2 text-xs font-semibold text-[#475569] transition hover:bg-white hover:text-[#172033]"
+              >
+                Kanban
+              </button>
 
-                return (
-                  <div
-                    key={`day-${day}`}
-                    className={`h-24 rounded-xl border p-1.5 transition flex flex-col justify-between ${
-                      isSelected
-                        ? "border-blue-500/50 bg-blue-500/10"
-                        : "border-[#e8eef8]/5 bg-[#0a0e17] hover:border-[#e8eef8]/20"
-                    }`}
-                  >
-                    <span className="text-[11px] font-semibold text-[#e8eef8]/60">{day}</span>
-
-                    <div className="space-y-1 overflow-y-auto">
-                      {daySubtasks.map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => setSelectedSubtask(s)}
-                          className={`w-full text-left truncate rounded px-1.5 py-0.5 text-[10px] font-medium border ${
-                            priorityColor[s.priority] || "bg-gray-800 text-gray-300"
-                          }`}
-                        >
-                          {s.title}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+              <button
+                type="button"
+                className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-5 py-2 text-xs font-semibold text-white shadow-sm"
+              >
+                Calendar
+              </button>
             </div>
           </div>
 
-          {/* Selected Item Inspector & Reschedule Control */}
-          <div className="rounded-2xl border border-[#e8eef8]/10 bg-[#0a0e17] p-5">
-            <h3 className="text-sm font-semibold text-white">Subtask Details</h3>
-            <p className="text-xs text-[#e8eef8]/40 mt-0.5">Selected schedule event</p>
+          <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-3">
+            <div className="space-y-4 lg:col-span-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-[#172033]">
+                  {monthName} {year}
+                </h2>
 
-            {selectedSubtask ? (
-              <div className="mt-5 space-y-4">
-                <div>
-                  <span className="text-[10px] font-mono text-[#e8eef8]/40">
-                    SUBTASK-{selectedSubtask.id}
-                  </span>
-                  <h4 className="text-sm font-semibold text-white mt-1">{selectedSubtask.title}</h4>
-                  <p className="text-xs text-[#e8eef8]/60 mt-1">
-                    {selectedSubtask.description || "No description provided."}
-                  </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={prevMonth}
+                    className="rounded-lg border border-slate-300 bg-white p-1.5 text-[#64748B] transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
+                  >
+                    <PiCaretLeft size={16} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={nextMonth}
+                    className="rounded-lg border border-slate-300 bg-white p-1.5 text-[#64748B] transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
+                  >
+                    <PiCaretRight size={16} />
+                  </button>
                 </div>
+              </div>
 
-                <div className="space-y-2 border-t border-[#e8eef8]/10 pt-3 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#e8eef8]/40">Status:</span>
-                    <span className="font-medium text-white">{selectedSubtask.status || "To Do"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#e8eef8]/40">Priority:</span>
-                    <span className="font-medium text-white">{selectedSubtask.priority || "Medium"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#e8eef8]/40">Due Date:</span>
-                    <span className="font-medium text-amber-400">{selectedSubtask.dueDate || "Not set"}</span>
-                  </div>
-                </div>
+              <div className="grid grid-cols-7 gap-1 pb-2 text-center text-xs font-semibold text-[#64748B]">
+                {DAYS.map((day) => (
+                  <div key={day}>{day}</div>
+                ))}
+              </div>
 
-                {/* Reschedule control */}
-                <div className="border-t border-[#e8eef8]/10 pt-4">
-                  <label className="block text-xs font-medium text-[#e8eef8]/70 mb-2">
-                    Reschedule Due Date
-                  </label>
-                  {canReschedule ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={newDueDate}
-                        onChange={(e) => setNewDueDate(e.target.value)}
-                        className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#070b14] px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500"
+              <div className="grid grid-cols-7 gap-1.5">
+                {calendarDays.map((day, idx) => {
+                  if (!day) {
+                    return (
+                      <div
+                        key={`empty-${idx}`}
+                        className="h-20 rounded-xl bg-[#F1F5F9]"
                       />
-                      <button
-                        onClick={handleReschedule}
-                        disabled={!newDueDate}
-                        className="rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50 hover:bg-blue-500"
-                      >
-                        Update
-                      </button>
+                    );
+                  }
+
+                  const daySubtasks =
+                    getSubtasksForDay(day);
+
+                  const formattedDate = `${year}-${String(
+                    month + 1
+                  ).padStart(2, "0")}-${String(
+                    day
+                  ).padStart(2, "0")}`;
+
+                  const isSelected =
+                    selectedSubtask?.dueDate ===
+                    formattedDate;
+
+                  return (
+                    <div
+                      key={`day-${day}`}
+                      className={`flex h-24 flex-col justify-between rounded-xl border p-1.5 transition ${
+                        isSelected
+                          ? "border-blue-300 bg-blue-50"
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-[#F1F5F9]"
+                      }`}
+                    >
+                      <span className="text-[11px] font-semibold text-[#475569]">
+                        {day}
+                      </span>
+
+                      <div className="space-y-1 overflow-y-auto">
+                        {daySubtasks.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() =>
+                              setSelectedSubtask(s)
+                            }
+                            className={`w-full truncate rounded border px-1.5 py-0.5 text-left text-[10px] font-semibold ${
+                              priorityColor[
+                                s.priority
+                              ] ||
+                              "border-slate-200 bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {s.title}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-xs text-[#e8eef8]/40 italic">
-                      View-only schedule. Contact Team Lead to reschedule.
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-300 bg-[#F1F5F9] p-5">
+              <h3 className="text-sm font-semibold text-[#172033]">
+                Subtask Details
+              </h3>
+
+              <p className="mt-0.5 text-xs text-[#64748B]">
+                Selected schedule event
+              </p>
+
+              {selectedSubtask ? (
+                <div className="mt-5 space-y-4">
+                  <div>
+                    <span className="font-mono text-[10px] text-[#64748B]">
+                      SUBTASK-{selectedSubtask.id}
+                    </span>
+
+                    <h4 className="mt-1 text-sm font-semibold text-[#172033]">
+                      {selectedSubtask.title}
+                    </h4>
+
+                    <p className="mt-1 text-xs leading-5 text-[#475569]">
+                      {selectedSubtask.description ||
+                        "No description provided."}
                     </p>
-                  )}
+                  </div>
+
+                  <div className="space-y-2 border-t border-slate-300 pt-3 text-xs">
+                    <div className="flex justify-between gap-4">
+                      <span className="text-[#64748B]">
+                        Status:
+                      </span>
+
+                      <span className="font-medium text-[#172033]">
+                        {selectedSubtask.status ||
+                          "To Do"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-4">
+                      <span className="text-[#64748B]">
+                        Priority:
+                      </span>
+
+                      <span className="font-medium text-[#172033]">
+                        {selectedSubtask.priority ||
+                          "Medium"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-4">
+                      <span className="text-[#64748B]">
+                        Due Date:
+                      </span>
+
+                      <span className="font-medium text-[#D97706]">
+                        {selectedSubtask.dueDate ||
+                          "Not set"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-300 pt-4">
+                    <label className="mb-2 block text-xs font-semibold text-[#475569]">
+                      Reschedule Due Date
+                    </label>
+
+                    {canReschedule ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="date"
+                          value={newDueDate}
+                          onChange={(e) =>
+                            setNewDueDate(
+                              e.target.value
+                            )
+                          }
+                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={
+                            handleReschedule
+                          }
+                          disabled={!newDueDate}
+                          className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-3 py-1.5 text-xs font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Update
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-xs italic text-[#64748B]">
+                        View-only schedule. Contact Team
+                        Lead to reschedule.
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="py-12 text-center text-xs text-[#e8eef8]/40">
-                Click any scheduled subtask on the calendar to view details or reschedule.
-              </div>
-            )}
+              ) : (
+                <div className="py-12 text-center text-xs text-[#64748B]">
+                  Click any scheduled subtask on the
+                  calendar to view details or reschedule.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

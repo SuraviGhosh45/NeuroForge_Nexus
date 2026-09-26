@@ -20,21 +20,21 @@ const UserSearch = ({
     assignmentFilter !== "All";
 
   return (
-    <div className="space-y-3.5 rounded-2xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5 shadow-xl shadow-black/20">
-      {/* SEARCH BAR (NO MAGNIFYING ICON) */}
+    <div className="space-y-3.5 rounded-2xl border border-slate-700 bg-[#172033] p-5 shadow-xl shadow-slate-900/10">
       <div className="relative">
         <input
           type="text"
           placeholder="Search by user name, email, or skills (e.g. React, Spring Boot, Agile)..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-4 py-3 text-sm text-[#e8eef8] placeholder:text-[#e8eef8]/30 outline-none transition focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20"
+          className="w-full rounded-xl border border-slate-600 bg-[#24324A] px-4 py-3 text-sm text-white placeholder:text-slate-400 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
         />
+
         {searchTerm && (
           <button
             type="button"
             onClick={() => onSearchChange("")}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-[#e8eef8]/40 hover:bg-[#e8eef8]/10 hover:text-white transition"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition hover:bg-slate-600 hover:text-white"
             title="Clear search"
           >
             <PiX size={15} />
@@ -42,23 +42,23 @@ const UserSearch = ({
         )}
       </div>
 
-      {/* REARRANGED FILTERS TOOLBAR */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-1">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#e8eef8]/50">
+      <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
           <PiFunnel size={15} className="text-blue-400" />
           <span>Filter Directory:</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* ROLE FILTER */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[#e8eef8]/40">Role:</span>
+            <span className="text-xs text-slate-400">Role:</span>
+
             <select
               value={roleFilter}
               onChange={(e) => onRoleFilterChange(e.target.value)}
-              className="rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-3 py-2 text-xs font-medium text-[#e8eef8] outline-none transition hover:border-[#e8eef8]/30 focus:border-blue-500"
+              className="rounded-xl border border-slate-600 bg-[#24324A] px-3 py-2 text-xs font-medium text-white outline-none transition hover:border-slate-500 focus:border-blue-400"
             >
               <option value="All">All Roles</option>
+
               {roles.map((role) => (
                 <option key={role} value={role}>
                   {formatRole(role)}
@@ -67,13 +67,13 @@ const UserSearch = ({
             </select>
           </div>
 
-          {/* STATUS FILTER */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[#e8eef8]/40">Status:</span>
+            <span className="text-xs text-slate-400">Status:</span>
+
             <select
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(e.target.value)}
-              className="rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-3 py-2 text-xs font-medium text-[#e8eef8] outline-none transition hover:border-[#e8eef8]/30 focus:border-blue-500"
+              className="rounded-xl border border-slate-600 bg-[#24324A] px-3 py-2 text-xs font-medium text-white outline-none transition hover:border-slate-500 focus:border-blue-400"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
@@ -82,13 +82,13 @@ const UserSearch = ({
             </select>
           </div>
 
-          {/* ASSIGNMENT ALLOCATION FILTER */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[#e8eef8]/40">Allocation:</span>
+            <span className="text-xs text-slate-400">Allocation:</span>
+
             <select
               value={assignmentFilter}
               onChange={(e) => onAssignmentFilterChange(e.target.value)}
-              className="rounded-xl border border-[#e8eef8]/15 bg-[#07111f] px-3 py-2 text-xs font-medium text-[#e8eef8] outline-none transition hover:border-[#e8eef8]/30 focus:border-blue-500"
+              className="rounded-xl border border-slate-600 bg-[#24324A] px-3 py-2 text-xs font-medium text-white outline-none transition hover:border-slate-500 focus:border-blue-400"
             >
               <option value="All">All Allocations</option>
               <option value="Assigned">Assigned to Project</option>
@@ -96,12 +96,11 @@ const UserSearch = ({
             </select>
           </div>
 
-          {/* RESET BUTTON */}
           {hasActiveFilters && (
             <button
               type="button"
               onClick={onResetFilters}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"
               title="Reset all filters"
             >
               <PiArrowCounterClockwise size={13} />

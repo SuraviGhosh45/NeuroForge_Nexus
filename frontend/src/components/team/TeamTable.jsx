@@ -2,69 +2,85 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 
 const TeamTable = ({ members, onEdit, onRemove }) => {
   return (
-    <div className="overflow-hidden rounded-xl border border-[#e8eef8]/10 bg-[#0d1a2b]">
-      <table className="w-full">
-        <thead className="border-b border-[#e8eef8]/10">
-          <tr className="text-left text-sm text-[#e8eef8]/50">
-            <th className="px-6 py-4">Member</th>
-            <th className="px-6 py-4">Email</th>
-            <th className="px-6 py-4">Team role</th>
-            <th className="px-6 py-4 text-right">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {members.length === 0 ? (
-            <tr>
-              <td
-                colSpan={4}
-                className="px-6 py-10 text-center text-sm text-[#e8eef8]/40"
-              >
-                No members yet
-              </td>
+    <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-[#172033]">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wider text-slate-300">
+              <th className="px-6 py-4">Member</th>
+              <th className="px-6 py-4">Email</th>
+              <th className="px-6 py-4">Team Role</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
-          ) : (
-            members.map((member) => (
-              <tr
-                key={member.id}
-                className="border-b border-[#e8eef8]/10 hover:bg-[#e8eef8]/5"
-              >
-                <td className="px-6 py-4 font-medium text-[#e8eef8]">
-                  {member.user?.fullName || "Unknown User"}
-                </td>
+          </thead>
 
-                <td className="px-6 py-4 text-sm text-[#e8eef8]/60">
-                  {member.user?.email || "-"}
-                </td>
-
-                <td className="px-6 py-4">
-                  <span className="rounded-full border border-[#e8eef8]/15 px-3 py-1 text-xs text-[#e8eef8]/80">
-                    {member.teamRole}
-                  </span>
-                </td>
-
-                <td className="px-6 py-4">
-                  <div className="flex justify-end gap-4">
-                    <button
-                      onClick={() => onEdit(member)}
-                      className="text-[#e8eef8]/50 hover:text-[#e8eef8]"
-                    >
-                      <FaEdit size={14} />
-                    </button>
-
-                    <button
-                      onClick={() => onRemove(member)}
-                      className="text-[#e8eef8]/50 hover:text-[#e8eef8]"
-                    >
-                      <FaTrash size={14} />
-                    </button>
-                  </div>
+          <tbody>
+            {members.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-6 py-10 text-center text-sm text-[#64748B]"
+                >
+                  No members yet
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              members.map((member) => (
+                <tr
+                  key={member.id}
+                  className="border-b border-slate-200 transition last:border-b-0 hover:bg-[#F1F5F9]"
+                >
+                  <td className="px-6 py-4 font-medium text-[#172033]">
+                    {member.user?.fullName || "Unknown User"}
+                  </td>
+
+                  <td className="px-6 py-4 text-sm text-[#475569]">
+                    {member.user?.email || "-"}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <span
+                      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
+                        member.teamRole === "Manager"
+                          ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                          : "border-blue-200 bg-blue-50 text-blue-700"
+                      }`}
+                    >
+                      {member.teamRole}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(member)}
+                        aria-label={`Edit ${
+                          member.user?.fullName || "member"
+                        }`}
+                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB]"
+                      >
+                        <FaEdit size={14} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onRemove(member)}
+                        aria-label={`Remove ${
+                          member.user?.fullName || "member"
+                        }`}
+                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-[#DC2626]"
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

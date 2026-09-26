@@ -27,22 +27,21 @@ const DashboardLayout = ({ children }) => {
   const handleDeleteAccount = async () => {
     setDeleting(true);
     setDeleteError("");
+
     const result = await deleteAccount();
+
     setDeleting(false);
 
     if (!result.success) {
       setDeleteError(result.message);
       return;
     }
-
-    // deleteAccount() already clears the session; nothing else to do here.
   };
 
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-[#e8eef8]">
-      {/* Modern Top Navbar */}
+    <div className="min-h-screen bg-[#e8eef7] text-[#172033]">
       <Navbar
         sidebarOpen={sidebarOpen}
         toggleSidebar={toggleSidebar}
@@ -52,7 +51,6 @@ const DashboardLayout = ({ children }) => {
         }}
       />
 
-      {/* Main layout */}
       <div className="flex">
         {sidebarOpen && <Sidebar role={currentUser.role} />}
 
@@ -61,18 +59,24 @@ const DashboardLayout = ({ children }) => {
         </main>
       </div>
 
-      {/* Delete-account confirmation */}
       {confirmDeleteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-sm rounded-xl border border-[#e8eef8]/10 bg-[#0f1422] p-6 shadow-2xl">
-            <h2 className="text-base font-semibold text-white">Delete your account?</h2>
-            <p className="mt-2 text-sm text-[#e8eef8]/60">
-              This permanently deletes your account. You will be removed from all
-              projects and teams, and this cannot be undone.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/55 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-300 bg-white p-6 shadow-2xl shadow-slate-900/20">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600">
+              !
+            </div>
+
+            <h2 className="text-base font-semibold text-[#172033]">
+              Delete your account?
+            </h2>
+
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              This permanently deletes your account. You will be removed from
+              all projects and teams, and this cannot be undone.
             </p>
 
             {deleteError && (
-              <p className="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-400">
+              <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
                 {deleteError}
               </p>
             )}
@@ -82,7 +86,7 @@ const DashboardLayout = ({ children }) => {
                 type="button"
                 onClick={() => setConfirmDeleteOpen(false)}
                 disabled={deleting}
-                className="rounded-lg border border-[#e8eef8]/10 px-3.5 py-1.5 text-xs text-[#e8eef8]/70 transition hover:bg-[#e8eef8]/5 disabled:opacity-50"
+                className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -91,7 +95,7 @@ const DashboardLayout = ({ children }) => {
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={deleting}
-                className="rounded-lg bg-rose-500/90 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-rose-500 disabled:opacity-50"
+                className="rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-50"
               >
                 {deleting ? "Deleting..." : "Delete Account"}
               </button>
@@ -100,7 +104,6 @@ const DashboardLayout = ({ children }) => {
         </div>
       )}
 
-      {/* Global floating chatbot */}
       <ChatBot />
     </div>
   );
