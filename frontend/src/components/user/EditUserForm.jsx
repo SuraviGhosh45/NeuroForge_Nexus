@@ -84,14 +84,14 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-300 bg-white p-6 shadow-2xl shadow-slate-900/20">
+      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold text-[#172033]">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
               Edit User Profile
             </h2>
 
-            <p className="mt-1 text-sm text-[#64748B]">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Update user details, role responsibilities, skills, and profile
               data
             </p>
@@ -100,7 +100,7 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-[#172033]"
+            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
           >
             <PiX size={20} />
           </button>
@@ -110,7 +110,7 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
           <div>
             <label
               htmlFor="edit-name"
-              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#475569]"
+              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300"
             >
               Full Name
             </label>
@@ -121,14 +121,14 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-blue-400"
             />
           </div>
 
           <div>
             <label
               htmlFor="edit-email"
-              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#475569]"
+              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300"
             >
               Email Address
             </label>
@@ -139,14 +139,14 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-blue-400"
             />
           </div>
 
           <div>
             <label
               htmlFor="edit-role"
-              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#475569]"
+              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300"
             >
               System Role
             </label>
@@ -155,10 +155,10 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
               id="edit-role"
               value={role}
               onChange={(e) => handleRoleChange(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-blue-400"
             >
               {AVAILABLE_ROLES.map((r) => (
-                <option key={r} value={r}>
+                <option key={r} value={r} className="dark:bg-slate-800 dark:text-white">
                   {formatRole(r)}
                 </option>
               ))}
@@ -166,7 +166,7 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#475569]">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               Active Status
             </label>
 
@@ -178,15 +178,15 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                     onClick={() => setStatus("Active")}
                     className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition ${
                       status === "Active"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm"
-                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-[#172033]"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
                     }`}
                   >
                     <PiCheckCircle
                       size={16}
                       className={
                         status === "Active"
-                          ? "text-emerald-600"
+                          ? "text-emerald-600 dark:text-emerald-400"
                           : "text-slate-400"
                       }
                     />
@@ -198,15 +198,15 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                     onClick={() => setStatus("In Meeting")}
                     className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition ${
                       status === "In Meeting"
-                        ? "border-amber-200 bg-amber-50 text-amber-700 shadow-sm"
-                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-[#172033]"
+                        ? "border-amber-200 bg-amber-50 text-amber-700 shadow-sm dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300"
+                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
                     }`}
                   >
                     <PiClock
                       size={16}
                       className={
                         status === "In Meeting"
-                          ? "text-amber-600"
+                          ? "text-amber-600 dark:text-amber-400"
                           : "text-slate-400"
                       }
                     />
@@ -218,8 +218,8 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                     onClick={() => setStatus("Inactive")}
                     className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition ${
                       status === "Inactive"
-                        ? "border-slate-300 bg-slate-100 text-slate-700 shadow-sm"
-                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-[#172033]"
+                        ? "border-slate-300 bg-slate-100 text-slate-700 shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
                     }`}
                   >
                     <PiXCircle size={16} className="text-slate-400" />
@@ -227,12 +227,12 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                   </button>
                 </div>
 
-                <p className="mt-1.5 text-xs text-[#64748B]">
+                <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                   Update your current working status visible across the team.
                 </p>
               </>
             ) : (
-              <div className="flex items-center justify-between rounded-xl border border-slate-300 bg-[#F1F5F9] p-3 text-xs">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs dark:border-slate-700 dark:bg-slate-800/60">
                 <div className="flex items-center gap-2">
                   <span
                     className={`h-2.5 w-2.5 rounded-full ${
@@ -244,12 +244,12 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                     }`}
                   />
 
-                  <span className="font-semibold text-[#172033]">
+                  <span className="font-semibold text-slate-900 dark:text-white">
                     {user.status || "Active"}
                   </span>
                 </div>
 
-                <span className="text-xs italic text-[#64748B]">
+                <span className="text-xs italic text-slate-500 dark:text-slate-400">
                   (Members can only update their own status)
                 </span>
               </div>
@@ -258,27 +258,27 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
 
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-wider text-[#475569]">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                 Skills & Responsibilities
               </label>
 
-              <span className="text-xs text-[#64748B]">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
                 {skills.length} skills listed
               </span>
             </div>
 
-            <div className="mb-3 flex min-h-[36px] flex-wrap gap-1.5 rounded-xl border border-slate-300 bg-[#F1F5F9] p-2.5">
+            <div className="mb-3 flex min-h-[36px] flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-800/50">
               {skills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300"
                 >
                   {skill}
 
                   <button
                     type="button"
                     onClick={() => handleRemoveSkill(skill)}
-                    className="rounded text-blue-500 transition hover:text-blue-800"
+                    className="rounded text-blue-500 transition hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
                   >
                     <PiX size={13} />
                   </button>
@@ -286,7 +286,7 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
               ))}
 
               {skills.length === 0 && (
-                <span className="py-1 text-xs italic text-slate-400">
+                <span className="py-1 text-xs italic text-slate-400 dark:text-slate-500">
                   No skills added yet. Add custom skills or choose from
                   suggestions below.
                 </span>
@@ -305,13 +305,13 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                     handleAddSkill();
                   }
                 }}
-                className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs text-[#172033] placeholder:text-slate-400 outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
               />
 
               <button
                 type="button"
                 onClick={() => handleAddSkill()}
-                className="inline-flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                className="inline-flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/40"
               >
                 <PiPlus size={14} />
                 <span>Add</span>
@@ -320,7 +320,7 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
 
             {suggestedSkills.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[11px] font-medium text-[#64748B]">
+                <p className="mb-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
                   Suggested for {formatRole(role)}:
                 </p>
 
@@ -339,8 +339,8 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
                         }
                         className={`rounded-lg border px-2 py-0.5 text-xs font-medium transition ${
                           isSelected
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-blue-500 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
                         }`}
                       >
                         {isSelected ? `✓ ${suggested}` : `+ ${suggested}`}
@@ -352,11 +352,11 @@ const EditUserForm = ({ user, currentUserId, onCancel, onSave }) => {
             )}
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-slate-200 pt-3">
+          <div className="flex justify-end gap-3 border-t border-slate-200 pt-3 dark:border-slate-800">
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
+              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
             >
               Cancel
             </button>

@@ -1,4 +1,3 @@
-
 import { PieChart, Pie, Cell } from "recharts";
 import { useTasks } from "../../context/TasksContext.jsx";
 
@@ -25,18 +24,17 @@ const TaskOverviewChart = () => {
   );
 
   return (
-    <div className="rounded-xl border border-[#e8eef8]/10 bg-[#0d1a2b] p-5">
-      <h3 className="mb-4 text-lg font-semibold text-[#e8eef8]">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-[#1e293b] p-5 shadow-xs dark:shadow-md transition-colors">
+      <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
         Task Overview
       </h3>
 
       {total === 0 ? (
-        <p className="text-sm text-[#e8eef8]/40">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           No tasks yet.
         </p>
       ) : (
         <div className="flex items-center gap-6">
-
           {/* Pie Chart */}
           <PieChart width={140} height={140}>
             <Pie
@@ -58,7 +56,6 @@ const TaskOverviewChart = () => {
 
           {/* Status List */}
           <ul className="flex-1 space-y-3">
-
             {counts.map((entry) => (
               <li
                 key={entry.name}
@@ -72,18 +69,16 @@ const TaskOverviewChart = () => {
                   }}
                 />
 
-                <span className="text-[#e8eef8]/70">
+                <span className="text-slate-600 dark:text-slate-300">
                   {entry.name}
                 </span>
 
-                <span className="ml-auto font-medium text-[#e8eef8]">
+                <span className="ml-auto font-medium text-slate-900 dark:text-white">
                   {entry.value}
                 </span>
               </li>
             ))}
-
           </ul>
-
         </div>
       )}
     </div>
@@ -91,4 +86,3 @@ const TaskOverviewChart = () => {
 };
 
 export default TaskOverviewChart;
-

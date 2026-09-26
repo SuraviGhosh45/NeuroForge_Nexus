@@ -1,14 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
+import { useProjects } from "../../context/ProjectContext.jsx";
 import UserSearch from "../../components/user/UserSearch.jsx";
 import EditUserForm from "../../components/user/EditUserForm.jsx";
 import DeleteUserModal from "../../components/user/DeleteUserModal.jsx";
 import UserAddForm from "../../components/user/UserAddForm.jsx";
+import AssignUserModal from "../../components/user/AssignUserModal.jsx";
 import UserTable from "../../components/user/UserTable.jsx";
 import { ROLES, normalizeRole } from "../../constants/roles.js";
-import { PiPlus, PiUsers } from "react-icons/pi";
+import { PiPlus, PiUsers, PiUserCheck, PiBriefcase } from "react-icons/pi";
 
 const FILTERABLE_ROLES = [
   "admin",
@@ -29,11 +31,14 @@ const UserManagement = () => {
     deleteUser,
     createUser,
   } = useUsers();
-  const { projectTeams } = useProjectTeam() || {};
+  const { projectTeams, addProjectMember } = useProjectTeam() || {};
+  const { projects = [] } = useProjects() || {};
 
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [showAddUser, setShowAddUser] = useState(false);
+  const [assignModalUser, setAssignModalUser] = useState(null);
+  const [assignModalAssignments, setAssignModalAssignments] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,19 +46,40 @@ const UserManagement = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [assignmentFilter, setAssignmentFilter] = useState("All");
 
-  const isUserAssigned = (userId) => {
-    if (!projectTeams) return false;
+  // Reset pagination to first page when filtering or searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter, statusFilter, assignmentFilter]);
 
-    return Object.values(projectTeams).some(
-      (members) =>
-        Array.isArray(members) &&
-        members.some((m) => String(m.userId) === String(userId))
-    );
+  const isUserAssigned = (userId) => {
+    // Check ProjectTeam assignments
+    if (projectTeams) {
+      const inTeam = Object.values(projectTeams).some(
+        (members) =>
+          Array.isArray(members) &&
+          members.some((m) => String(m.userId) === String(userId))
+      );
+      if (inTeam) return true;
+    }
+
+    // Check project lead or manager assignments
+    if (Array.isArray(projects)) {
+      return projects.some(
+        (p) =>
+          String(p.projectLeadId) === String(userId) ||
+          String(p.projectManagerId) === String(userId)
+      );
+    }
+
+    return false;
   };
 
   const stats = useMemo(() => {
-    return { total: users.length };
-  }, [users]);
+    const total = users.length;
+    const active = users.filter((u) => (u.status || "Active") === "Active").length;
+    const assigned = users.filter((u) => isUserAssigned(u.id)).length;
+    return { total, active, assigned };
+  }, [users, projectTeams, projects]);
 
   const isSuperAdmin = normalizeRole(currentUser?.role) === ROLES.ADMIN;
 
@@ -175,15 +201,29 @@ const UserManagement = () => {
     setAssignmentFilter("All");
   };
 
+  const handleAssignUser = async (projectId, userId, projectRole) => {
+    /* ==========================================================================
+       [BACKEND_INTEGRATION_POINT]
+       Endpoint:    POST http://localhost:8080/api/projects/{projectId}/members
+       Description: Assign user to project team from Admin User Management.
+       Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
+       Payload:     { "userId": userId, "projectRole": projectRole, "status": "Active" }
+       Response:    201/200 OK -> { "id": 1, "userId": userId, "projectRole": projectRole }
+       Fallback:    Optimistically updates ProjectTeamContext if backend is offline.
+       ========================================================================== */
+    if (!addProjectMember) return { success: false, message: "Assignment service is not available." };
+    return await addProjectMember(projectId, userId, projectRole);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#172033]">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             User Management & Resource Directory
           </h1>
 
-          <p className="mt-1 text-sm text-[#475569]">
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Manage system users, skill profiles based on roles, active status,
             and project allocations
           </p>
@@ -199,15 +239,37 @@ const UserManagement = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-slate-700 bg-[#172033] p-4 shadow-lg shadow-slate-900/10">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            <PiUsers size={16} className="text-blue-400" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <PiUsers size={16} className="text-blue-500 dark:text-blue-400" />
             <span>Total Users</span>
           </div>
 
-          <p className="mt-2 text-2xl font-bold text-white">
+          <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
             {stats.total}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <PiUserCheck size={16} className="text-emerald-500 dark:text-emerald-400" />
+            <span>Active Users</span>
+          </div>
+
+          <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+            {stats.active}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <PiBriefcase size={16} className="text-indigo-500 dark:text-indigo-400" />
+            <span>Assigned to Projects</span>
+          </div>
+
+          <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+            {stats.assigned}
           </p>
         </div>
       </div>
@@ -231,6 +293,10 @@ const UserManagement = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onUpdateStatus={handleUpdateStatus}
+          onOpenAssignModal={(user, currentAssignments) => {
+            setAssignModalUser(user);
+            setAssignModalAssignments(currentAssignments || []);
+          }}
           currentUserId={currentUser?.id}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
@@ -258,6 +324,20 @@ const UserManagement = () => {
           user={deletingUser}
           onCancel={() => setDeletingUser(null)}
           onConfirm={handleConfirmDelete}
+        />
+      )}
+
+      {assignModalUser && (
+        <AssignUserModal
+          isOpen={Boolean(assignModalUser)}
+          user={assignModalUser}
+          projects={projects}
+          currentAssignments={assignModalAssignments}
+          onAssign={handleAssignUser}
+          onClose={() => {
+            setAssignModalUser(null);
+            setAssignModalAssignments([]);
+          }}
         />
       )}
     </div>

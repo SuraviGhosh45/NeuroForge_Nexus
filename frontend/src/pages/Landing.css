@@ -7,19 +7,28 @@ html {
   color: #172033;
 }
 
+html.dark .landing-page {
+  background: #0b1120;
+  color: #f8fafc;
+}
+
 .landing-page h1,
 .landing-page h2,
 .landing-page h3,
 .landing-page h4 {
-  color: #172033;
+  color: inherit;
 }
 
 .landing-page p {
-  color: #475569;
+  color: inherit;
 }
 
 .landing-page .text-muted {
   color: #64748b;
+}
+
+html.dark .landing-page .text-muted {
+  color: #94a3b8;
 }
 
 .landing-card-glow {

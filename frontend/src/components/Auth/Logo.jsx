@@ -11,16 +11,16 @@ const Logo = () => {
 
       <div>
         <div className="flex items-center gap-1.5">
-          <h1 className="text-lg font-bold tracking-tight text-[#172033] transition group-hover:text-[#2563EB]">
+          <h1 className="text-lg font-bold tracking-tight text-[#172033] dark:text-white transition group-hover:text-[#2563EB]">
             NeuroForge
           </h1>
 
-          <span className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#2563EB]">
+          <span className="rounded-md border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#2563EB] dark:text-blue-400">
             Nexus
           </span>
         </div>
 
-        <span className="block text-[10px] font-medium uppercase tracking-widest text-[#64748B]">
+        <span className="block text-[10px] font-medium uppercase tracking-widest text-[#64748B] dark:text-slate-400">
           Enterprise SDLC
         </span>
       </div>

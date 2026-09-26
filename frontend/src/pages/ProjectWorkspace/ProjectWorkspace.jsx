@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   PiArrowLeft,
   PiCalendarBlank,
@@ -39,6 +39,7 @@ const EMPTY_TASK_FORM = {
 
 const ProjectWorkspace = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { projectId } = useParams();
 
   const { currentUser } = useAuth();
@@ -72,7 +73,21 @@ const ProjectWorkspace = () => {
 
   const project = getProjectById(projectId) || selectedProject;
 
-  const [activeSection, setActiveSection] = useState("overview");
+  const initialSection =
+    location.state?.section ||
+    new URLSearchParams(location.search).get("section") ||
+    "overview";
+
+  const [activeSection, setActiveSection] = useState(initialSection);
+
+  useEffect(() => {
+    const querySection =
+      location.state?.section ||
+      new URLSearchParams(location.search).get("section");
+    if (querySection && querySection !== activeSection) {
+      setActiveSection(querySection);
+    }
+  }, [location.state?.section, location.search]);
 
   const [showEditProject, setShowEditProject] = useState(false);
 
@@ -203,50 +218,50 @@ const ProjectWorkspace = () => {
   const getPriorityClass = (priority) => {
     switch (priority) {
       case "Critical":
-        return "border-red-200 bg-red-50 text-red-700";
+        return "border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/50 dark:text-red-300";
 
       case "High":
-        return "border-orange-200 bg-orange-50 text-orange-700";
+        return "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/60 dark:bg-orange-950/50 dark:text-orange-300";
 
       case "Medium":
-        return "border-amber-200 bg-amber-50 text-amber-700";
+        return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300";
 
       case "Low":
-        return "border-emerald-200 bg-emerald-50 text-emerald-700";
+        return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300";
 
       default:
-        return "border-slate-200 bg-slate-50 text-slate-600";
+        return "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
     }
   };
 
   const getStatusClass = (status) => {
     switch (status) {
       case "Done":
-        return "border-emerald-200 bg-emerald-50 text-emerald-700";
+        return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300";
 
       case "In Progress":
-        return "border-blue-200 bg-blue-50 text-blue-700";
+        return "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/50 dark:text-blue-300";
 
       case "In Review":
-        return "border-indigo-200 bg-indigo-50 text-indigo-700";
+        return "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-300";
 
       case "To Do":
       default:
-        return "border-slate-200 bg-slate-50 text-slate-600";
+        return "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
     }
   };
 
   const getMemberStatusClass = (status) => {
     switch (status) {
       case "Active":
-        return "border-emerald-200 bg-emerald-50 text-emerald-700";
+        return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300";
 
       case "In Meeting":
-        return "border-amber-200 bg-amber-50 text-amber-700";
+        return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300";
 
       case "Inactive":
       default:
-        return "border-slate-200 bg-slate-50 text-slate-600";
+        return "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
     }
   };
 
@@ -294,6 +309,12 @@ const ProjectWorkspace = () => {
 
     if (!project?.id) return;
 
+    /*
+     * [BACKEND_INTEGRATION_POINT]: Update Project Details
+     * - Route: PUT http://localhost:8080/api/projects/{id}
+     * - Payload: { name, description, code, repository, status, startDate, endDate }
+     * - Handled via ProjectContext.jsx updateProject
+     */
     const result = await updateProject(project.id, projectForm);
 
     if (result?.success) {
@@ -365,6 +386,13 @@ const ProjectWorkspace = () => {
 
     let result;
 
+    /*
+     * [BACKEND_INTEGRATION_POINT]: Add / Update Team Member in Project
+     * - Add Route: POST http://localhost:8080/api/projects/{projectId}/team
+     * - Update Route: PUT http://localhost:8080/api/projects/{projectId}/team/{userId}
+     * - Payload: { userId, projectRole }
+     * - Handled via ProjectTeamContext.jsx
+     */
     if (editingMember) {
       result = await updateProjectMember(
         project.id,
@@ -399,6 +427,12 @@ const ProjectWorkspace = () => {
       return;
     }
 
+    /*
+     * [BACKEND_INTEGRATION_POINT]: Update Member Status in Project
+     * - Route: PUT http://localhost:8080/api/projects/{projectId}/team/{userId}/status
+     * - Payload: { status: "Active" | "Inactive" | "In Meeting" }
+     * - Handled via ProjectTeamContext.jsx
+     */
     const result = await updateProjectMemberStatus(
       project.id,
       member.userId,
@@ -413,6 +447,11 @@ const ProjectWorkspace = () => {
   const handleDeleteMember = async () => {
     if (!project?.id || !confirmDeleteMember) return;
 
+    /*
+     * [BACKEND_INTEGRATION_POINT]: Remove Member from Project Team
+     * - Route: DELETE http://localhost:8080/api/projects/{projectId}/team/{userId}
+     * - Handled via ProjectTeamContext.jsx
+     */
     const result = await removeProjectMember(
       project.id,
       confirmDeleteMember.userId
@@ -500,6 +539,13 @@ const ProjectWorkspace = () => {
 
     let result;
 
+    /*
+     * [BACKEND_INTEGRATION_POINT]: Create / Update Deliverable Parent Task
+     * - Create Route: POST http://localhost:8080/api/tasks
+     * - Update Route: PUT http://localhost:8080/api/tasks/{id}
+     * - Payload: { title, description, projectId, assigneeId, priority, status, dueDate }
+     * - Handled via TasksContext.jsx
+     */
     if (editingTask) {
       result = await updateTask(payload);
     } else {
@@ -521,6 +567,11 @@ const ProjectWorkspace = () => {
   const handleDeleteTask = async () => {
     if (!confirmDeleteTask) return;
 
+    /*
+     * [BACKEND_INTEGRATION_POINT]: Delete Deliverable Parent Task
+     * - Route: DELETE http://localhost:8080/api/tasks/{id}
+     * - Handled via TasksContext.jsx
+     */
     const result = await deleteTask(confirmDeleteTask.id);
 
     if (!result?.success) {
@@ -555,22 +606,22 @@ const ProjectWorkspace = () => {
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-[#E8EEF7] p-6 text-[#172033]">
+      <div className="min-h-screen bg-transparent p-6 text-[#172033] dark:text-slate-100">
         <div className="mx-auto max-w-7xl">
           <button
             onClick={() => navigate("/projects")}
-            className="mb-6 flex items-center gap-2 text-sm font-medium text-[#64748B] transition hover:text-[#172033]"
+            className="mb-6 flex items-center gap-2 text-sm font-medium text-[#64748B] transition hover:text-[#172033] dark:text-slate-400 dark:hover:text-white"
           >
             <PiArrowLeft size={20} />
             Back to Projects
           </button>
 
-          <div className="rounded-2xl border border-slate-300 bg-white p-10 text-center shadow-sm">
-            <h2 className="text-xl font-semibold text-[#172033]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+            <h2 className="text-xl font-semibold text-[#172033] dark:text-white">
               Project not found
             </h2>
 
-            <p className="mt-2 text-[#64748B]">
+            <p className="mt-2 text-[#64748B] dark:text-slate-400">
               The project you are looking for does not exist.
             </p>
           </div>
@@ -580,27 +631,34 @@ const ProjectWorkspace = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#E8EEF7] p-4 text-[#172033] md:p-6">
+    <div className="min-h-screen bg-transparent p-4 text-[#172033] dark:text-slate-100 md:p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6">
-          <button
-            onClick={() => navigate("/projects")}
-            className="mb-4 flex items-center gap-2 text-sm font-medium text-[#64748B] transition hover:text-[#172033]"
-          >
-            <PiArrowLeft size={20} />
-            Back to Projects
-          </button>
+          {/* HIERARCHICAL BREADCRUMB */}
+          <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[#64748B] dark:text-slate-400">
+            <button
+              type="button"
+              onClick={() => navigate("/projects")}
+              className="transition hover:text-[#2563EB] dark:hover:text-blue-400"
+            >
+              Projects
+            </button>
+            <span>/</span>
+            <span className="font-semibold text-[#172033] dark:text-slate-200">
+              {project.name}
+            </span>
+          </div>
 
-          <div className="rounded-2xl border border-slate-300 bg-[#172033] p-5 shadow-lg shadow-slate-900/10">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-2xl font-bold text-white">
+                  <h1 className="text-2xl font-bold text-[#172033] dark:text-white sm:text-3xl">
                     {project.name}
                   </h1>
 
                   {project.code && (
-                    <span className="rounded-lg border border-slate-600 bg-[#24324A] px-3 py-1 text-xs font-semibold text-slate-300">
+                    <span className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                       {project.code}
                     </span>
                   )}
@@ -609,12 +667,12 @@ const ProjectWorkspace = () => {
                     <span
                       className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                         project.status === "Completed"
-                          ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300"
                           : project.status === "In Progress"
-                          ? "border-blue-400/30 bg-blue-400/10 text-blue-300"
+                          ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/50 dark:text-blue-300"
                           : project.status === "On Hold"
-                          ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
-                          : "border-slate-500/30 bg-slate-500/10 text-slate-300"
+                          ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300"
+                          : "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                       }`}
                     >
                       {project.status}
@@ -622,7 +680,7 @@ const ProjectWorkspace = () => {
                   )}
                 </div>
 
-                <p className="mt-2 max-w-3xl text-sm text-slate-300">
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#475569] dark:text-slate-400">
                   {project.description ||
                     "Manage project details, team members and tasks."}
                 </p>
@@ -641,14 +699,14 @@ const ProjectWorkspace = () => {
           </div>
         </div>
 
-        <div className="mb-6 overflow-x-auto rounded-2xl border border-slate-300 bg-white shadow-sm">
+        <div className="mb-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
           <div className="flex min-w-max">
             <button
               onClick={() => setActiveSection("overview")}
               className={`border-b-2 px-5 py-4 text-sm font-semibold transition ${
                 activeSection === "overview"
-                  ? "border-[#2563EB] text-[#2563EB]"
-                  : "border-transparent text-[#64748B] hover:text-[#172033]"
+                  ? "border-[#2563EB] text-[#2563EB] dark:border-blue-500 dark:text-blue-400"
+                  : "border-transparent text-[#64748B] hover:text-[#172033] dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               Overview
@@ -658,8 +716,8 @@ const ProjectWorkspace = () => {
               onClick={() => setActiveSection("team")}
               className={`flex items-center gap-2 border-b-2 px-5 py-4 text-sm font-semibold transition ${
                 activeSection === "team"
-                  ? "border-[#2563EB] text-[#2563EB]"
-                  : "border-transparent text-[#64748B] hover:text-[#172033]"
+                  ? "border-[#2563EB] text-[#2563EB] dark:border-blue-500 dark:text-blue-400"
+                  : "border-transparent text-[#64748B] hover:text-[#172033] dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               Team
@@ -667,8 +725,8 @@ const ProjectWorkspace = () => {
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                   activeSection === "team"
-                    ? "bg-blue-50 text-[#2563EB]"
-                    : "bg-slate-100 text-[#64748B]"
+                    ? "bg-blue-50 text-[#2563EB] dark:bg-blue-950/60 dark:text-blue-300"
+                    : "bg-slate-100 text-[#64748B] dark:bg-slate-800 dark:text-slate-400"
                 }`}
               >
                 {projectMembers.length}
@@ -679,8 +737,8 @@ const ProjectWorkspace = () => {
               onClick={() => setActiveSection("tasks")}
               className={`flex items-center gap-2 border-b-2 px-5 py-4 text-sm font-semibold transition ${
                 activeSection === "tasks"
-                  ? "border-[#2563EB] text-[#2563EB]"
-                  : "border-transparent text-[#64748B] hover:text-[#172033]"
+                  ? "border-[#2563EB] text-[#2563EB] dark:border-blue-500 dark:text-blue-400"
+                  : "border-transparent text-[#64748B] hover:text-[#172033] dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               Parent Tasks
@@ -688,8 +746,8 @@ const ProjectWorkspace = () => {
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                   activeSection === "tasks"
-                    ? "bg-blue-50 text-[#2563EB]"
-                    : "bg-slate-100 text-[#64748B]"
+                    ? "bg-blue-50 text-[#2563EB] dark:bg-blue-950/60 dark:text-blue-300"
+                    : "bg-slate-100 text-[#64748B] dark:bg-slate-800 dark:text-slate-400"
                 }`}
               >
                 {projectTasks.length}
@@ -701,16 +759,16 @@ const ProjectWorkspace = () => {
         {activeSection === "overview" && (
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-                <p className="text-sm text-[#64748B]">Project Status</p>
-                <p className="mt-2 text-xl font-bold text-[#172033]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <p className="text-sm text-[#64748B] dark:text-slate-400">Project Status</p>
+                <p className="mt-2 text-xl font-bold text-[#172033] dark:text-white">
                   {project.status || "Not Started"}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-                <p className="text-sm text-[#64748B]">Project Lead</p>
-                <p className="mt-2 text-xl font-bold text-[#172033]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <p className="text-sm text-[#64748B] dark:text-slate-400">Project Lead</p>
+                <p className="mt-2 text-xl font-bold text-[#172033] dark:text-white">
                   {project.projectLead?.fullName ||
                     project.projectLead?.name ||
                     project.projectLeadName ||
@@ -718,9 +776,9 @@ const ProjectWorkspace = () => {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-                <p className="text-sm text-[#64748B]">Project Manager</p>
-                <p className="mt-2 text-xl font-bold text-[#172033]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <p className="text-sm text-[#64748B] dark:text-slate-400">Project Manager</p>
+                <p className="mt-2 text-xl font-bold text-[#172033] dark:text-white">
                   {project.projectManager?.fullName ||
                     project.projectManager?.name ||
                     project.projectManagerName ||
@@ -728,15 +786,15 @@ const ProjectWorkspace = () => {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-                <p className="text-sm text-[#64748B]">Team Members</p>
-                <p className="mt-2 text-xl font-bold text-[#172033]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <p className="text-sm text-[#64748B] dark:text-slate-400">Team Members</p>
+                <p className="mt-2 text-xl font-bold text-[#172033] dark:text-white">
                   {projectMembers.length}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-                <p className="text-sm text-[#64748B]">Repository</p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <p className="text-sm text-[#64748B] dark:text-slate-400">Repository</p>
 
                 <div className="mt-2">
                   {project.repository ? (
@@ -748,37 +806,37 @@ const ProjectWorkspace = () => {
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xl font-bold text-[#2563EB] underline transition hover:text-[#4F46E5]"
+                      className="inline-flex items-center gap-1.5 text-xl font-bold text-[#2563EB] underline transition hover:text-[#4F46E5] dark:text-blue-400 dark:hover:text-blue-300"
                     >
                       Link
                     </a>
                   ) : (
-                    <p className="text-xl font-bold text-slate-400">__</p>
+                    <p className="text-xl font-bold text-slate-400 dark:text-slate-500">__</p>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
               <div className="mb-5 flex items-center gap-3">
-                <PiCalendarBlank size={22} className="text-[#2563EB]" />
+                <PiCalendarBlank size={22} className="text-[#2563EB] dark:text-blue-400" />
 
-                <h2 className="text-lg font-bold text-[#172033]">
+                <h2 className="text-lg font-bold text-[#172033] dark:text-white">
                   Project Timeline
                 </h2>
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <p className="text-sm text-[#64748B]">Start Date</p>
-                  <p className="mt-1 font-semibold text-[#172033]">
+                  <p className="text-sm text-[#64748B] dark:text-slate-400">Start Date</p>
+                  <p className="mt-1 font-semibold text-[#172033] dark:text-slate-200">
                     {project.startDate || "Not set"}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-[#64748B]">End Date</p>
-                  <p className="mt-1 font-semibold text-[#172033]">
+                  <p className="text-sm text-[#64748B] dark:text-slate-400">End Date</p>
+                  <p className="mt-1 font-semibold text-[#172033] dark:text-slate-200">
                     {project.endDate || "Not set"}
                   </p>
                 </div>
@@ -788,18 +846,18 @@ const ProjectWorkspace = () => {
         )}
 
         {activeSection === "team" && (
-          <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
-            <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-5 md:flex-row md:items-center">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+            <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-5 dark:border-slate-800 md:flex-row md:items-center">
               <div>
                 <div className="flex items-center gap-2">
-                  <PiUsersThree size={24} className="text-[#2563EB]" />
+                  <PiUsersThree size={24} className="text-[#2563EB] dark:text-blue-400" />
 
-                  <h2 className="text-xl font-bold text-[#172033]">
+                  <h2 className="text-xl font-bold text-[#172033] dark:text-white">
                     Project Team
                   </h2>
                 </div>
 
-                <p className="mt-1 text-sm text-[#64748B]">
+                <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
                   Manage members assigned to this project.
                 </p>
               </div>
@@ -815,18 +873,18 @@ const ProjectWorkspace = () => {
               )}
             </div>
 
-            <div className="border-b border-slate-200 bg-[#F1F5F9] p-5">
+            <div className="border-b border-slate-200 bg-[#F1F5F9] p-5 dark:border-slate-800 dark:bg-[#162032]">
               <div className="flex flex-col gap-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B] dark:text-slate-400">
                   Project Team Lead
                 </p>
 
-                <p className="font-semibold text-[#172033]">
+                <p className="font-semibold text-[#172033] dark:text-white">
                   {teamLeadName}
                 </p>
 
                 {!teamLeadMember && (
-                  <p className="text-xs text-[#D97706]">
+                  <p className="text-xs text-[#D97706] dark:text-amber-400">
                     A Team Lead is required before creating tasks.
                   </p>
                 )}
@@ -837,14 +895,14 @@ const ProjectWorkspace = () => {
               <div className="p-10 text-center">
                 <PiUsersThree
                   size={42}
-                  className="mx-auto text-slate-300"
+                  className="mx-auto text-slate-300 dark:text-slate-600"
                 />
 
-                <h3 className="mt-4 font-semibold text-[#172033]">
+                <h3 className="mt-4 font-semibold text-[#172033] dark:text-slate-200">
                   No team members
                 </h3>
 
-                <p className="mt-1 text-sm text-[#64748B]">
+                <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
                   Add members to start building the project team.
                 </p>
               </div>
@@ -852,7 +910,7 @@ const ProjectWorkspace = () => {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[850px]">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-[#172033] text-left text-xs uppercase tracking-wide text-slate-300">
+                    <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-300">
                       <th className="px-5 py-4">Member</th>
                       <th className="px-5 py-4">Email</th>
                       <th className="px-5 py-4">Project Role</th>
@@ -870,19 +928,19 @@ const ProjectWorkspace = () => {
                     {projectMembers.map((member) => (
                       <tr
                         key={`${member.userId}-${member.projectRole}`}
-                        className="border-b border-slate-200 last:border-0 hover:bg-[#F1F5F9]"
+                        className="border-b border-slate-200 last:border-0 hover:bg-[#F1F5F9] dark:border-slate-800 dark:hover:bg-slate-800/50"
                       >
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
                               <PiUserCircle
                                 size={25}
-                                className="text-slate-500"
+                                className="text-slate-500 dark:text-slate-400"
                               />
                             </div>
 
                             <div>
-                              <p className="font-semibold text-[#172033]">
+                              <p className="font-semibold text-[#172033] dark:text-slate-100">
                                 {member.user?.fullName ||
                                   member.user?.name ||
                                   "Unknown User"}
@@ -891,12 +949,12 @@ const ProjectWorkspace = () => {
                           </div>
                         </td>
 
-                        <td className="px-5 py-4 text-sm text-[#475569]">
+                        <td className="px-5 py-4 text-sm text-[#475569] dark:text-slate-400">
                           {member.user?.email || "-"}
                         </td>
 
                         <td className="px-5 py-4">
-                          <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-[#2563EB]">
+                          <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-[#2563EB] dark:border-blue-900/60 dark:bg-blue-950/50 dark:text-blue-300">
                             {member.projectRole}
                           </span>
                         </td>
@@ -917,7 +975,7 @@ const ProjectWorkspace = () => {
                               title="Update your status"
                             >
                               {MEMBER_STATUSES.map((status) => (
-                                <option key={status} value={status}>
+                                <option key={status} value={status} className="dark:bg-[#1e293b] dark:text-white">
                                   {status}
                                 </option>
                               ))}
@@ -938,7 +996,7 @@ const ProjectWorkspace = () => {
                             <div className="flex justify-end gap-2">
                               <button
                                 onClick={() => openEditMember(member)}
-                                className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033]"
+                                className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033] dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                                 title="Edit"
                               >
                                 <PiPencilSimple size={18} />
@@ -948,7 +1006,7 @@ const ProjectWorkspace = () => {
                                 onClick={() =>
                                   setConfirmDeleteMember(member)
                                 }
-                                className="rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 transition hover:bg-red-100"
+                                className="rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 transition hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
                                 title="Delete"
                               >
                                 <PiTrash size={18} />
@@ -970,13 +1028,13 @@ const ProjectWorkspace = () => {
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <PiListChecks size={26} className="text-[#2563EB]" />
+                  <PiListChecks size={26} className="text-[#2563EB] dark:text-blue-400" />
 
-                  <h2 className="text-2xl font-bold text-[#172033]">
+                  <h2 className="text-2xl font-bold text-[#172033] dark:text-white">
                     Task Management
                   </h2>
 
-                  <span className="ml-2 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-[#4F46E5]">
+                  <span className="ml-2 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-[#4F46E5] dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-300">
                     {projectTasks.length}{" "}
                     {projectTasks.length === 1
                       ? "parent task"
@@ -984,7 +1042,7 @@ const ProjectWorkspace = () => {
                   </span>
                 </div>
 
-                <p className="mt-1 text-sm text-[#64748B]">
+                <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
                   Decompose {project.name} into major deliverable parent work
                   items. Click any task to enter its workspace and manage
                   subtasks.
@@ -1003,68 +1061,68 @@ const ProjectWorkspace = () => {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-slate-700 bg-[#172033] p-5 shadow-lg shadow-slate-900/10">
-                <p className="text-sm text-slate-400">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   Total Parent Tasks
                 </p>
 
-                <p className="mt-2 text-2xl font-bold text-white">
+                <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
                   {taskStats.total}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-                <p className="text-sm text-[#64748B]">To Do</p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">To Do</p>
 
-                <p className="mt-2 text-2xl font-bold text-[#172033]">
+                <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
                   {taskStats.toDo}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-                <p className="text-sm text-[#64748B]">In Progress</p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">In Progress</p>
 
-                <p className="mt-2 text-2xl font-bold text-[#172033]">
+                <p className="mt-2 text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {taskStats.inProgress}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-                <p className="text-sm text-[#64748B]">Completed</p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Completed</p>
 
-                <p className="mt-2 text-2xl font-bold text-[#172033]">
+                <p className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                   {taskStats.completed}
                 </p>
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
-              <div className="border-b border-slate-200 p-5">
-                <h3 className="text-lg font-bold text-[#172033]">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+              <div className="border-b border-slate-200 p-5 dark:border-slate-800">
+                <h3 className="text-lg font-bold text-[#172033] dark:text-white">
                   All Parent Tasks
                 </h3>
               </div>
 
               {tasksLoading ? (
-                <div className="p-10 text-center text-sm text-[#64748B]">
+                <div className="p-10 text-center text-sm text-[#64748B] dark:text-slate-400">
                   Loading tasks...
                 </div>
               ) : tasksError ? (
-                <div className="p-10 text-center text-sm text-[#DC2626]">
+                <div className="p-10 text-center text-sm text-[#DC2626] dark:text-red-400">
                   {tasksError}
                 </div>
               ) : projectTasks.length === 0 ? (
                 <div className="p-10 text-center">
                   <PiCheck
                     size={40}
-                    className="mx-auto text-slate-300"
+                    className="mx-auto text-slate-300 dark:text-slate-600"
                   />
 
-                  <h3 className="mt-4 font-semibold text-[#172033]">
+                  <h3 className="mt-4 font-semibold text-[#172033] dark:text-slate-200">
                     No parent tasks yet
                   </h3>
 
-                  <p className="mt-1 text-sm text-[#64748B]">
+                  <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
                     Create a parent task to decompose project deliverables
                     into subtasks.
                   </p>
@@ -1073,7 +1131,7 @@ const ProjectWorkspace = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[900px]">
                     <thead>
-                      <tr className="border-b border-slate-700 bg-[#172033] text-left text-xs uppercase tracking-wide text-slate-300">
+                      <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-300">
                         <th className="px-5 py-4">#</th>
                         <th className="px-5 py-4">Parent Task</th>
                         <th className="px-5 py-4">Assignee</th>
@@ -1099,20 +1157,20 @@ const ProjectWorkspace = () => {
                               `/projects/${project.id}/tasks/${task.id}`
                             )
                           }
-                          className="group cursor-pointer border-b border-slate-200 transition last:border-0 hover:bg-[#F1F5F9]"
+                          className="group cursor-pointer border-b border-slate-200 transition last:border-0 hover:bg-[#F1F5F9] dark:border-slate-800 dark:hover:bg-slate-800/50"
                         >
-                          <td className="px-5 py-4 text-sm font-medium text-slate-500">
+                          <td className="px-5 py-4 text-sm font-medium text-slate-500 dark:text-slate-400">
                             {index + 1}
                           </td>
 
                           <td className="px-5 py-4">
                             <div>
-                              <p className="font-semibold text-[#172033] transition group-hover:text-[#2563EB]">
+                              <p className="font-semibold text-[#172033] transition group-hover:text-[#2563EB] dark:text-slate-100 dark:group-hover:text-blue-400">
                                 {task.title}
                               </p>
 
                               {task.description && (
-                                <p className="mt-1 max-w-md truncate text-xs text-[#64748B]">
+                                <p className="mt-1 max-w-md truncate text-xs text-[#64748B] dark:text-slate-400">
                                   {task.description}
                                 </p>
                               )}
@@ -1126,7 +1184,7 @@ const ProjectWorkspace = () => {
                                 className="text-slate-400"
                               />
 
-                              <span className="text-sm text-[#475569]">
+                              <span className="text-sm text-[#475569] dark:text-slate-300">
                                 {getTaskAssigneeName(task)}
                               </span>
                             </div>
@@ -1142,8 +1200,8 @@ const ProjectWorkspace = () => {
                                 <span
                                   className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
                                     subCount > 0
-                                      ? "border-indigo-200 bg-indigo-50 text-[#4F46E5] group-hover:border-indigo-300"
-                                      : "border-slate-200 bg-slate-50 text-slate-500"
+                                      ? "border-indigo-200 bg-indigo-50 text-[#4F46E5] dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-300 group-hover:border-indigo-300"
+                                      : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
                                   }`}
                                 >
                                   <PiListChecks size={14} />
@@ -1175,7 +1233,7 @@ const ProjectWorkspace = () => {
                           </td>
 
                           <td className="px-5 py-4">
-                            <div className="flex items-center gap-2 text-sm text-[#64748B]">
+                            <div className="flex items-center gap-2 text-sm text-[#64748B] dark:text-slate-400">
                               <PiCalendarBlank size={18} />
                               {task.dueDate || "No deadline"}
                             </div>
@@ -1189,7 +1247,7 @@ const ProjectWorkspace = () => {
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => openEditTask(task)}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-[#2563EB]"
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-[#2563EB] dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-300 dark:hover:border-blue-700 dark:hover:bg-blue-950/50 dark:hover:text-blue-300"
                                   title="Edit Parent Task"
                                 >
                                   <PiPencilSimple size={14} />
@@ -1198,7 +1256,7 @@ const ProjectWorkspace = () => {
 
                                 <button
                                   onClick={() => setConfirmDeleteTask(task)}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:border-red-300 hover:bg-red-100"
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:border-red-300 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
                                   title="Delete Parent Task"
                                 >
                                   <PiTrash size={14} />
@@ -1219,22 +1277,22 @@ const ProjectWorkspace = () => {
       </div>
 
       {showEditProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-300 bg-white shadow-2xl shadow-slate-900/20">
-            <div className="flex items-center justify-between border-b border-slate-200 p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 dark:border-slate-800 dark:bg-[#0f172a]">
+            <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
               <div>
-                <h2 className="text-xl font-bold text-[#172033]">
+                <h2 className="text-xl font-bold text-[#172033] dark:text-white">
                   Edit Project
                 </h2>
 
-                <p className="mt-1 text-sm text-[#64748B]">
+                <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
                   Update project information.
                 </p>
               </div>
 
               <button
                 onClick={() => setShowEditProject(false)}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033]"
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033] dark:hover:bg-slate-800 dark:hover:text-white"
               >
                 <PiX size={22} />
               </button>
@@ -1242,7 +1300,7 @@ const ProjectWorkspace = () => {
 
             <form onSubmit={handleProjectSubmit} className="space-y-5 p-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                   Project Name
                 </label>
 
@@ -1251,13 +1309,13 @@ const ProjectWorkspace = () => {
                   name="name"
                   value={projectForm.name}
                   onChange={handleProjectFormChange}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white dark:placeholder:text-slate-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                   Project Code
                 </label>
 
@@ -1266,12 +1324,12 @@ const ProjectWorkspace = () => {
                   name="code"
                   value={projectForm.code}
                   onChange={handleProjectFormChange}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                   Description
                 </label>
 
@@ -1280,12 +1338,12 @@ const ProjectWorkspace = () => {
                   value={projectForm.description}
                   onChange={handleProjectFormChange}
                   rows={4}
-                  className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                   Repository Link
                 </label>
 
@@ -1295,13 +1353,13 @@ const ProjectWorkspace = () => {
                   value={projectForm.repository}
                   onChange={handleProjectFormChange}
                   placeholder="e.g. https://github.com/organization/repository"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                     Status
                   </label>
 
@@ -1309,17 +1367,17 @@ const ProjectWorkspace = () => {
                     name="status"
                     value={projectForm.status}
                     onChange={handleProjectFormChange}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
                   >
-                    <option value="Not Started">Not Started</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="On Hold">On Hold</option>
-                    <option value="Completed">Completed</option>
+                    <option value="Not Started" className="dark:bg-[#1e293b] dark:text-white">Not Started</option>
+                    <option value="In Progress" className="dark:bg-[#1e293b] dark:text-white">In Progress</option>
+                    <option value="On Hold" className="dark:bg-[#1e293b] dark:text-white">On Hold</option>
+                    <option value="Completed" className="dark:bg-[#1e293b] dark:text-white">Completed</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                     Start Date
                   </label>
 
@@ -1328,12 +1386,12 @@ const ProjectWorkspace = () => {
                     name="startDate"
                     value={projectForm.startDate}
                     onChange={handleProjectFormChange}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                     End Date
                   </label>
 
@@ -1342,16 +1400,16 @@ const ProjectWorkspace = () => {
                     name="endDate"
                     value={projectForm.endDate}
                     onChange={handleProjectFormChange}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
+              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowEditProject(false)}
-                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
+                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033] dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                 >
                   Cancel
                 </button>
@@ -1369,15 +1427,15 @@ const ProjectWorkspace = () => {
       )}
 
       {showAddMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-300 bg-white shadow-2xl shadow-slate-900/20">
-            <div className="flex items-center justify-between border-b border-slate-200 p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 dark:border-slate-800 dark:bg-[#0f172a]">
+            <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
               <div>
-                <h2 className="text-xl font-bold text-[#172033]">
+                <h2 className="text-xl font-bold text-[#172033] dark:text-white">
                   {editingMember ? "Edit Team Member" : "Add Team Member"}
                 </h2>
 
-                <p className="mt-1 text-sm text-[#64748B]">
+                <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
                   Assign a project role to the member.
                 </p>
               </div>
@@ -1387,7 +1445,7 @@ const ProjectWorkspace = () => {
                   setShowAddMember(false);
                   setEditingMember(null);
                 }}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033]"
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033] dark:hover:bg-slate-800 dark:hover:text-white"
               >
                 <PiX size={22} />
               </button>
@@ -1396,7 +1454,7 @@ const ProjectWorkspace = () => {
             <form onSubmit={handleMemberSubmit} className="space-y-5 p-5">
               {!editingMember ? (
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                     User
                   </label>
 
@@ -1408,38 +1466,38 @@ const ProjectWorkspace = () => {
                         userId: event.target.value,
                       }))
                     }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
                     required
                   >
-                    <option value="">Select a user</option>
+                    <option value="" className="dark:bg-[#1e293b] dark:text-white">Select a user</option>
 
                     {availableUsers.map((user) => (
-                      <option key={user.id} value={user.id}>
+                      <option key={user.id} value={user.id} className="dark:bg-[#1e293b] dark:text-white">
                         {user.fullName || user.name} — {user.email}
                       </option>
                     ))}
                   </select>
 
                   {availableUsers.length === 0 && (
-                    <p className="mt-2 text-xs text-[#64748B]">
+                    <p className="mt-2 text-xs text-[#64748B] dark:text-slate-400">
                       No available users to add.
                     </p>
                   )}
                 </div>
               ) : (
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                     User
                   </label>
 
-                  <div className="rounded-xl border border-slate-300 bg-[#F1F5F9] px-4 py-3">
-                    <p className="font-semibold text-[#172033]">
+                  <div className="rounded-xl border border-slate-200 bg-[#F1F5F9] px-4 py-3 dark:border-slate-800 dark:bg-[#162032]">
+                    <p className="font-semibold text-[#172033] dark:text-slate-100">
                       {editingMember.user?.fullName ||
                         editingMember.user?.name ||
                         "Unknown User"}
                     </p>
 
-                    <p className="text-sm text-[#64748B]">
+                    <p className="text-sm text-[#64748B] dark:text-slate-400">
                       {editingMember.user?.email || ""}
                     </p>
                   </div>
@@ -1447,7 +1505,7 @@ const ProjectWorkspace = () => {
               )}
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                   Project Role
                 </label>
 
@@ -1459,25 +1517,25 @@ const ProjectWorkspace = () => {
                       projectRole: event.target.value,
                     }))
                   }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
                   required
                 >
                   {PROJECT_ROLES.map((role) => (
-                    <option key={role} value={role}>
+                    <option key={role} value={role} className="dark:bg-[#1e293b] dark:text-white">
                       {role}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
+              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddMember(false);
                     setEditingMember(null);
                   }}
-                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
+                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033] dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                 >
                   Cancel
                 </button>
@@ -1495,15 +1553,15 @@ const ProjectWorkspace = () => {
       )}
 
       {showTaskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-300 bg-white shadow-2xl shadow-slate-900/20">
-            <div className="flex items-center justify-between border-b border-slate-200 p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 dark:border-slate-800 dark:bg-[#0f172a]">
+            <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
               <div>
-                <h2 className="text-xl font-bold text-[#172033]">
+                <h2 className="text-xl font-bold text-[#172033] dark:text-white">
                   {editingTask ? "Edit Parent Task" : "Create Parent Task"}
                 </h2>
 
-                <p className="mt-1 text-sm text-[#64748B]">
+                <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
                   {editingTask
                     ? "Update parent task information."
                     : "Define a deliverable parent work item decomposed into subtasks."}
@@ -1515,7 +1573,7 @@ const ProjectWorkspace = () => {
                   setShowTaskModal(false);
                   setEditingTask(null);
                 }}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033]"
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#172033] dark:hover:bg-slate-800 dark:hover:text-white"
               >
                 <PiX size={22} />
               </button>
@@ -1523,7 +1581,7 @@ const ProjectWorkspace = () => {
 
             <form onSubmit={handleTaskSubmit} className="space-y-5 p-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                   Parent Task Title *
                 </label>
 
@@ -1533,13 +1591,13 @@ const ProjectWorkspace = () => {
                   value={taskForm.title}
                   onChange={handleTaskFormChange}
                   placeholder="e.g. Implement Core Authentication Service"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white dark:placeholder:text-slate-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                   Description
                 </label>
 
@@ -1549,12 +1607,12 @@ const ProjectWorkspace = () => {
                   onChange={handleTaskFormChange}
                   rows={4}
                   placeholder="Describe the high-level work item and deliverables..."
-                  className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                   Assignee
                 </label>
 
@@ -1562,12 +1620,12 @@ const ProjectWorkspace = () => {
                   name="assigneeId"
                   value={taskForm.assigneeId}
                   onChange={handleTaskFormChange}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
                 >
-                  <option value="">Select Assignee</option>
+                  <option value="" className="dark:bg-[#1e293b] dark:text-white">Select Assignee</option>
 
                   {projectMembers.map((m) => (
-                    <option key={m.userId} value={m.userId}>
+                    <option key={m.userId} value={m.userId} className="dark:bg-[#1e293b] dark:text-white">
                       {m.user?.fullName ||
                         m.user?.name ||
                         `User #${m.userId}`}{" "}
@@ -1577,20 +1635,20 @@ const ProjectWorkspace = () => {
 
                   {projectMembers.length === 0 &&
                     users.map((u) => (
-                      <option key={u.id} value={u.id}>
+                      <option key={u.id} value={u.id} className="dark:bg-[#1e293b] dark:text-white">
                         {u.fullName || u.name} ({u.email})
                       </option>
                     ))}
                 </select>
 
-                <p className="mt-1 text-xs text-[#64748B]">
+                <p className="mt-1 text-xs text-[#64748B] dark:text-slate-400">
                   Assign to any team member or lead on this project.
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                     Priority
                   </label>
 
@@ -1598,10 +1656,10 @@ const ProjectWorkspace = () => {
                     name="priority"
                     value={taskForm.priority}
                     onChange={handleTaskFormChange}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
                   >
                     {PRIORITIES.map((priority) => (
-                      <option key={priority} value={priority}>
+                      <option key={priority} value={priority} className="dark:bg-[#1e293b] dark:text-white">
                         {priority}
                       </option>
                     ))}
@@ -1609,7 +1667,7 @@ const ProjectWorkspace = () => {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                  <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                     Status
                   </label>
 
@@ -1617,10 +1675,10 @@ const ProjectWorkspace = () => {
                     name="status"
                     value={taskForm.status}
                     onChange={handleTaskFormChange}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
                   >
                     {TASK_STATUSES.map((status) => (
-                      <option key={status} value={status}>
+                      <option key={status} value={status} className="dark:bg-[#1e293b] dark:text-white">
                         {status}
                       </option>
                     ))}
@@ -1629,7 +1687,7 @@ const ProjectWorkspace = () => {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#172033]">
+                <label className="mb-2 block text-sm font-semibold text-[#172033] dark:text-slate-200">
                   Due Date
                 </label>
 
@@ -1638,18 +1696,18 @@ const ProjectWorkspace = () => {
                   name="dueDate"
                   value={taskForm.dueDate}
                   onChange={handleTaskFormChange}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#172033] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
+              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
                     setShowTaskModal(false);
                     setEditingTask(null);
                   }}
-                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
+                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033] dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                 >
                   Cancel
                 </button>
@@ -1667,19 +1725,19 @@ const ProjectWorkspace = () => {
       )}
 
       {confirmDeleteMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-6 shadow-2xl shadow-slate-900/20">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-              <PiTrash size={24} className="text-[#DC2626]" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/20 dark:border-slate-800 dark:bg-[#0f172a]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/50">
+              <PiTrash size={24} className="text-[#DC2626] dark:text-red-400" />
             </div>
 
-            <h2 className="mt-4 text-xl font-bold text-[#172033]">
+            <h2 className="mt-4 text-xl font-bold text-[#172033] dark:text-white">
               Remove Team Member?
             </h2>
 
-            <p className="mt-2 text-sm text-[#64748B]">
+            <p className="mt-2 text-sm text-[#64748B] dark:text-slate-400">
               Are you sure you want to remove{" "}
-              <span className="font-semibold text-[#172033]">
+              <span className="font-semibold text-[#172033] dark:text-slate-100">
                 {confirmDeleteMember.user?.fullName ||
                   confirmDeleteMember.user?.name}
               </span>{" "}
@@ -1689,7 +1747,7 @@ const ProjectWorkspace = () => {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setConfirmDeleteMember(null)}
-                className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
+                className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033] dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
               >
                 Cancel
               </button>
@@ -1706,19 +1764,19 @@ const ProjectWorkspace = () => {
       )}
 
       {confirmDeleteTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-6 shadow-2xl shadow-slate-900/20">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-              <PiTrash size={24} className="text-[#DC2626]" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/20 dark:border-slate-800 dark:bg-[#0f172a]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/50">
+              <PiTrash size={24} className="text-[#DC2626] dark:text-red-400" />
             </div>
 
-            <h2 className="mt-4 text-xl font-bold text-[#172033]">
+            <h2 className="mt-4 text-xl font-bold text-[#172033] dark:text-white">
               Delete Parent Task?
             </h2>
 
-            <p className="mt-2 text-sm text-[#64748B]">
+            <p className="mt-2 text-sm text-[#64748B] dark:text-slate-400">
               Are you sure you want to delete{" "}
-              <span className="font-semibold text-[#172033]">
+              <span className="font-semibold text-[#172033] dark:text-slate-100">
                 {confirmDeleteTask.title}
               </span>
               ? This will also remove any decomposed subtasks under this
@@ -1728,7 +1786,7 @@ const ProjectWorkspace = () => {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setConfirmDeleteTask(null)}
-                className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033]"
+                className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#172033] dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
               >
                 Cancel
               </button>

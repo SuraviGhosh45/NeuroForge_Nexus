@@ -43,10 +43,10 @@ const COLUMNS = [
 ];
 
 const priorityColor = {
-  Critical: "text-red-700 border-red-200 bg-red-50",
-  High: "text-red-700 border-red-200 bg-red-50",
-  Medium: "text-amber-700 border-amber-200 bg-amber-50",
-  Low: "text-emerald-700 border-emerald-200 bg-emerald-50",
+  Critical: "text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40",
+  High: "text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40",
+  Medium: "text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40",
+  Low: "text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40",
 };
 
 const SubtaskKanban = () => {
@@ -84,14 +84,14 @@ const SubtaskKanban = () => {
 
   if (!projectId || !taskId || !subtaskId) {
     return (
-      <div className="min-h-full bg-[#E8EEF7] p-6 text-[#172033]">
+      <div className="min-h-full bg-transparent p-6 text-[#172033] dark:text-slate-100">
         <div className="mx-auto max-w-7xl">
-          <div className="rounded-2xl border border-slate-300 bg-white p-10 text-center shadow-sm">
-            <p className="text-lg font-semibold text-[#172033]">
+          <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0f172a] p-10 text-center shadow-sm">
+            <p className="text-lg font-semibold text-[#172033] dark:text-slate-100">
               Invalid subtask URL
             </p>
 
-            <p className="mt-2 text-sm text-[#64748B]">
+            <p className="mt-2 text-sm text-[#64748B] dark:text-slate-400">
               Project, task, or subtask information is
               missing from the URL.
             </p>
@@ -244,6 +244,14 @@ const SubtaskKanban = () => {
 
     setIsUpdating(true);
 
+    /**
+     * [BACKEND_INTEGRATION_POINT]
+     * Action: Update Subtask Status via Drag & Drop
+     * Endpoint: PATCH /api/subtasks/{subtaskId}/status or PUT /api/subtasks/{subtaskId}
+     * Payload: { status: "To Do" | "In Progress" | "In Review" | "Done" }
+     * Headers: { Authorization: "Bearer <token>", "Content-Type": "application/json" }
+     * Response: 200 OK with updated subtask JSON
+     */
     const result = updateSubtaskStatus
       ? await updateSubtaskStatus(
           draggedSubtask.id,
@@ -270,7 +278,7 @@ const SubtaskKanban = () => {
 
   if (!parentTask) {
     return (
-      <div className="min-h-full bg-[#E8EEF7] p-6 text-[#172033]">
+      <div className="min-h-full bg-transparent p-6 text-[#172033] dark:text-slate-100">
         <div className="mx-auto max-w-7xl">
           <button
             type="button"
@@ -279,18 +287,18 @@ const SubtaskKanban = () => {
                 `/projects/${projectId}/tasks/${taskId}`
               )
             }
-            className="mb-6 inline-flex items-center gap-2 text-sm text-[#475569] transition hover:text-[#2563EB]"
+            className="mb-6 inline-flex items-center gap-2 text-sm text-[#475569] dark:text-slate-400 transition hover:text-[#2563EB] dark:hover:text-blue-400"
           >
             <PiArrowLeft />
             Back to Task
           </button>
 
-          <div className="rounded-2xl border border-slate-300 bg-white p-10 text-center shadow-sm">
-            <p className="text-lg font-semibold text-[#172033]">
+          <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0f172a] p-10 text-center shadow-sm">
+            <p className="text-lg font-semibold text-[#172033] dark:text-slate-100">
               Task not found
             </p>
 
-            <p className="mt-2 text-sm text-[#64748B]">
+            <p className="mt-2 text-sm text-[#64748B] dark:text-slate-400">
               This task may have been deleted or
               does not exist.
             </p>
@@ -301,46 +309,81 @@ const SubtaskKanban = () => {
   }
 
   return (
-    <div className="min-h-full bg-[#E8EEF7] px-4 py-6 text-[#172033] sm:px-6 lg:px-8">
+    <div className="min-h-full bg-transparent px-4 py-6 text-[#172033] dark:text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1600px]">
-        <button
-          type="button"
-          onClick={() =>
-            navigate(
-              `/projects/${projectId}/tasks/${taskId}/${subtaskId}`
-            )
-          }
-          className="mb-5 inline-flex items-center gap-2 text-sm text-[#475569] transition hover:text-[#2563EB]"
-        >
-          <PiArrowLeft />
-          Back to Subtask
-        </button>
+        {/* HIERARCHICAL BREADCRUMB */}
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium text-[#64748B] dark:text-slate-400">
+          <button
+            type="button"
+            onClick={() => navigate("/projects")}
+            className="transition hover:text-[#2563EB] dark:hover:text-blue-400"
+          >
+            Projects
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(`/projects/${projectId}?section=tasks`, {
+                state: { section: "tasks" },
+              })
+            }
+            className="transition hover:text-[#2563EB] dark:hover:text-blue-400"
+          >
+            {project?.name || "Project"}
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(`/projects/${projectId}/tasks/${taskId}`)
+            }
+            className="transition hover:text-[#2563EB] dark:hover:text-blue-400"
+          >
+            TASK-{parentTask.id}
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                `/projects/${projectId}/tasks/${taskId}/${subtaskId}`
+              )
+            }
+            className="transition hover:text-[#2563EB] dark:hover:text-blue-400"
+          >
+            SUBTASK-{subtaskId}
+          </button>
+          <span>/</span>
+          <span className="font-semibold text-[#172033] dark:text-slate-200">
+            Kanban
+          </span>
+        </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-6">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+          <div className="border-b border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-[#0f172a]">
             <div>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-lg border border-slate-300 bg-[#F1F5F9] px-3 py-1 text-xs font-medium text-[#475569]">
+                <span className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-1 font-mono text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                   TASK-{parentTask.id}
                 </span>
 
-                <span className="text-sm text-[#64748B]">
+                <span className="text-sm text-[#64748B] dark:text-slate-400">
                   Subtask Kanban
                 </span>
               </div>
 
-              <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#172033] sm:text-3xl">
+              <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#172033] dark:text-white sm:text-3xl">
                 {parentTask.title}
               </h1>
 
-              <p className="mt-2 text-sm text-[#475569]">
-                Drag and drop subtasks between
-                columns to update their status.
+              <p className="mt-2 text-sm text-[#475569] dark:text-slate-400">
+                Drag and drop subtasks between columns to update their delivery status.
               </p>
             </div>
           </div>
 
-          <div className="overflow-x-auto border-b border-slate-200 p-2">
+          <div className="overflow-x-auto border-b border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-[#0b1120]">
             <div className="flex min-w-max gap-1">
               <button
                 type="button"
@@ -349,7 +392,7 @@ const SubtaskKanban = () => {
                     `/projects/${projectId}/tasks/${taskId}/${subtaskId}`
                   )
                 }
-                className="rounded-xl px-5 py-2.5 text-sm font-medium text-[#475569] transition hover:bg-[#F1F5F9] hover:text-[#172033]"
+                className="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               >
                 Subtask Details
               </button>
@@ -368,7 +411,7 @@ const SubtaskKanban = () => {
                     `/projects/${projectId}/tasks/${taskId}/${subtaskId}/calendar`
                   )
                 }
-                className="rounded-xl px-5 py-2.5 text-sm font-medium text-[#475569] transition hover:bg-[#F1F5F9] hover:text-[#172033]"
+                className="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               >
                 Calendar
               </button>
@@ -398,10 +441,10 @@ const SubtaskKanban = () => {
             return (
               <div
                 key={column.id}
-                className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm"
+                className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0f172a] p-5 shadow-sm"
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-[#475569]">
+                  <p className="text-sm font-medium text-[#475569] dark:text-slate-400">
                     {column.title}
                   </p>
 
@@ -460,24 +503,24 @@ const SubtaskKanban = () => {
                       column.id
                     )
                   }
-                  className={`min-h-[500px] rounded-2xl border bg-white transition-all duration-200 ${
+                  className={`min-h-[500px] rounded-2xl border transition-all duration-200 ${
                     isDropTarget
-                      ? "border-blue-300 bg-blue-50/60 shadow-[0_0_0_1px_rgba(37,99,235,0.12)]"
-                      : "border-slate-300 shadow-sm"
+                      ? "border-blue-400 bg-blue-50/60 dark:bg-blue-950/20 shadow-[0_0_0_1px_rgba(37,99,235,0.12)]"
+                      : "border-slate-200 dark:border-slate-800 bg-[#F8FAFC] dark:bg-[#111927] shadow-sm"
                   }`}
                 >
-                  <div className="flex items-center justify-between border-b border-slate-200 p-5">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 p-5">
                     <div className="flex items-center gap-3">
                       <div
                         className={`h-2.5 w-2.5 rounded-full ${column.dot}`}
                       />
 
-                      <h2 className="text-sm font-semibold text-[#172033]">
+                      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {column.title}
                       </h2>
                     </div>
 
-                    <span className="rounded-full bg-[#F1F5F9] px-2.5 py-1 text-xs font-semibold text-[#64748B]">
+                    <span className="rounded-full bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm ring-1 ring-slate-200 dark:ring-0">
                       {columnSubtasks.length}
                     </span>
                   </div>
@@ -487,19 +530,19 @@ const SubtaskKanban = () => {
                       <div
                         className={`flex min-h-[220px] items-center justify-center rounded-xl border border-dashed transition ${
                           isDropTarget
-                            ? "border-blue-300 bg-blue-50"
-                            : "border-slate-300 bg-[#F8FAFC]"
+                            ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30"
+                            : "border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-[#0b1120]"
                         }`}
                       >
                         <div className="text-center">
-                          <p className="text-sm text-[#64748B]">
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
                             {isDropTarget
                               ? "Drop subtask here"
                               : "No subtasks"}
                           </p>
 
                           {!isDropTarget && (
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                               Drag a card here
                             </p>
                           )}
@@ -551,25 +594,25 @@ const SubtaskKanban = () => {
                               onDragEnd={
                                 handleDragEnd
                               }
-                              className={`rounded-xl border bg-[#F8FAFC] p-4 transition-all duration-200 ${
+                              className={`rounded-xl border bg-white dark:bg-[#1e293b] p-4 shadow-sm transition-all duration-200 ${
                                 canDrag
-                                  ? "cursor-grab border-slate-300 hover:border-blue-200 hover:bg-blue-50/30 active:cursor-grabbing"
-                                  : "cursor-default opacity-85 border-slate-300 hover:border-slate-400"
+                                  ? "cursor-grab border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md active:cursor-grabbing"
+                                  : "cursor-default opacity-85 border-slate-200 dark:border-slate-700"
                               } ${
                                 isDragging
-                                  ? "scale-[0.98] border-blue-300 opacity-40"
+                                  ? "scale-[0.98] border-blue-400 opacity-40 shadow-lg"
                                   : ""
                               }`}
                             >
                               <div className="mb-3 flex items-center justify-between">
-                                <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-400">
+                                <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-400">
                                   {canDrag ? (
                                     "Drag to move"
                                   ) : (
                                     <>
                                       <PiLockKey
                                         size={12}
-                                        className="text-amber-600"
+                                        className="text-amber-600 dark:text-amber-400"
                                       />
                                       <span>
                                         Locked
@@ -578,7 +621,7 @@ const SubtaskKanban = () => {
                                   )}
                                 </span>
 
-                                <span className="text-[10px] text-slate-400">
+                                <span className="text-[10px] text-slate-400 dark:text-slate-400">
                                   {subtask.id}
                                 </span>
                               </div>
@@ -590,12 +633,12 @@ const SubtaskKanban = () => {
                                     subtask
                                   )
                                 }
-                                className="w-full text-left text-sm font-semibold text-[#172033] transition hover:text-[#2563EB]"
+                                className="w-full text-left text-sm font-semibold text-[#172033] dark:text-slate-100 transition hover:text-[#2563EB] dark:hover:text-blue-400"
                               >
                                 {subtask.title}
                               </button>
 
-                              <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#64748B]">
+                              <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#64748B] dark:text-slate-400">
                                 {subtask.description ||
                                   "No description has been added."}
                               </p>
@@ -610,7 +653,7 @@ const SubtaskKanban = () => {
                               </div>
 
                               <div className="mt-4 space-y-2">
-                                <div className="flex items-center gap-2 text-xs text-[#64748B]">
+                                <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-slate-400">
                                   <PiUserCircle />
 
                                   <span className="truncate">
@@ -621,7 +664,7 @@ const SubtaskKanban = () => {
                                   </span>
                                 </div>
 
-                                <div className="flex items-center gap-2 text-xs text-[#64748B]">
+                                <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-slate-400">
                                   <PiCalendarBlank />
 
                                   <span>
@@ -643,7 +686,7 @@ const SubtaskKanban = () => {
         </div>
 
         {draggedSubtaskId && (
-          <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-blue-200 bg-[#172033] px-4 py-2 text-xs font-medium text-blue-200 shadow-xl">
+          <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 shadow-xl">
             Dragging subtask — drop it into a column
           </div>
         )}

@@ -23,8 +23,11 @@ import {
   PiX,
   PiCommand,
   PiCircleDashed,
+  PiSun,
+  PiMoon,
 } from "react-icons/pi";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useTheme } from "../../context/ThemeContext.jsx";
 import { useProjects } from "../../context/ProjectContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 import { ROLES, formatRole, normalizeRole } from "../../constants/roles.js";
@@ -98,6 +101,7 @@ const Navbar = ({
   onRequestDeleteAccount,
 }) => {
   const { currentUser, logout } = useAuth();
+  const { theme, isDark, toggleTheme } = useTheme();
   const { projects = [] } = useProjects();
   const { tasks = [] } = useTasks();
   const location = useLocation();
@@ -369,7 +373,7 @@ const Navbar = ({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-slate-700 bg-[#172033] shadow-lg shadow-slate-900/15 transition-all">
+      <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-[#172033]/95 backdrop-blur-md shadow-xs dark:shadow-lg dark:shadow-slate-900/15 transition-colors duration-200">
         <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/70 to-transparent" />
 
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -382,7 +386,7 @@ const Navbar = ({
                   ? "Hide navigation"
                   : "Show navigation"
               }
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-600 bg-[#24324a] text-slate-300 transition-all duration-200 hover:border-slate-500 hover:bg-[#2d3c56] hover:text-white active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-[#24324a] text-slate-700 dark:text-slate-300 transition-all duration-200 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-200 dark:hover:bg-[#2d3c56] hover:text-slate-900 dark:hover:text-white active:scale-95"
               title={
                 sidebarOpen
                   ? "Collapse sidebar"
@@ -404,32 +408,32 @@ const Navbar = ({
 
               <div className="hidden sm:block">
                 <div className="flex items-center gap-1.5 leading-none">
-                  <span className="text-sm font-bold tracking-tight text-white transition-colors group-hover:text-blue-300">
+                  <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-300">
                     NeuroForge
                   </span>
 
-                  <span className="rounded-md border border-blue-400/30 bg-blue-400/10 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-blue-300">
+                  <span className="rounded-md border border-blue-400/30 bg-blue-400/10 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-300">
                     Nexus
                   </span>
                 </div>
 
-                <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   SDLC Suite
                 </span>
               </div>
             </Link>
 
-            <div className="hidden lg:flex items-center gap-2 border-l border-slate-700 pl-5 text-xs">
-              <span className="text-slate-400 font-medium">
+            <div className="hidden lg:flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-5 text-xs">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">
                 {breadcrumb.category}
               </span>
 
               <PiCaretRight
                 size={12}
-                className="text-slate-500"
+                className="text-slate-400 dark:text-slate-500"
               />
 
-              <span className="font-semibold text-white truncate max-w-[200px]">
+              <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[200px]">
                 {breadcrumb.title}
               </span>
             </div>
@@ -439,12 +443,12 @@ const Navbar = ({
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="group flex w-full items-center justify-between rounded-xl border border-slate-600 bg-[#24324a] px-3.5 py-2 text-xs text-slate-400 shadow-inner transition-all duration-200 hover:border-blue-400/50 hover:bg-[#2d3c56] hover:text-slate-200"
+              className="group flex w-full items-center justify-between rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-100/80 dark:bg-[#24324a] px-3.5 py-2 text-xs text-slate-500 dark:text-slate-400 shadow-inner transition-all duration-200 hover:border-blue-400/50 hover:bg-slate-200 dark:hover:bg-[#2d3c56] hover:text-slate-800 dark:hover:text-slate-200"
             >
               <div className="flex items-center gap-2.5 truncate">
                 <PiMagnifyingGlass
                   size={16}
-                  className="text-slate-400 transition-colors group-hover:text-blue-400"
+                  className="text-slate-400 transition-colors group-hover:text-blue-500"
                 />
 
                 <span className="truncate">
@@ -452,7 +456,7 @@ const Navbar = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 rounded-md border border-slate-600 bg-[#172033] px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+              <div className="flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#172033] px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400">
                 <PiCommand size={10} />
                 <span>K</span>
               </div>
@@ -463,14 +467,14 @@ const Navbar = ({
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl border border-slate-600 bg-[#24324a] text-slate-300 transition-all hover:bg-[#2d3c56] hover:text-white"
+              className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-[#24324a] text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-200 dark:hover:bg-[#2d3c56] hover:text-slate-900 dark:hover:text-white"
               title="Search"
             >
               <PiMagnifyingGlass size={17} />
             </button>
 
             <div
-              className={`hidden sm:inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold tracking-wide shadow-sm ${roleConfig.badge}`}
+              className={`hidden sm:inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold tracking-wide shadow-xs ${roleConfig.badge}`}
             >
               <span
                 className={`h-1.5 w-1.5 rounded-full ${roleConfig.dot} animate-pulse`}
@@ -490,8 +494,8 @@ const Navbar = ({
                 }}
                 className={`relative flex h-9 w-9 items-center justify-center rounded-xl border transition-all duration-200 active:scale-95 ${
                   notificationsOpen
-                    ? "border-blue-400/50 bg-blue-500/15 text-blue-300"
-                    : "border-slate-600 bg-[#24324a] text-slate-300 hover:border-slate-500 hover:bg-[#2d3c56] hover:text-white"
+                    ? "border-blue-400/50 bg-blue-500/15 text-blue-600 dark:text-blue-300"
+                    : "border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-[#24324a] text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-200 dark:hover:bg-[#2d3c56] hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="Notifications"
                 aria-label="Notifications"
@@ -499,22 +503,22 @@ const Navbar = ({
                 <PiBell size={18} />
 
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white shadow-md shadow-blue-500/50">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[9px] font-bold text-white shadow-md shadow-blue-500/50">
                     {unreadCount}
                   </span>
                 )}
               </button>
 
               {notificationsOpen && (
-                <div className="absolute right-0 top-full mt-2.5 w-80 sm:w-96 rounded-2xl border border-slate-600 bg-[#172033] p-4 shadow-2xl shadow-slate-900/30 z-50">
-                  <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+                <div className="absolute right-0 top-full mt-2.5 w-[calc(100vw-2rem)] max-w-sm sm:w-96 rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-[#172033] p-4 shadow-2xl z-50">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-white">
+                      <span className="font-semibold text-sm text-slate-900 dark:text-white">
                         Notifications
                       </span>
 
                       {unreadCount > 0 && (
-                        <span className="rounded-full bg-blue-500/15 border border-blue-400/30 px-2 py-0.5 text-[10px] font-bold text-blue-300">
+                        <span className="rounded-full bg-blue-500/15 border border-blue-400/30 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-300">
                           {unreadCount} new
                         </span>
                       )}
@@ -524,7 +528,7 @@ const Navbar = ({
                       <button
                         type="button"
                         onClick={markAllNotificationsRead}
-                        className="text-[11px] font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                        className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors"
                       >
                         Mark all read
                       </button>
@@ -536,7 +540,7 @@ const Navbar = ({
                       <div className="py-8 text-center text-xs text-slate-400">
                         <PiCheckCircle
                           size={28}
-                          className="mx-auto mb-2 text-emerald-400/70"
+                          className="mx-auto mb-2 text-emerald-500/70"
                         />
 
                         All caught up! No notifications.
@@ -547,12 +551,12 @@ const Navbar = ({
                           key={item.id}
                           className={`rounded-xl border p-3 transition-all ${
                             item.read
-                              ? "border-slate-700 bg-[#24324a]/50"
-                              : "border-blue-400/30 bg-blue-500/10"
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#24324a]/50"
+                              : "border-blue-400/30 bg-blue-50 dark:bg-blue-500/10"
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-xs font-semibold text-white leading-snug">
+                            <h4 className="text-xs font-semibold text-slate-900 dark:text-white leading-snug">
                               {item.title}
                             </h4>
 
@@ -561,7 +565,7 @@ const Navbar = ({
                             </span>
                           </div>
 
-                          <p className="mt-1 text-[11px] text-slate-300 leading-relaxed">
+                          <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
                             {item.description}
                           </p>
                         </div>
@@ -569,8 +573,8 @@ const Navbar = ({
                     )}
                   </div>
 
-                  <div className="mt-3 border-t border-slate-700 pt-2.5 text-center">
-                    <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">
+                  <div className="mt-3 border-t border-slate-100 dark:border-slate-700 pt-2.5 text-center">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">
                       NeuroForge Event Stream Active
                     </span>
                   </div>
@@ -578,8 +582,29 @@ const Navbar = ({
               )}
             </div>
 
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-[#24324a] text-slate-700 dark:text-slate-300 transition-all duration-200 hover:scale-105 active:scale-95 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-200 dark:hover:bg-[#2d3c56]"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label="Toggle Theme"
+            >
+              {isDark ? (
+                <PiSun
+                  size={19}
+                  className="text-amber-400 transition-transform duration-300 hover:rotate-45"
+                />
+              ) : (
+                <PiMoon
+                  size={19}
+                  className="text-indigo-600 transition-transform duration-300 hover:-rotate-12"
+                />
+              )}
+            </button>
+
             <div
-              className="relative border-l border-slate-700 pl-2.5 sm:pl-3.5"
+              className="relative border-l border-slate-200 dark:border-slate-700 pl-2.5 sm:pl-3.5"
               ref={accountRef}
             >
               <button
@@ -591,7 +616,7 @@ const Navbar = ({
                 className={`flex items-center gap-2.5 rounded-xl border p-1 sm:px-2.5 sm:py-1.5 transition-all duration-200 active:scale-95 ${
                   accountMenuOpen
                     ? "border-blue-400/50 bg-blue-500/10"
-                    : "border-transparent hover:border-slate-600 hover:bg-[#24324a]"
+                    : "border-transparent hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-100 dark:hover:bg-[#24324a]"
                 }`}
                 aria-expanded={accountMenuOpen}
               >
@@ -602,15 +627,15 @@ const Navbar = ({
                     )}
                   </span>
 
-                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#172033] bg-emerald-400" />
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[#172033] bg-emerald-400" />
                 </div>
 
                 <div className="hidden text-left sm:block">
-                  <p className="text-xs font-semibold leading-tight text-white truncate max-w-[120px]">
+                  <p className="text-xs font-semibold leading-tight text-slate-900 dark:text-white truncate max-w-[120px]">
                     {currentUser?.fullName || "User"}
                   </p>
 
-                  <p className="text-[10px] text-slate-400 truncate max-w-[120px]">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
                     {currentUser?.email}
                   </p>
                 </div>
@@ -619,15 +644,15 @@ const Navbar = ({
                   size={14}
                   className={`text-slate-400 transition-transform duration-200 ${
                     accountMenuOpen
-                      ? "rotate-180 text-blue-300"
+                      ? "rotate-180 text-blue-500 dark:text-blue-300"
                       : ""
                   }`}
                 />
               </button>
 
               {accountMenuOpen && (
-                <div className="absolute right-0 top-full mt-2.5 w-64 rounded-2xl border border-slate-600 bg-[#172033] p-2 shadow-2xl shadow-slate-900/30 z-50">
-                  <div className="rounded-xl border border-slate-700 bg-[#24324a] p-3.5 mb-2">
+                <div className="absolute right-0 top-full mt-2.5 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-[#172033] p-2 shadow-2xl z-50">
+                  <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-[#24324a] p-3.5 mb-2">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 font-bold text-white text-sm shadow-md">
                         {getInitials(
@@ -636,11 +661,11 @@ const Navbar = ({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-white truncate">
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
                           {currentUser?.fullName || "User"}
                         </p>
 
-                        <p className="text-[11px] text-slate-400 truncate">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                           {currentUser?.email}
                         </p>
 
@@ -654,15 +679,15 @@ const Navbar = ({
                     </div>
                   </div>
 
-                  <div className="space-y-0.5 border-b border-slate-700 pb-2 mb-2">
+                  <div className="space-y-0.5 border-b border-slate-100 dark:border-slate-700 pb-2 mb-2">
                     <Link
                       to="/dashboard"
                       onClick={() => setAccountMenuOpen(false)}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                     >
                       <PiGauge
                         size={16}
-                        className="text-blue-400"
+                        className="text-blue-500 dark:text-blue-400"
                       />
                       <span>My Dashboard</span>
                     </Link>
@@ -671,11 +696,11 @@ const Navbar = ({
                       <Link
                         to="/my-tasks"
                         onClick={() => setAccountMenuOpen(false)}
-                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                       >
                         <PiCheckSquare
                           size={16}
-                          className="text-amber-400"
+                          className="text-amber-500 dark:text-amber-400"
                         />
                         <span>My Work Queue</span>
                       </Link>
@@ -684,11 +709,11 @@ const Navbar = ({
                     <Link
                       to="/projects"
                       onClick={() => setAccountMenuOpen(false)}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                     >
                       <PiFolder
                         size={16}
-                        className="text-cyan-400"
+                        className="text-cyan-500 dark:text-cyan-400"
                       />
                       <span>Projects Directory</span>
                     </Link>
@@ -697,11 +722,11 @@ const Navbar = ({
                       <Link
                         to="/user-management"
                         onClick={() => setAccountMenuOpen(false)}
-                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                       >
                         <PiUsers
                           size={16}
-                          className="text-purple-400"
+                          className="text-purple-500 dark:text-purple-400"
                         />
                         <span>User Management</span>
                       </Link>
@@ -711,7 +736,7 @@ const Navbar = ({
                       <Link
                         to="/calendar"
                         onClick={() => setAccountMenuOpen(false)}
-                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                       >
                         <PiCalendarBlank
                           size={16}
@@ -722,25 +747,43 @@ const Navbar = ({
                     )}
                   </div>
 
-                  <div className="px-3 py-1.5 mb-1.5 flex items-center justify-between text-[10px] text-slate-500">
+                  <div className="px-3 py-1.5 mb-1.5 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 font-medium">
                     <span>System Status</span>
 
-                    <span className="flex items-center gap-1.5 font-medium text-emerald-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="flex items-center gap-1.5 font-semibold text-emerald-700 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                       Online
                     </span>
                   </div>
 
-                  <div className="space-y-0.5">
+                  <div className="flex items-center justify-between px-3 py-1.5 mb-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
+                      {isDark ? (
+                        <PiMoon size={15} className="text-blue-400" />
+                      ) : (
+                        <PiSun size={15} className="text-amber-500" />
+                      )}
+                      Appearance
+                    </span>
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      className="rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-[#24324a] px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-500 transition hover:scale-105"
+                    >
+                      {isDark ? "🌙 Dark" : "☀️ Light"}
+                    </button>
+                  </div>
+
+                  <div className="space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-1 mt-1">
                     <button
                       type="button"
                       onClick={() => {
                         setAccountMenuOpen(false);
                         logout();
                       }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-blue-500/10 hover:text-blue-300"
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 dark:text-slate-200 transition hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-950 dark:hover:text-white"
                     >
-                      <PiSignOut size={16} />
+                      <PiSignOut size={16} className="text-slate-600 dark:text-slate-300" />
                       <span>Sign Out</span>
                     </button>
 
@@ -750,7 +793,7 @@ const Navbar = ({
                         setAccountMenuOpen(false);
                         onRequestDeleteAccount();
                       }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-rose-400 transition hover:bg-rose-500/10"
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 transition hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
                     >
                       <PiTrash size={16} />
                       <span>Delete Account</span>
@@ -764,15 +807,15 @@ const Navbar = ({
       </header>
 
       {searchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[#172033]/65 px-4 pt-20 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 dark:bg-slate-950/70 px-4 pt-20 backdrop-blur-sm">
           <div
             ref={searchModalRef}
-            className="w-full max-w-xl rounded-2xl border border-slate-600 bg-[#172033] shadow-2xl shadow-slate-900/40 overflow-hidden"
+            className="w-full max-w-xl rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#172033] shadow-2xl overflow-hidden"
           >
-            <div className="flex items-center gap-3 border-b border-slate-700 px-4 py-3.5">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 px-4 py-3.5">
               <PiMagnifyingGlass
                 size={20}
-                className="text-blue-400 shrink-0"
+                className="text-blue-500 dark:text-blue-400 shrink-0"
               />
 
               <input
@@ -781,28 +824,28 @@ const Navbar = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Type to search projects, tasks, or sections..."
-                className="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+                className="w-full bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none"
               />
 
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="rounded-lg p-1 text-slate-500 hover:text-white transition"
+                  className="rounded-lg p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
                 >
                   <PiX size={16} />
                 </button>
               )}
 
-              <span className="rounded-md border border-slate-600 bg-[#24324a] px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+              <span className="rounded-md border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-[#24324a] px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400">
                 ESC
               </span>
             </div>
 
             <div className="max-h-[360px] overflow-y-auto p-2">
               {searchQuery.trim() === "" ? (
-                <div className="p-6 text-center text-xs text-slate-400">
-                  <p className="font-medium text-slate-300 mb-1">
+                <div className="p-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                  <p className="font-semibold text-slate-700 dark:text-slate-200 mb-1">
                     Quick Search
                   </p>
 
@@ -812,7 +855,7 @@ const Navbar = ({
                   </p>
                 </div>
               ) : searchResults.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-400">
+                <div className="p-8 text-center text-xs text-slate-500 dark:text-slate-400">
                   No matching results found for "{searchQuery}".
                 </div>
               ) : (
@@ -827,23 +870,23 @@ const Navbar = ({
                         onClick={() =>
                           handleSelectResult(item.link)
                         }
-                        className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition hover:bg-[#24324a] group"
+                        className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition hover:bg-slate-100 dark:hover:bg-[#24324a] group"
                       >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-600 bg-[#111827] text-blue-400 group-hover:border-blue-400/40 group-hover:bg-blue-500/10 transition">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-[#111827] text-blue-500 dark:text-blue-400 group-hover:border-blue-400/40 group-hover:bg-blue-500/10 transition">
                           <ItemIcon size={16} />
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-white group-hover:text-blue-300 transition truncate">
+                          <p className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition truncate">
                             {item.title}
                           </p>
 
-                          <p className="text-[11px] text-slate-400 truncate">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                             {item.subtitle}
                           </p>
                         </div>
 
-                        <span className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-blue-400 transition">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
                           Jump →
                         </span>
                       </button>
@@ -853,13 +896,13 @@ const Navbar = ({
               )}
             </div>
 
-            <div className="border-t border-slate-700 bg-[#111827] px-4 py-2.5 flex items-center justify-between text-[11px] text-slate-500">
+            <div className="border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-[#111827] px-4 py-2.5 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
               <span>Navigate with mouse or keyboard</span>
 
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
-                className="hover:text-white transition"
+                className="hover:text-slate-900 dark:hover:text-white transition"
               >
                 Close
               </button>

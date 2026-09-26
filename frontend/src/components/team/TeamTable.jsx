@@ -5,8 +5,8 @@ const TeamTable = ({ members, onEdit, onRemove }) => {
     <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-[#172033]">
-            <tr className="text-left text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/90">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               <th className="px-6 py-4">Member</th>
               <th className="px-6 py-4">Email</th>
               <th className="px-6 py-4">Team Role</th>

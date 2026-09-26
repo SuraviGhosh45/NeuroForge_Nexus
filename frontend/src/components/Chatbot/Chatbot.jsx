@@ -658,6 +658,24 @@ const ChatBot = () => {
     setSending(true);
 
     try {
+      /* ==========================================================================
+         [BACKEND_INTEGRATION_POINT]
+         Endpoint:    POST http://localhost:8080/api/chat
+         Description: AI Chatbot conversation query endpoint.
+                      Accepts user query with rolling conversation history and returns an assistant response.
+                      If endpoint returns an error or is not implemented, the frontend safely falls
+                      back to its local heuristic engine and calendar assistant (buildReply).
+         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
+         Payload:     {
+                        "message": "Which projects are in progress?",
+                        "history": [
+                          { "role": "user", "content": "How many projects do I have?" },
+                          { "role": "assistant", "content": "You have 3 active projects." }
+                        ]
+                      }
+         Response:    200 OK -> { "reply": "You currently have 2 projects in progress: App Alpha and Portal Beta." }
+         cURL:        curl -X POST http://localhost:8080/api/chat -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"message":"What are my tasks?","history":[]}'
+         ========================================================================== */
       const { data } = await axios.post(
         "http://localhost:8080/api/chat",
         {
@@ -723,26 +741,36 @@ const ChatBot = () => {
   return (
     <>
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex h-[28rem] w-[22rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15">
-          <div className="flex items-center justify-between bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-4 py-3 text-white">
-            <div className="flex items-center gap-2">
-              <PiRobot size={22} />
-              <span className="font-semibold">
-                Project Assistant
-              </span>
+        <div className="fixed sm:bottom-24 bottom-20 sm:right-6 right-3 z-50 flex sm:h-[30rem] h-[calc(100vh-7.5rem)] sm:w-[23rem] w-[calc(100vw-1.5rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] shadow-2xl shadow-slate-900/15 dark:shadow-black/50 transition-all duration-200">
+          {/* Chatbot Header */}
+          <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 px-4 py-3 text-white shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 backdrop-blur-xs">
+                <PiRobot size={20} />
+              </div>
+              <div>
+                <span className="font-semibold text-sm leading-none block">
+                  Project Assistant
+                </span>
+                <span className="text-[11px] text-blue-100/90 flex items-center gap-1.5 mt-0.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Online
+                </span>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close chat"
-              className="text-white/80 transition hover:text-white"
+              className="rounded-lg p-1 text-white/80 transition hover:bg-white/15 hover:text-white"
             >
               <PiX size={20} />
             </button>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto bg-[#F1F5F9] p-4">
+          {/* Messages Area */}
+          <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 dark:bg-[#090d16] p-4 transition-colors">
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -753,10 +781,10 @@ const ChatBot = () => {
                 }`}
               >
                 <div
-                  className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
+                  className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-sm transition-colors ${
                     message.from === "user"
-                      ? "bg-[#2563EB] text-white"
-                      : "border border-slate-200 bg-white text-[#172033] shadow-sm"
+                      ? "rounded-br-xs bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs"
+                      : "rounded-bl-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 shadow-xs leading-relaxed"
                   }`}
                 >
                   {message.text}
@@ -766,20 +794,22 @@ const ChatBot = () => {
 
             {sending && (
               <div className="flex justify-start">
-                <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-[#64748B] shadow-sm">
-                  ...
+                <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e293b] px-3.5 py-2.5 text-xs text-slate-500 dark:text-slate-400 shadow-xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.15s]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.3s]" />
                 </div>
               </div>
             )}
 
             {messages.length === 1 && (
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {SUGGESTIONS.map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
                     onClick={() => send(suggestion)}
-                    className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-[#475569] transition hover:border-[#2563EB] hover:bg-blue-50 hover:text-[#2563EB]"
+                    className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e293b] px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 shadow-2xs transition hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400"
                   >
                     {suggestion}
                   </button>
@@ -790,9 +820,10 @@ const ChatBot = () => {
             <div ref={bottomRef} />
           </div>
 
+          {/* Chat Input Bar */}
           <form
             onSubmit={handleSubmit}
-            className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
+            className="flex items-center gap-2 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] p-3 transition-colors"
           >
             <input
               type="text"
@@ -801,32 +832,33 @@ const ChatBot = () => {
                 setInput(event.target.value)
               }
               placeholder="Ask about projects or your calendar..."
-              className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] placeholder-[#94A3B8] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15"
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e293b] px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/15"
             />
 
             <button
               type="submit"
               aria-label="Send message"
-              disabled={sending}
-              className="rounded-xl bg-[#2563EB] p-2.5 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={sending || !input.trim()}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <PiPaperPlaneRight size={18} />
+              <PiPaperPlaneRight size={17} />
             </button>
           </form>
         </div>
       )}
 
+      {/* Floating Chat Trigger Button */}
       <button
         type="button"
         onClick={handleToggle}
         aria-label={open ? "Close chatbot" : "Open chatbot"}
         title="Chat with assistant"
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#2563EB] to-[#4F46E5] text-white shadow-lg shadow-blue-600/25 transition hover:scale-105"
+        className="fixed bottom-6 right-6 z-50 flex h-13 w-13 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-600/30 transition hover:scale-105 active:scale-95"
       >
         {open ? (
-          <PiX size={26} />
+          <PiX size={24} />
         ) : (
-          <PiChatCircleDots size={28} />
+          <PiChatCircleDots size={26} />
         )}
       </button>
     </>
