@@ -19,8 +19,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Validates the JWT, then reloads the user from the database so current role and active status
- * take effect immediately without waiting for the JWT to expire.
+ * Validates the JWT, then reloads the user from the database so current role
+ * and active status take effect immediately without waiting for the JWT to expire.
  */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -30,27 +30,50 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserRepository userRepository;
 
-    public JwtAuthFilter(JwtService jwtService, UserRepository userRepository) {
+    public JwtAuthFilter(
+            JwtService jwtService,
+            UserRepository userRepository) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+    }
+
+    /**
+     * Skip JWT validation for GitHub API requests.
+     *
+     * GitHub repository information can be retrieved using the GitHub API
+     * without requiring a NeuroForge JWT.
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        String path = request.getServletPath();
+
+        return path.startsWith("/api/github/");
     }
 
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+            FilterChain filterChain)
+            throws ServletException, IOException {
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (header != null && header.startsWith(BEARER)) {
             try {
-                AuthUser tokenUser = jwtService.parse(header.substring(BEARER.length()).trim());
-                User dbUser = userRepository.findById(tokenUser.userId()).orElseThrow(
-                        () -> new IllegalArgumentException("Account no longer exists"));
+
+                AuthUser tokenUser = jwtService.parse(
+                        header.substring(BEARER.length()).trim());
+
+                User dbUser = userRepository.findById(tokenUser.userId())
+                        .orElseThrow(
+                                () -> new IllegalArgumentException(
+                                        "Account no longer exists"));
 
                 if (!dbUser.isActive()) {
-                    throw new IllegalArgumentException("Account is inactive");
+                    throw new IllegalArgumentException(
+                            "Account is inactive");
                 }
 
                 AuthUser currentUser = new AuthUser(
@@ -58,13 +81,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         dbUser.getEmail(),
                         dbUser.getRole());
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        currentUser,
-                        null,
-                        AuthorityUtils.createAuthorityList(currentUser.role().authority()));
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                currentUser,
+                                null,
+                                AuthorityUtils.createAuthorityList(
+                                        currentUser.role().authority()));
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContextHolder.getContext()
+                        .setAuthentication(authentication);
+
             } catch (JwtException | IllegalArgumentException e) {
+
                 SecurityContextHolder.clearContext();
             }
         }

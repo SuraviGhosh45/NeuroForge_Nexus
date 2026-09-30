@@ -82,6 +82,14 @@ public class Project {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /** GitHub owner associated with this project (e.g. sainaveen8525). */
+    @Column(name = "github_owner", length = 50)
+    private String githubOwner;
+
+    /** GitHub repository name associated with this project. */
+    @Column(name = "github_repository", length = 100)
+    private String githubRepository;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -146,6 +154,12 @@ public class Project {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getGithubOwner() { return githubOwner; }
+    public void setGithubOwner(String githubOwner) { this.githubOwner = githubOwner; }
+
+    public String getGithubRepository() { return githubRepository; }
+    public void setGithubRepository(String githubRepository) { this.githubRepository = githubRepository; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
