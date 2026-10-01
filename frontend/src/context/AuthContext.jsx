@@ -8,8 +8,6 @@ import {
   setTokenPersistent,
 } from "../services/api.js";
 
-import "../services/api.js";
-
 export const AuthContext = createContext(null);
 
 const API_BASE = "http://localhost:8080/api/auth";
@@ -23,7 +21,7 @@ export const normalizeUser = (user) => {
 
   return {
     ...user,
-    id: user.id || Date.now(),
+    id: user.id,
     fullName: user.fullName || user.name || "User",
     name: user.fullName || user.name || "User",
     email: user.email || "",
@@ -49,26 +47,33 @@ export const AuthProvider = ({ children }) => {
 
     const token = getToken();
 
-    if (savedUser && token) {
+    if (!token) {
+      sessionStorage.removeItem(AUTH_USER_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      setCurrentUser(null);
+      setAuthReady(true);
+      return;
+    }
+
+    if (savedUser) {
       try {
         setCurrentUser(normalizeUser(JSON.parse(savedUser)));
       } catch {
         sessionStorage.removeItem(AUTH_USER_KEY);
         localStorage.removeItem(AUTH_USER_KEY);
-        clearToken();
       }
-    }
-
-    if (!token) {
-      setAuthReady(true);
-      return;
     }
 
     axios
       .get(`${API_BASE}/me`)
       .then((response) => {
         const user = normalizeUser(response.data);
-        sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+
+        const storage = localStorage.getItem(AUTH_USER_KEY)
+          ? localStorage
+          : sessionStorage;
+
+        storage.setItem(AUTH_USER_KEY, JSON.stringify(user));
         setCurrentUser(user);
       })
       .catch(() => {
@@ -77,7 +82,9 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem(AUTH_USER_KEY);
         setCurrentUser(null);
       })
-      .finally(() => setAuthReady(true));
+      .finally(() => {
+        setAuthReady(true);
+      });
   }, []);
 
   const register = async (userData) => {
@@ -89,21 +96,31 @@ export const AuthProvider = ({ children }) => {
         confirmPassword: userData.confirmPassword,
       });
 
-      if (response.data?.token) {
-        setToken(response.data.token);
+      if (!response.data?.token) {
+        return {
+          success: false,
+          message: "Registration failed: authentication token was not returned.",
+        };
       }
+
+      setToken(response.data.token);
 
       const user = normalizeUser(response.data);
 
       sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+      localStorage.removeItem(AUTH_USER_KEY);
+
       setCurrentUser(user);
 
-      return { success: true };
+      return {
+        success: true,
+      };
     } catch (error) {
       return {
         success: false,
         message:
-          error.response?.data?.message || "Registration failed.",
+          error.response?.data?.message ||
+          "Registration failed.",
       };
     }
   };
@@ -116,15 +133,21 @@ export const AuthProvider = ({ children }) => {
         password,
       });
 
-      if (response.data?.token) {
-        if (remember) {
-          setTokenPersistent(response.data.token);
-        } else {
-          setToken(response.data.token);
-        }
+      if (!response.data?.token) {
+        return {
+          success: false,
+          message: "Login failed: authentication token was not returned.",
+        };
+      }
+
+      if (remember) {
+        setTokenPersistent(response.data.token);
+      } else {
+        setToken(response.data.token);
       }
 
       const user = normalizeUser(response.data);
+
       const storage = remember ? localStorage : sessionStorage;
 
       storage.setItem(AUTH_USER_KEY, JSON.stringify(user));
@@ -137,74 +160,30 @@ export const AuthProvider = ({ children }) => {
 
       setCurrentUser(user);
 
-      return { success: true };
+      return {
+        success: true,
+      };
     } catch (error) {
-      const message = error.response?.data?.message;
-      const status = error.response?.status;
+      clearToken();
+      sessionStorage.removeItem(AUTH_USER_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      setCurrentUser(null);
 
-      if (status === 401 || status === 403) {
-        return {
-          success: false,
-          message: message || "Invalid email or password.",
-        };
-      }
-
-      const emailLower = (email || "").toLowerCase().trim();
-
-      let fallbackRole = "developer";
-      let fullName = "Marcus Vance (Developer)";
-
-      if (emailLower.includes("admin")) {
-        fallbackRole = "admin";
-        fullName = "Alexander Wright (Admin)";
-      } else if (
-        emailLower.includes("pm") ||
-        emailLower.includes("manager")
-      ) {
-        fallbackRole = "project_manager";
-        fullName = "Sarah Jenkins (PM)";
-      } else if (
-        emailLower.includes("lead") &&
-        !emailLower.includes("team")
-      ) {
-        fallbackRole = "project_lead";
-        fullName = "David Chen (Project Lead)";
-      } else if (emailLower.includes("team")) {
-        fallbackRole = "team_lead";
-        fullName = "Elena Rostova (Team Lead)";
-      } else if (emailLower.includes("test")) {
-        fallbackRole = "tester";
-        fullName = "Aisha Patel (Tester)";
-      } else if (emailLower.includes("qa")) {
-        fallbackRole = "qa";
-        fullName = "Liam O'Connor (QA)";
-      }
-
-      const mockUser = normalizeUser({
-        id: 99,
-        email: emailLower || "dev@neuroforge.io",
-        fullName,
-        role: fallbackRole,
-        status: "Active",
-      });
-
-      const storage = remember ? localStorage : sessionStorage;
-
-      storage.setItem(AUTH_USER_KEY, JSON.stringify(mockUser));
-      setCurrentUser(mockUser);
-
-      console.info(
-        `[Backend Notice]: Backend offline. Automatically authenticated as ${fallbackRole.toUpperCase()} for frontend UI evaluation.`
-      );
-
-      return { success: true };
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "Invalid email or password.",
+      };
     }
   };
 
   const logout = async () => {
     try {
       await axios.post(`${API_BASE}/logout`);
-    } catch {}
+    } catch {
+      // Logout locally even if the backend request fails.
+    }
 
     clearToken();
     sessionStorage.removeItem(AUTH_USER_KEY);
@@ -221,7 +200,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem(AUTH_USER_KEY);
       setCurrentUser(null);
 
-      return { success: true };
+      return {
+        success: true,
+      };
     } catch (error) {
       return {
         success: false,
@@ -235,6 +216,7 @@ export const AuthProvider = ({ children }) => {
   const updateCurrentUser = async (updates) => {
     try {
       const response = await axios.put(`${USERS_BASE}/me`, updates);
+
       const updated = normalizeUser(response.data);
 
       const storage = localStorage.getItem(AUTH_USER_KEY)
@@ -248,23 +230,12 @@ export const AuthProvider = ({ children }) => {
         success: true,
         user: updated,
       };
-    } catch {
-      const updated = normalizeUser({
-        ...currentUser,
-        ...updates,
-      });
-
-      const storage = localStorage.getItem(AUTH_USER_KEY)
-        ? localStorage
-        : sessionStorage;
-
-      storage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
-      setCurrentUser(updated);
-
+    } catch (error) {
       return {
-        success: true,
-        user: updated,
-        offlineFallback: true,
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "Unable to update your profile.",
       };
     }
   };

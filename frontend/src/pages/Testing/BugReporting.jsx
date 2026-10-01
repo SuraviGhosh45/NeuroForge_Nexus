@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import {
   PiArrowRight,
   PiBug,
@@ -12,95 +12,10 @@ import {
   PiXCircle,
 } from "react-icons/pi";
 import { AuthContext } from "../../context/AuthContext.jsx";
+import axios from "../../services/api.js";
 
-const STORAGE_KEY = "neuroforge_bug_reports";
-
-const seedBugs = [
-  {
-    id: "BUG-001",
-    title: "Login button does not respond",
-    description:
-      "The login button does not respond after valid credentials are entered.",
-    project: "Enterprise Core Banking Cloud Migration",
-    module: "Login",
-    environment: "Development",
-    severity: "High",
-    priority: "High",
-    status: "New",
-    reportedBy: "Aisha Patel",
-    assignedTo: "Marcus Vance",
-    createdDate: "2026-10-01",
-    attachments: [],
-    retestResult: null,
-  },
-  {
-    id: "BUG-002",
-    title: "Dashboard loading takes too long",
-    description:
-      "Dashboard widgets take longer than expected to load.",
-    project: "AI Document Intelligence Pipeline",
-    module: "Dashboard",
-    environment: "Staging",
-    severity: "Medium",
-    priority: "Medium",
-    status: "In Progress",
-    reportedBy: "Liam O'Connor",
-    assignedTo: "Marcus Vance",
-    createdDate: "2026-09-30",
-    attachments: [],
-    retestResult: null,
-  },
-  {
-    id: "BUG-003",
-    title: "Payment transaction shows incorrect status",
-    description:
-      "A successful payment occasionally appears as failed.",
-    project: "Enterprise Core Banking Cloud Migration",
-    module: "Payments",
-    environment: "Production",
-    severity: "Critical",
-    priority: "Urgent",
-    status: "Retest",
-    reportedBy: "Aisha Patel",
-    assignedTo: "Marcus Vance",
-    createdDate: "2026-09-29",
-    attachments: [],
-    retestResult: null,
-  },
-  {
-    id: "BUG-004",
-    title: "User profile image not updating",
-    description:
-      "Updated profile images are not immediately displayed.",
-    project: "Zero-Trust Identity & RBAC Gateway",
-    module: "User Management",
-    environment: "Development",
-    severity: "Low",
-    priority: "Low",
-    status: "Closed",
-    reportedBy: "Liam O'Connor",
-    assignedTo: "David Chen",
-    createdDate: "2026-09-27",
-    attachments: [],
-    retestResult: null,
-  },
-];
-
-const projects = [
-  "Enterprise Core Banking Cloud Migration",
-  "AI Document Intelligence Pipeline",
-  "Zero-Trust Identity & RBAC Gateway",
-];
-
-const users = [
-  "Alexander Wright",
-  "Sarah Jenkins",
-  "David Chen",
-  "Elena Rostova",
-  "Marcus Vance",
-  "Aisha Patel",
-  "Liam O'Connor",
-];
+const API_BASE = "http://localhost:8080/api/bugs";
+const PROJECTS_API = "http://localhost:8080/api/projects";
 
 const workflow = [
   "New",
@@ -165,40 +80,28 @@ const severityClass = {
 const initialForm = {
   title: "",
   description: "",
-  project: "",
+  projectId: "",
   module: "",
   environment: "Development",
   severity: "Medium",
   priority: "Medium",
-  assignedTo: "",
+  assignedToId: "",
   attachments: [],
-};
-
-const getInitialBugs = () => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-
-    if (saved) {
-      const parsed = JSON.parse(saved);
-
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-    }
-  } catch {
-    return seedBugs;
-  }
-
-  return seedBugs;
 };
 
 const BugReporting = () => {
   const { currentUser } = useContext(AuthContext);
 
-  const [bugs, setBugs] = useState(getInitialBugs);
+  const [bugs, setBugs] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [severityFilter, setSeverityFilter] = useState("All");
+
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedBug, setSelectedBug] = useState(null);
   const [form, setForm] = useState(initialForm);
@@ -209,37 +112,163 @@ const BugReporting = () => {
     currentUser?.email ||
     "Current User";
 
-  const saveBugs = (updatedBugs) => {
-    setBugs(updatedBugs);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedBugs));
+  const getProject = (projectId) =>
+    projects.find(
+      (project) => String(project.id) === String(projectId)
+    );
+
+  const getUserName = (userId) => {
+    if (!userId) {
+      return "Unassigned";
+    }
+
+    if (String(userId) === String(currentUser?.id)) {
+      return currentUserName;
+    }
+
+    for (const project of projects) {
+      const member = (project.members || []).find(
+        (user) =>
+          String(user.id) === String(userId) ||
+          String(user.userId) === String(userId)
+      );
+
+      if (member) {
+        return member.fullName;
+      }
+    }
+
+    return `User #${userId}`;
+  };
+
+  const normalizeBug = (bug) => ({
+    ...bug,
+
+    project:
+      getProject(bug.projectId)?.name ||
+      `Project #${bug.projectId}`,
+
+    reportedBy: getUserName(bug.reportedBy),
+
+    assignedTo: getUserName(bug.assignedTo),
+
+    createdDate: bug.createdAt
+      ? new Date(bug.createdAt)
+          .toISOString()
+          .split("T")[0]
+      : "",
+
+    attachments: bug.attachments
+      ? bug.attachments.split("|").filter(Boolean)
+      : [],
+  });
+
+  const loadData = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const [bugResponse, projectResponse] =
+        await Promise.all([
+          axios.get(API_BASE),
+          axios.get(PROJECTS_API),
+        ]);
+
+      setProjects(
+        Array.isArray(projectResponse.data)
+          ? projectResponse.data
+          : []
+      );
+
+      setBugs(
+        Array.isArray(bugResponse.data)
+          ? bugResponse.data
+          : []
+      );
+    } catch (requestError) {
+      console.error(
+        "Failed to load testing data:",
+        requestError
+      );
+
+      setError(
+        requestError.response?.data?.message ||
+          "Testing data could not be loaded."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const selectedProject = getProject(form.projectId);
+
+  const availableMembers =
+    selectedProject?.members || [];
+
+  const refreshBugs = async () => {
+    const response = await axios.get(API_BASE);
+
+    setBugs(
+      Array.isArray(response.data)
+        ? response.data
+        : []
+    );
   };
 
   const filteredBugs = useMemo(() => {
-    return bugs.filter((bug) => {
-      const query = search.toLowerCase().trim();
+    const query = search.toLowerCase().trim();
 
+    return bugs.filter((bug) => {
       const matchesSearch =
-        bug.id.toLowerCase().includes(query) ||
-        bug.title.toLowerCase().includes(query) ||
-        bug.project.toLowerCase().includes(query) ||
-        bug.module.toLowerCase().includes(query) ||
-        bug.reportedBy.toLowerCase().includes(query) ||
-        bug.assignedTo.toLowerCase().includes(query);
+        String(bug.bugKey || bug.id)
+          .toLowerCase()
+          .includes(query) ||
+        String(bug.title || "")
+          .toLowerCase()
+          .includes(query) ||
+        String(bug.projectId || "")
+          .toLowerCase()
+          .includes(query) ||
+        String(bug.module || "")
+          .toLowerCase()
+          .includes(query) ||
+        String(bug.reportedBy || "")
+          .toLowerCase()
+          .includes(query) ||
+        String(bug.assignedTo || "")
+          .toLowerCase()
+          .includes(query);
 
       const matchesStatus =
-        statusFilter === "All" || bug.status === statusFilter;
+        statusFilter === "All" ||
+        bug.status === statusFilter;
 
       const matchesSeverity =
-        severityFilter === "All" || bug.severity === severityFilter;
+        severityFilter === "All" ||
+        bug.severity === severityFilter;
 
-      return matchesSearch && matchesStatus && matchesSeverity;
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesSeverity
+      );
     });
-  }, [bugs, search, statusFilter, severityFilter]);
+  }, [
+    bugs,
+    search,
+    statusFilter,
+    severityFilter,
+  ]);
 
   const totalBugs = bugs.length;
 
   const openBugs = bugs.filter(
-    (bug) => !["Closed", "Fixed"].includes(bug.status)
+    (bug) =>
+      !["Closed", "Fixed"].includes(bug.status)
   ).length;
 
   const criticalBugs = bugs.filter(
@@ -256,14 +285,21 @@ const BugReporting = () => {
     setForm((current) => ({
       ...current,
       [name]: value,
+
+      ...(name === "projectId"
+        ? { assignedToId: "" }
+        : {}),
     }));
   };
 
   const handleAttachments = (event) => {
-    const files = Array.from(event.target.files || []);
+    const files = Array.from(
+      event.target.files || []
+    );
 
     setForm((current) => ({
       ...current,
+
       attachments: [
         ...current.attachments,
         ...files.map((file) => file.name),
@@ -276,9 +312,12 @@ const BugReporting = () => {
   const removeAttachment = (index) => {
     setForm((current) => ({
       ...current,
-      attachments: current.attachments.filter(
-        (_, fileIndex) => fileIndex !== index
-      ),
+
+      attachments:
+        current.attachments.filter(
+          (_, fileIndex) =>
+            fileIndex !== index
+        ),
     }));
   };
 
@@ -287,112 +326,181 @@ const BugReporting = () => {
     setForm(initialForm);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (
       !form.title.trim() ||
       !form.description.trim() ||
-      !form.project ||
+      !form.projectId ||
       !form.module.trim()
     ) {
       return;
     }
 
-    const nextNumber =
-      bugs.reduce((highest, bug) => {
-        const number = Number(bug.id.replace("BUG-", ""));
+    setSaving(true);
+    setError("");
 
-        return Number.isNaN(number)
-          ? highest
-          : Math.max(highest, number);
-      }, 0) + 1;
+    try {
+      await axios.post(API_BASE, {
+        title: form.title.trim(),
 
-    const newBug = {
-      id: `BUG-${String(nextNumber).padStart(3, "0")}`,
-      title: form.title.trim(),
-      description: form.description.trim(),
-      project: form.project,
-      module: form.module.trim(),
-      environment: form.environment,
-      severity: form.severity,
-      priority: form.priority,
-      status: "New",
-      reportedBy: currentUserName,
-      assignedTo: form.assignedTo || "Unassigned",
-      createdDate: new Date().toISOString().split("T")[0],
-      attachments: form.attachments,
-      retestResult: null,
-    };
+        description:
+          form.description.trim(),
 
-    saveBugs([newBug, ...bugs]);
-    closeReportModal();
+        projectId: Number(form.projectId),
+
+        module: form.module.trim(),
+
+        environment: form.environment,
+
+        severity: form.severity,
+
+        priority: form.priority,
+
+        assignedTo: form.assignedToId
+          ? Number(form.assignedToId)
+          : null,
+
+        attachments:
+          form.attachments.join("|"),
+      });
+
+      await refreshBugs();
+
+      closeReportModal();
+    } catch (requestError) {
+      console.error(
+        "Failed to create bug:",
+        requestError
+      );
+
+      setError(
+        requestError.response?.data?.message ||
+          "Failed to create the bug."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const updateBugStatus = (bugId, status) => {
-    const updated = bugs.map((bug) =>
-      bug.id === bugId
-        ? {
-            ...bug,
-            status,
-            retestResult:
-              status === "Retest" ? null : bug.retestResult,
-          }
-        : bug
-    );
+  const updateBugStatus = async (
+    bugId,
+    status
+  ) => {
+    try {
+      const response = await axios.patch(
+        `${API_BASE}/${bugId}/status`,
+        {
+          status,
 
-    saveBugs(updated);
+          retestResult:
+            status === "Retest"
+              ? null
+              : selectedBug?.retestResult,
+        }
+      );
 
-    setSelectedBug((current) =>
-      current?.id === bugId
-        ? {
-            ...current,
-            status,
-            retestResult:
-              status === "Retest" ? null : current.retestResult,
-          }
-        : current
-    );
+      setBugs((current) =>
+        current.map((bug) =>
+          bug.id === bugId
+            ? response.data
+            : bug
+        )
+      );
+
+      setSelectedBug(
+        normalizeBug(response.data)
+      );
+    } catch (requestError) {
+      console.error(
+        "Failed to update bug status:",
+        requestError
+      );
+
+      setError(
+        requestError.response?.data?.message ||
+          "Failed to update bug status."
+      );
+    }
   };
 
-  const handleRetest = (bugId, result) => {
+  const handleRetest = async (
+    bugId,
+    result
+  ) => {
     const nextStatus =
-      result === "Passed" ? "Closed" : "Reopened";
+      result === "Passed"
+        ? "Closed"
+        : "Reopened";
 
-    const updated = bugs.map((bug) =>
-      bug.id === bugId
-        ? {
-            ...bug,
-            status: nextStatus,
-            retestResult: result,
-          }
-        : bug
-    );
+    try {
+      const response = await axios.patch(
+        `${API_BASE}/${bugId}/status`,
+        {
+          status: nextStatus,
+          retestResult: result,
+        }
+      );
 
-    saveBugs(updated);
+      setBugs((current) =>
+        current.map((bug) =>
+          bug.id === bugId
+            ? response.data
+            : bug
+        )
+      );
 
-    setSelectedBug((current) =>
-      current?.id === bugId
-        ? {
-            ...current,
-            status: nextStatus,
-            retestResult: result,
-          }
-        : current
-    );
+      setSelectedBug(
+        normalizeBug(response.data)
+      );
+    } catch (requestError) {
+      console.error(
+        "Failed to save retest result:",
+        requestError
+      );
+
+      setError(
+        requestError.response?.data?.message ||
+          "Failed to save retest result."
+      );
+    }
   };
 
-  const deleteBug = (bugId) => {
-    const updated = bugs.filter((bug) => bug.id !== bugId);
+  const deleteBug = async (bugId) => {
+    try {
+      await axios.delete(
+        `${API_BASE}/${bugId}`
+      );
 
-    saveBugs(updated);
-    setSelectedBug(null);
+      setBugs((current) =>
+        current.filter(
+          (bug) => bug.id !== bugId
+        )
+      );
+
+      setSelectedBug(null);
+    } catch (requestError) {
+      console.error(
+        "Failed to delete bug:",
+        requestError
+      );
+
+      setError(
+        requestError.response?.data?.message ||
+          "Failed to delete bug."
+      );
+    }
   };
 
   const getNextWorkflowStatus = (status) => {
-    const index = workflow.indexOf(status);
+    const index =
+      workflow.indexOf(status);
 
-    if (index === -1 || index >= workflow.length - 1) {
+    if (
+      index === -1 ||
+      index >= workflow.length - 1
+    ) {
       return null;
     }
 
@@ -400,11 +508,26 @@ const BugReporting = () => {
   };
 
   const getStatusConfig = (status) => {
-    return statusConfig[status] || statusConfig.New;
+    return (
+      statusConfig[status] ||
+      statusConfig.New
+    );
   };
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+          Loading testing data...
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
@@ -424,8 +547,14 @@ const BugReporting = () => {
 
         <button
           type="button"
-          onClick={() => setShowReportModal(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+          onClick={() =>
+            setShowReportModal(true)
+          }
+          disabled={
+            loading ||
+            projects.length === 0
+          }
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
         >
           <PiPlus size={18} />
           Report Bug
@@ -438,7 +567,11 @@ const BugReporting = () => {
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Total Bugs
             </span>
-            <PiBug size={21} className="text-gray-400" />
+
+            <PiBug
+              size={21}
+              className="text-gray-400"
+            />
           </div>
 
           <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-white">
@@ -451,7 +584,11 @@ const BugReporting = () => {
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Open Bugs
             </span>
-            <PiClock size={21} className="text-orange-500" />
+
+            <PiClock
+              size={21}
+              className="text-orange-500"
+            />
           </div>
 
           <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-white">
@@ -464,7 +601,11 @@ const BugReporting = () => {
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Critical
             </span>
-            <PiWarning size={21} className="text-red-500" />
+
+            <PiWarning
+              size={21}
+              className="text-red-500"
+            />
           </div>
 
           <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-white">
@@ -477,7 +618,11 @@ const BugReporting = () => {
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Closed
             </span>
-            <PiCheckCircle size={21} className="text-green-500" />
+
+            <PiCheckCircle
+              size={21}
+              className="text-green-500"
+            />
           </div>
 
           <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-white">
@@ -498,7 +643,9 @@ const BugReporting = () => {
               <input
                 type="text"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
                 placeholder="Search bugs, projects, modules..."
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
               />
@@ -506,200 +653,244 @@ const BugReporting = () => {
 
             <select
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+              onChange={(event) =>
+                setStatusFilter(
+                  event.target.value
+                )
+              }
               className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
             >
-              <option value="All">All Statuses</option>
+              <option value="All">
+                All Statuses
+              </option>
               <option value="New">New</option>
-              <option value="Triaged">Triaged</option>
-              <option value="Assigned">Assigned</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Fixed">Fixed</option>
-              <option value="Retest">Retest</option>
-              <option value="Reopened">Reopened</option>
-              <option value="Closed">Closed</option>
+              <option value="Triaged">
+                Triaged
+              </option>
+              <option value="Assigned">
+                Assigned
+              </option>
+              <option value="In Progress">
+                In Progress
+              </option>
+              <option value="Fixed">
+                Fixed
+              </option>
+              <option value="Retest">
+                Retest
+              </option>
+              <option value="Reopened">
+                Reopened
+              </option>
+              <option value="Closed">
+                Closed
+              </option>
             </select>
 
             <select
               value={severityFilter}
               onChange={(event) =>
-                setSeverityFilter(event.target.value)
+                setSeverityFilter(
+                  event.target.value
+                )
               }
               className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
             >
-              <option value="All">All Severities</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
+              <option value="All">
+                All Severities
+              </option>
+              <option value="Critical">
+                Critical
+              </option>
+              <option value="High">
+                High
+              </option>
+              <option value="Medium">
+                Medium
+              </option>
+              <option value="Low">
+                Low
+              </option>
             </select>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1050px]">
+          <table className="w-full min-w-[950px] text-left">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-left dark:border-gray-700 dark:bg-gray-900/40">
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/50">
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Bug
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Project / Module
+
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Project
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Severity
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Priority
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Status
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Assigned To
+
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Assigned
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Created
-                </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Action
                 </th>
               </tr>
             </thead>
 
             <tbody>
               {filteredBugs.map((bug) => {
-                const config = getStatusConfig(bug.status);
-                const StatusIcon = config.icon;
+                const config =
+                  getStatusConfig(
+                    bug.status
+                  );
+
+                const StatusIcon =
+                  config.icon;
+
+                const projectName =
+                  getProject(
+                    bug.projectId
+                  )?.name ||
+                  `Project #${bug.projectId}`;
 
                 return (
                   <tr
                     key={bug.id}
-                    className="border-b border-gray-100 transition hover:bg-gray-50 dark:border-gray-700/70 dark:hover:bg-gray-700/30"
+                    onClick={() =>
+                      setSelectedBug(
+                        normalizeBug(bug)
+                      )
+                    }
+                    className="cursor-pointer border-b border-gray-100 transition hover:bg-gray-50 dark:border-gray-700/70 dark:hover:bg-gray-700/40"
                   >
-                    <td className="px-5 py-4">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedBug(bug)}
-                        className="text-left"
-                      >
-                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                          {bug.id}
+                    <td className="px-4 py-4">
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                          {bug.bugKey ||
+                            bug.id}
                         </p>
 
-                        <p className="mt-1 font-medium text-gray-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
+                        <p className="mt-1 max-w-xs truncate text-sm text-gray-500 dark:text-gray-400">
                           {bug.title}
+                        </p>
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                          {projectName}
                         </p>
 
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          Reported by {bug.reportedBy}
+                          {bug.module}
                         </p>
-                      </button>
+                      </div>
                     </td>
 
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                        {bug.project}
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        {bug.module}
-                      </p>
-                    </td>
-
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <span
                         className={`text-sm font-semibold ${
-                          severityClass[bug.severity] ||
-                          severityClass.Medium
+                          severityClass[
+                            bug.severity
+                          ] ||
+                          "text-gray-600"
                         }`}
                       >
                         {bug.severity}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                    <td className="px-4 py-4">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {bug.priority}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${config.className}`}
                       >
-                        <StatusIcon size={14} />
+                        <StatusIcon
+                          size={14}
+                        />
                         {bug.status}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {bug.assignedTo}
+                        {getUserName(
+                          bug.assignedTo
+                        )}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {bug.createdDate}
+                        {bug.createdAt
+                          ? new Date(
+                              bug.createdAt
+                            ).toLocaleDateString()
+                          : ""}
                       </span>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedBug(bug)}
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        View
-                      </button>
                     </td>
                   </tr>
                 );
               })}
-
-              {filteredBugs.length === 0 && (
-                <tr>
-                  <td colSpan="8" className="px-5 py-12 text-center">
-                    <PiBug
-                      size={32}
-                      className="mx-auto text-gray-300 dark:text-gray-600"
-                    />
-
-                    <p className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      No bugs found
-                    </p>
-
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Try changing your search or filters.
-                    </p>
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
+
+          {!loading &&
+            filteredBugs.length === 0 && (
+              <div className="px-6 py-16 text-center">
+                <PiBug
+                  size={40}
+                  className="mx-auto text-gray-300 dark:text-gray-600"
+                />
+
+                <p className="mt-3 text-sm font-medium text-gray-600 dark:text-gray-300">
+                  No bugs found
+                </p>
+
+                <p className="mt-1 text-xs text-gray-400">
+                  Try changing your filters or report a new bug.
+                </p>
+              </div>
+            )}
         </div>
       </div>
 
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-gray-800">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  Report a Bug
+                  Report New Bug
                 </h2>
 
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Provide the details needed to reproduce and resolve the
-                  issue.
+                  Create a defect report for your project.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={closeReportModal}
-                className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-white"
               >
                 <PiX size={22} />
               </button>
@@ -748,19 +939,26 @@ const BugReporting = () => {
                   </label>
 
                   <select
-                    name="project"
-                    value={form.project}
+                    name="projectId"
+                    value={form.projectId}
                     onChange={handleInputChange}
                     required
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">Select project</option>
+                    <option value="">
+                      Select project
+                    </option>
 
-                    {projects.map((project) => (
-                      <option key={project} value={project}>
-                        {project}
-                      </option>
-                    ))}
+                    {projects.map(
+                      (project) => (
+                        <option
+                          key={project.id}
+                          value={project.id}
+                        >
+                          {project.name}
+                        </option>
+                      )
+                    )}
                   </select>
                 </div>
 
@@ -791,9 +989,17 @@ const BugReporting = () => {
                     onChange={handleInputChange}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="Development">Development</option>
-                    <option value="Staging">Staging</option>
-                    <option value="Production">Production</option>
+                    <option value="Development">
+                      Development
+                    </option>
+
+                    <option value="Staging">
+                      Staging
+                    </option>
+
+                    <option value="Production">
+                      Production
+                    </option>
                   </select>
                 </div>
 
@@ -808,10 +1014,21 @@ const BugReporting = () => {
                     onChange={handleInputChange}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="Critical">Critical</option>
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
+                    <option value="Critical">
+                      Critical
+                    </option>
+
+                    <option value="High">
+                      High
+                    </option>
+
+                    <option value="Medium">
+                      Medium
+                    </option>
+
+                    <option value="Low">
+                      Low
+                    </option>
                   </select>
                 </div>
 
@@ -826,10 +1043,21 @@ const BugReporting = () => {
                     onChange={handleInputChange}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="Urgent">Urgent</option>
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
+                    <option value="Urgent">
+                      Urgent
+                    </option>
+
+                    <option value="High">
+                      High
+                    </option>
+
+                    <option value="Medium">
+                      Medium
+                    </option>
+
+                    <option value="Low">
+                      Low
+                    </option>
                   </select>
                 </div>
 
@@ -839,18 +1067,32 @@ const BugReporting = () => {
                   </label>
 
                   <select
-                    name="assignedTo"
-                    value={form.assignedTo}
+                    name="assignedToId"
+                    value={form.assignedToId}
                     onChange={handleInputChange}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    disabled={!form.projectId}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-gray-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">Unassigned</option>
+                    <option value="">
+                      Unassigned
+                    </option>
 
-                    {users.map((user) => (
-                      <option key={user} value={user}>
-                        {user}
-                      </option>
-                    ))}
+                    {availableMembers.map(
+                      (user) => (
+                        <option
+                          key={
+                            user.userId ||
+                            user.id
+                          }
+                          value={
+                            user.userId ||
+                            user.id
+                          }
+                        >
+                          {user.fullName}
+                        </option>
+                      )
+                    )}
                   </select>
                 </div>
 
@@ -879,26 +1121,33 @@ const BugReporting = () => {
                     className="w-full rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
                   />
 
-                  {form.attachments.length > 0 && (
+                  {form.attachments.length >
+                    0 && (
                     <div className="mt-3 space-y-2">
-                      {form.attachments.map((file, index) => (
-                        <div
-                          key={`${file}-${index}`}
-                          className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700"
-                        >
-                          <span className="truncate text-sm text-gray-700 dark:text-gray-200">
-                            {file}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() => removeAttachment(index)}
-                            className="ml-3 rounded p-1 text-gray-400 hover:text-red-500"
+                      {form.attachments.map(
+                        (file, index) => (
+                          <div
+                            key={`${file}-${index}`}
+                            className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700"
                           >
-                            <PiX size={17} />
-                          </button>
-                        </div>
-                      ))}
+                            <span className="truncate text-sm text-gray-700 dark:text-gray-200">
+                              {file}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeAttachment(
+                                  index
+                                )
+                              }
+                              className="ml-3 rounded p-1 text-gray-400 hover:text-red-500"
+                            >
+                              <PiX size={17} />
+                            </button>
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
@@ -908,16 +1157,19 @@ const BugReporting = () => {
                 <button
                   type="button"
                   onClick={closeReportModal}
-                  className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                  className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                  disabled={saving}
+                  className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-900"
                 >
-                  Submit Bug
+                  {saving
+                    ? "Saving..."
+                    : "Report Bug"}
                 </button>
               </div>
             </form>
@@ -927,22 +1179,48 @@ const BugReporting = () => {
 
       {selectedBug && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
-            <div className="flex items-start justify-between border-b border-gray-200 px-6 py-5 dark:border-gray-700">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-gray-800">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {selectedBug.id}
-                </p>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                    {selectedBug.bugKey ||
+                      selectedBug.id}
+                  </span>
 
-                <h2 className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      getStatusConfig(
+                        selectedBug.status
+                      ).className
+                    }`}
+                  >
+                    {(() => {
+                      const Icon =
+                        getStatusConfig(
+                          selectedBug.status
+                        ).icon;
+
+                      return (
+                        <Icon size={14} />
+                      );
+                    })()}
+
+                    {selectedBug.status}
+                  </span>
+                </div>
+
+                <h2 className="mt-3 text-xl font-bold text-gray-900 dark:text-white">
                   {selectedBug.title}
                 </h2>
               </div>
 
               <button
                 type="button"
-                onClick={() => setSelectedBug(null)}
-                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() =>
+                  setSelectedBug(null)
+                }
+                className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-white"
               >
                 <PiX size={22} />
               </button>
@@ -957,8 +1235,10 @@ const BugReporting = () => {
 
                   <p
                     className={`mt-1 text-sm font-semibold ${
-                      severityClass[selectedBug.severity] ||
-                      severityClass.Medium
+                      severityClass[
+                        selectedBug.severity
+                      ] ||
+                      "text-gray-700"
                     }`}
                   >
                     {selectedBug.severity}
@@ -1044,57 +1324,68 @@ const BugReporting = () => {
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {workflow.map((stage, index) => {
-                    const active =
-                      selectedBug.status === stage ||
-                      (selectedBug.status === "Reopened" &&
-                        stage === "In Progress");
+                  {workflow.map(
+                    (stage, index) => {
+                      const active =
+                        selectedBug.status ===
+                          stage ||
+                        (selectedBug.status ===
+                          "Reopened" &&
+                          stage ===
+                            "In Progress");
 
-                    return (
-                      <div
-                        key={stage}
-                        className="flex items-center gap-2"
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateBugStatus(selectedBug.id, stage)
-                          }
-                          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                            active
-                              ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                          }`}
+                      return (
+                        <div
+                          key={stage}
+                          className="flex items-center gap-2"
                         >
-                          {stage}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateBugStatus(
+                                selectedBug.id,
+                                stage
+                              )
+                            }
+                            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                              active
+                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                            }`}
+                          >
+                            {stage}
+                          </button>
 
-                        {index < workflow.length - 1 && (
-                          <PiArrowRight
-                            size={14}
-                            className="text-gray-400"
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
+                          {index <
+                            workflow.length -
+                              1 && (
+                            <PiArrowRight
+                              size={14}
+                              className="text-gray-400"
+                            />
+                          )}
+                        </div>
+                      );
+                    }
+                  )}
                 </div>
               </div>
 
-              {selectedBug.status === "Reopened" && (
+              {selectedBug.status ===
+                "Reopened" && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10">
                   <p className="text-sm font-semibold text-red-800 dark:text-red-300">
                     Bug Reopened
                   </p>
 
                   <p className="mt-1 text-xs text-red-700 dark:text-red-400">
-                    The retest failed. Move the bug back to In Progress for
-                    another fix.
+                    The retest failed. Move the bug back to In Progress for another fix.
                   </p>
                 </div>
               )}
 
-              {selectedBug.status === "Retest" && (
+              {selectedBug.status ===
+                "Retest" && (
                 <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-500/20 dark:bg-yellow-500/10">
                   <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">
                     Retest Required
@@ -1108,7 +1399,10 @@ const BugReporting = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        handleRetest(selectedBug.id, "Passed")
+                        handleRetest(
+                          selectedBug.id,
+                          "Passed"
+                        )
                       }
                       className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
                     >
@@ -1118,7 +1412,10 @@ const BugReporting = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        handleRetest(selectedBug.id, "Failed")
+                        handleRetest(
+                          selectedBug.id,
+                          "Failed"
+                        )
                       }
                       className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
                     >
@@ -1136,7 +1433,8 @@ const BugReporting = () => {
 
                   <p
                     className={`mt-1 text-sm font-semibold ${
-                      selectedBug.retestResult === "Passed"
+                      selectedBug.retestResult ===
+                      "Passed"
                         ? "text-green-600 dark:text-green-400"
                         : "text-red-600 dark:text-red-400"
                     }`}
@@ -1146,21 +1444,24 @@ const BugReporting = () => {
                 </div>
               )}
 
-              {selectedBug.attachments?.length > 0 && (
+              {selectedBug.attachments
+                ?.length > 0 && (
                 <div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     Attachments
                   </p>
 
                   <div className="mt-3 space-y-2">
-                    {selectedBug.attachments.map((file, index) => (
-                      <div
-                        key={`${file}-${index}`}
-                        className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200"
-                      >
-                        {file}
-                      </div>
-                    ))}
+                    {selectedBug.attachments.map(
+                      (file, index) => (
+                        <div
+                          key={`${file}-${index}`}
+                          className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                        >
+                          {file}
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               )}
@@ -1168,30 +1469,45 @@ const BugReporting = () => {
               <div className="flex items-center justify-between border-t border-gray-200 pt-5 dark:border-gray-700">
                 <button
                   type="button"
-                  onClick={() => deleteBug(selectedBug.id)}
+                  onClick={() =>
+                    deleteBug(
+                      selectedBug.id
+                    )
+                  }
                   className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10"
                 >
                   <PiTrash size={17} />
                   Delete Bug
                 </button>
 
-                {getNextWorkflowStatus(selectedBug.status) && (
+                {getNextWorkflowStatus(
+                  selectedBug.status
+                ) && (
                   <button
                     type="button"
                     onClick={() =>
                       updateBugStatus(
                         selectedBug.id,
-                        getNextWorkflowStatus(selectedBug.status)
+                        getNextWorkflowStatus(
+                          selectedBug.status
+                        )
                       )
                     }
                     className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900"
                   >
-                    Move to {getNextWorkflowStatus(selectedBug.status)}
-                    <PiArrowRight size={17} />
+                    Move to{" "}
+                    {getNextWorkflowStatus(
+                      selectedBug.status
+                    )}
+
+                    <PiArrowRight
+                      size={17}
+                    />
                   </button>
                 )}
 
-                {selectedBug.status === "Reopened" && (
+                {selectedBug.status ===
+                  "Reopened" && (
                   <button
                     type="button"
                     onClick={() =>
@@ -1203,7 +1519,9 @@ const BugReporting = () => {
                     className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900"
                   >
                     Move to In Progress
-                    <PiArrowRight size={17} />
+                    <PiArrowRight
+                      size={17}
+                    />
                   </button>
                 )}
               </div>
