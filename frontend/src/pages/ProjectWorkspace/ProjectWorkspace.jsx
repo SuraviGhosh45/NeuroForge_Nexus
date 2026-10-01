@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   PiArrowLeft,
@@ -11,6 +12,9 @@ import {
   PiUserCircle,
   PiUsersThree,
   PiX,
+  PiDotsThreeVertical,
+  PiArrowSquareOut,
+  PiGithubLogo,
 } from "react-icons/pi";
 
 import { useProjects } from "../../context/ProjectContext.jsx";
@@ -19,6 +23,7 @@ import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES, normalizeRole } from "../../constants/roles.js";
+import ConnectRepoModal from "../../components/project/ConnectRepoModal.jsx";
 
 const PROJECT_ROLES = ["Team Lead", "Developer", "Tester", "QA"];
 
@@ -116,6 +121,21 @@ const ProjectWorkspace = () => {
   const [taskForm, setTaskForm] = useState(EMPTY_TASK_FORM);
 
   const [confirmDeleteTask, setConfirmDeleteTask] = useState(null);
+  const [taskMenuAnchor, setTaskMenuAnchor] = useState(null);
+  const [showConnectRepo, setShowConnectRepo] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setTaskMenuAnchor(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const [confirmDeleteMember, setConfirmDeleteMember] = useState(null);
 
@@ -796,7 +816,7 @@ const ProjectWorkspace = () => {
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
                 <p className="text-sm text-[#64748B] dark:text-slate-400">Repository</p>
 
-                <div className="mt-2">
+                <div className="mt-2.5">
                   {project.repository ? (
                     <a
                       href={
@@ -806,12 +826,23 @@ const ProjectWorkspace = () => {
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xl font-bold text-[#2563EB] underline transition hover:text-[#4F46E5] dark:text-blue-400 dark:hover:text-blue-300"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-slate-800 shadow-xs transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+                      title={`Open GitHub Repository: ${project.repository}`}
                     >
-                      Link
+                      <PiGithubLogo size={20} className="text-slate-900 dark:text-white" />
+                      <span>Connected</span>
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
                     </a>
                   ) : (
-                    <p className="text-xl font-bold text-slate-400 dark:text-slate-500">__</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowConnectRepo(true)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50/60 px-3.5 py-2 text-sm font-semibold text-[#2563EB] shadow-xs transition hover:border-blue-400 hover:bg-blue-100/70 hover:text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:border-blue-700 dark:hover:bg-blue-900/50"
+                      title="Connect a GitHub repository to this project"
+                    >
+                      <PiPlus size={16} />
+                      <span>Add Repository</span>
+                    </button>
                   )}
                 </div>
               </div>
@@ -1241,26 +1272,37 @@ const ProjectWorkspace = () => {
 
                           {canManageTasks && (
                             <td
-                              className="px-5 py-4"
+                              className="px-5 py-4 text-right"
                               onClick={(event) => event.stopPropagation()}
                             >
-                              <div className="flex items-center justify-end gap-2">
+                              <div
+                                className="inline-block text-left"
+                                onClick={(event) => event.stopPropagation()}
+                              >
                                 <button
-                                  onClick={() => openEditTask(task)}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-[#2563EB] dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-300 dark:hover:border-blue-700 dark:hover:bg-blue-950/50 dark:hover:text-blue-300"
-                                  title="Edit Parent Task"
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    if (taskMenuAnchor?.task?.id === task.id) {
+                                      setTaskMenuAnchor(null);
+                                    } else {
+                                      const rect = event.currentTarget.getBoundingClientRect();
+                                      setTaskMenuAnchor({
+                                        task,
+                                        top: rect.bottom + 6,
+                                        right: window.innerWidth - rect.right,
+                                      });
+                                    }
+                                  }}
+                                  className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+                                    taskMenuAnchor?.task?.id === task.id
+                                      ? "border-blue-400 bg-blue-50 text-blue-600 dark:border-blue-500/40 dark:bg-blue-950/50 dark:text-blue-400 shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                                  }`}
+                                  title="Task actions"
+                                  aria-expanded={taskMenuAnchor?.task?.id === task.id}
                                 >
-                                  <PiPencilSimple size={14} />
-                                  <span>Edit</span>
-                                </button>
-
-                                <button
-                                  onClick={() => setConfirmDeleteTask(task)}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:border-red-300 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
-                                  title="Delete Parent Task"
-                                >
-                                  <PiTrash size={14} />
-                                  <span>Delete</span>
+                                  <PiDotsThreeVertical size={18} weight="bold" />
                                 </button>
                               </div>
                             </td>
@@ -1800,6 +1842,120 @@ const ProjectWorkspace = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating Action Menu rendered OUTSIDE the table/list via React Portal */}
+      {taskMenuAnchor && createPortal(
+        <div
+          className="fixed inset-0 z-50 overflow-hidden"
+          onClick={() => setTaskMenuAnchor(null)}
+        >
+          <div
+            className="fixed z-50 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-[#1e293b] text-left animate-in fade-in zoom-in-95 duration-150"
+            style={{
+              top: `${Math.min(taskMenuAnchor.top, window.innerHeight - 260)}px`,
+              right: `${Math.max(16, taskMenuAnchor.right)}px`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-2.5 py-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-700/60">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                Parent Task Actions
+              </span>
+              <button
+                type="button"
+                onClick={() => setTaskMenuAnchor(null)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition"
+              >
+                <PiX size={14} />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const task = taskMenuAnchor.task;
+                  setTaskMenuAnchor(null);
+                  navigate(`/projects/${project.id}/tasks/${task.id}`);
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 dark:text-slate-200 dark:hover:bg-blue-950/50 dark:hover:text-blue-300 transition"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400 shrink-0">
+                  <PiArrowSquareOut size={15} />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold">Open Task Details</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">View deliverables & description</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const task = taskMenuAnchor.task;
+                  setTaskMenuAnchor(null);
+                  navigate(`/projects/${project.id}/tasks/${task.id}/subtasks`);
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-200 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-300 transition"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 shrink-0">
+                  <PiListChecks size={15} />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold">Manage Subtasks</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">View & decompose subtasks</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const task = taskMenuAnchor.task;
+                  setTaskMenuAnchor(null);
+                  openEditTask(task);
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-700 dark:text-slate-200 dark:hover:bg-amber-950/50 dark:hover:text-amber-300 transition"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400 shrink-0">
+                  <PiPencilSimple size={15} />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold">Edit Parent Task</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">Modify title & details</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const task = taskMenuAnchor.task;
+                  setTaskMenuAnchor(null);
+                  setConfirmDeleteTask(task);
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40 transition"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400 shrink-0">
+                  <PiTrash size={15} />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold">Delete Parent Task</p>
+                  <p className="text-[10px] text-rose-400/80 dark:text-rose-400/80 font-normal">Permanently remove</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Connect GitHub Repository Modal */}
+      {showConnectRepo && project && (
+        <ConnectRepoModal
+          isOpen={showConnectRepo}
+          project={project}
+          onClose={() => setShowConnectRepo(false)}
+        />
       )}
     </div>
   );

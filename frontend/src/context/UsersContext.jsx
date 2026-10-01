@@ -117,8 +117,24 @@ export const UsersProvider = ({ children }) => {
           : { data: [] };
 
       const normalized = Array.isArray(response.data) ? response.data.map(normalizeUser) : [];
-      setUsers(normalized);
-      if (currentRole === "ADMIN") saveToStorage(normalized);
+      if (normalized.length === 0) {
+        const cached = localStorage.getItem(USERS_STORAGE_KEY);
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setUsers(parsed.map(normalizeUser));
+              return;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        setUsers(SEED_USERS.map(normalizeUser));
+      } else {
+        setUsers(normalized);
+        if (currentRole === "ADMIN") saveToStorage(normalized);
+      }
     } catch (error) {
       /* ==========================================================================
          [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
@@ -202,10 +218,25 @@ export const UsersProvider = ({ children }) => {
         response = await axios.patch(`${API_BASE}/${updatedUser.id}/status`, { status: updatedUser.status });
       }
       const normalized = normalizeUser(response.data || { ...existing, ...updatedUser });
-      setUsers((prev) => prev.map((u) => String(u.id) === String(normalized.id) ? normalized : u));
+      setUsers((prev) => {
+        const next = prev.map((u) => String(u.id) === String(normalized.id) ? normalized : u);
+        saveToStorage(next);
+        return next;
+      });
       return { success: true, data: normalized };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || "Failed to update user." };
+      /* ==========================================================================
+         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
+         If backend is unreachable, apply the update locally in memory & localStorage
+         so the entire team sees the change instantly across User Management, Projects, etc.
+         ========================================================================== */
+      const normalized = normalizeUser({ ...existing, ...updatedUser });
+      setUsers((prev) => {
+        const next = prev.map((u) => String(u.id) === String(normalized.id) ? normalized : u);
+        saveToStorage(next);
+        return next;
+      });
+      return { success: true, data: normalized, offlineFallback: true };
     }
   };
 
@@ -222,10 +253,28 @@ export const UsersProvider = ({ children }) => {
          ========================================================================== */
       const response = await axios.patch(`${API_BASE}/${targetUserId}/status`, { status: newStatus });
       const normalized = normalizeUser(response.data);
-      setUsers((prev) => prev.map((u) => String(u.id) === String(targetUserId) ? normalized : u));
+      setUsers((prev) => {
+        const next = prev.map((u) => String(u.id) === String(targetUserId) ? normalized : u);
+        saveToStorage(next);
+        return next;
+      });
       return { success: true, data: normalized };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || "Failed to update status." };
+      /* ==========================================================================
+         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
+         If backend is unreachable, apply status transition locally and persist in cache.
+         ========================================================================== */
+      setUsers((prev) => {
+        const next = prev.map((u) => {
+          if (String(u.id) === String(targetUserId)) {
+            return normalizeUser({ ...u, status: newStatus });
+          }
+          return u;
+        });
+        saveToStorage(next);
+        return next;
+      });
+      return { success: true, data: { id: targetUserId, status: newStatus }, offlineFallback: true };
     }
   };
 

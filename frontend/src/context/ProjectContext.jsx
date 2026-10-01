@@ -98,16 +98,28 @@ export const ProjectProvider = ({ children }) => {
         : [];
 
       const repos = getStoredRepos();
-      const enriched = data.map((item) => ({
-        ...item,
-        repository: item.repository || repos[String(item.id)] || "",
-      }));
 
-      setProjects(enriched);
+      if (data.length === 0) {
+        const enrichedSeed = SEED_PROJECTS.map((item) => ({
+          ...item,
+          repository: item.repository || repos[String(item.id)] || "",
+        }));
+        setProjects(enrichedSeed);
+        if (enrichedSeed.length > 0 && !selectedProjectId) {
+          setSelectedProjectId(enrichedSeed[0].id);
+        }
+      } else {
+        const enriched = data.map((item) => ({
+          ...item,
+          repository: item.repository || repos[String(item.id)] || "",
+        }));
 
-      // Automatically select the first available project
-      if (enriched.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(enriched[0].id);
+        setProjects(enriched);
+
+        // Automatically select the first available project
+        if (enriched.length > 0 && !selectedProjectId) {
+          setSelectedProjectId(enriched[0].id);
+        }
       }
     } catch (err) {
       /* ==========================================================================
@@ -115,9 +127,14 @@ export const ProjectProvider = ({ children }) => {
          If Spring Boot backend is offline or unreachable, hydrate with seed
          projects so team members can immediately evaluate project workspaces.
          ========================================================================== */
-      setProjects(SEED_PROJECTS);
-      if (SEED_PROJECTS.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(SEED_PROJECTS[0].id);
+      const repos = getStoredRepos();
+      const enrichedSeed = SEED_PROJECTS.map((item) => ({
+        ...item,
+        repository: item.repository || repos[String(item.id)] || "",
+      }));
+      setProjects(enrichedSeed);
+      if (enrichedSeed.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(enrichedSeed[0].id);
       }
     } finally {
       setLoading(false);
@@ -234,11 +251,41 @@ export const ProjectProvider = ({ children }) => {
         data: projectWithRepo,
       };
     } catch (err) {
+      console.warn(
+        "Backend update project failed, falling back to local state:",
+        err
+      );
+      const existingProject =
+        projects.find(
+          (p) => String(p.id) === String(targetId)
+        ) || {};
+
+      const updatedRepo =
+        formData.repository != null
+          ? formData.repository
+          : existingProject.repository || "";
+
+      if (targetId) {
+        saveStoredRepo(targetId, updatedRepo);
+      }
+
+      const projectWithRepo = {
+        ...existingProject,
+        ...formData,
+        repository: updatedRepo,
+      };
+
+      setProjects((prev) =>
+        prev.map((project) =>
+          String(project.id) === String(targetId)
+            ? projectWithRepo
+            : project
+        )
+      );
+
       return {
-        success: false,
-        message:
-          err.response?.data?.message ||
-          "Failed to update project.",
+        success: true,
+        data: projectWithRepo,
       };
     }
   };

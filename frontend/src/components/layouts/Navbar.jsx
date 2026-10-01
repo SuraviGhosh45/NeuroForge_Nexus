@@ -25,6 +25,7 @@ import {
   PiCircleDashed,
   PiSun,
   PiMoon,
+  PiGear,
 } from "react-icons/pi";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTheme } from "../../context/ThemeContext.jsx";
@@ -745,6 +746,18 @@ const Navbar = ({
                         <span>Global Calendar</span>
                       </Link>
                     )}
+
+                    <Link
+                      to="/settings"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
+                    >
+                      <PiGear
+                        size={16}
+                        className="text-blue-500 dark:text-blue-400"
+                      />
+                      <span>Account Settings</span>
+                    </Link>
                   </div>
 
                   <div className="px-3 py-1.5 mb-1.5 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 font-medium">

@@ -5,45 +5,37 @@ import {
   PiCalendarBlank,
   PiBriefcase,
   PiKanban,
+  PiRobot,
+  PiGear,
 } from "react-icons/pi";
 import { ROLES, MEMBER_ROLES, normalizeRole } from "../constants/roles.js";
+
+const ALL_ROLES = [
+  ROLES.ADMIN,
+  ROLES.PROJECT_MANAGER,
+  ROLES.PROJECT_LEAD,
+  ROLES.TEAM_LEAD,
+  ...MEMBER_ROLES,
+];
 
 export const sidebarItems = [
   {
     label: "Dashboard",
     path: "/dashboard",
     icon: PiSquaresFour,
-    roles: [
-      ROLES.ADMIN,
-      ROLES.PROJECT_MANAGER,
-      ROLES.PROJECT_LEAD,
-      ROLES.TEAM_LEAD,
-      ...MEMBER_ROLES,
-    ],
+    roles: ALL_ROLES,
   },
   {
     label: "Projects",
     path: "/projects",
     icon: PiFolder,
-    roles: [
-      ROLES.ADMIN,
-      ROLES.PROJECT_MANAGER,
-      ROLES.PROJECT_LEAD,
-      ROLES.TEAM_LEAD,
-      ...MEMBER_ROLES,
-    ],
+    roles: ALL_ROLES,
   },
   {
     label: "Kanban",
     path: "/kanban",
     icon: PiKanban,
-    roles: [
-      ROLES.ADMIN,
-      ROLES.PROJECT_MANAGER,
-      ROLES.PROJECT_LEAD,
-      ROLES.TEAM_LEAD,
-      ...MEMBER_ROLES,
-    ],
+    roles: ALL_ROLES,
   },
   {
     label: "Calendar",
@@ -75,6 +67,18 @@ export const sidebarItems = [
     roles: [
       ROLES.ADMIN,
     ],
+  },
+  {
+    label: "AI Assistant",
+    path: "/ai-assistant",
+    icon: PiRobot,
+    roles: ALL_ROLES,
+  },
+  {
+    label: "Settings",
+    path: "/settings",
+    icon: PiGear,
+    roles: ALL_ROLES,
   },
 ];
 

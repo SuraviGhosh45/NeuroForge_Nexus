@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "../../context/ProjectContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
@@ -8,7 +8,16 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { usePermission } from "../../hooks/usePermission.js";
 import Can from "../../components/common/Can.jsx";
 import { ROLES, normalizeRole } from "../../constants/roles.js";
-import { PiPlus, PiFolder, PiTrash, PiPencilSimple } from "react-icons/pi";
+import {
+  PiPlus,
+  PiFolder,
+  PiTrash,
+  PiPencilSimple,
+  PiDotsThreeVertical,
+  PiArrowSquareOut,
+  PiGithubLogo,
+} from "react-icons/pi";
+import ConnectRepoModal from "../../components/project/ConnectRepoModal.jsx";
 
 // Builds a project code from the project name, e.g. "Cloud Migration Suite" -> "CMS-101".
 // If the code already exists, the number goes up (CMS-102, CMS-103, ...).
@@ -51,6 +60,30 @@ const ProjectManagement = () => {
 
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const [activeMenuProjectId, setActiveMenuProjectId] = useState(null);
+  const [connectRepoProject, setConnectRepoProject] = useState(null);
+
+  // Close 3-dots action menu when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest(".project-actions-menu")) {
+        setActiveMenuProjectId(null);
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setActiveMenuProjectId(null);
+      }
+    };
+
+    document.addEventListener("click", handleOutsideClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("click", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   // true once the user types in the Project Code field by hand
   const [codeEdited, setCodeEdited] = useState(false);
@@ -496,7 +529,7 @@ const ProjectManagement = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[300px] pb-16">
             <table className="w-full min-w-[750px]">
               <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-300">
                 <tr>
@@ -561,7 +594,7 @@ const ProjectManagement = () => {
                       })()}
                     </td>
 
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={(event) => event.stopPropagation()}>
                       {project.repository ? (
                         <a
                           href={
@@ -572,14 +605,26 @@ const ProjectManagement = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(event) => event.stopPropagation()}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#2563EB] underline transition hover:text-[#4F46E5] dark:text-blue-400 dark:hover:text-blue-300"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-750"
+                          title={`Open GitHub Repository: ${project.repository}`}
                         >
-                          Link
+                          <PiGithubLogo size={16} className="text-slate-900 dark:text-white" />
+                          <span>Connected</span>
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
                         </a>
                       ) : (
-                        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                          —
-                        </span>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setConnectRepoProject(project);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-blue-300 bg-blue-50/70 px-2.5 py-1.5 text-xs font-semibold text-[#2563EB] transition hover:border-blue-400 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-800/80 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:border-blue-700 dark:hover:bg-blue-900/50"
+                          title="Connect a GitHub repository to this project"
+                        >
+                          <PiPlus size={13} />
+                          <span>Add Repository</span>
+                        </button>
                       )}
                     </td>
 
@@ -645,32 +690,78 @@ const ProjectManagement = () => {
                     {showActions && (
                       <td className="px-6 py-4 text-right">
                         <div
-                          className="inline-flex items-center gap-1.5"
+                          className="project-actions-menu relative inline-block text-left"
                           onClick={(event) => event.stopPropagation()}
                         >
-                          <Can perform="project:edit">
-                            <button
-                              onClick={(event) =>
-                                handleEdit(project, event)
-                              }
-                              title="Edit project"
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-[#2563EB] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                            >
-                              <PiPencilSimple size={16} />
-                            </button>
-                          </Can>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setActiveMenuProjectId((prev) =>
+                                prev === project.id ? null : project.id
+                              );
+                            }}
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+                              activeMenuProjectId === project.id
+                                ? "border-blue-400 bg-blue-50 text-blue-600 dark:border-blue-500/40 dark:bg-blue-950/50 dark:text-blue-400 shadow-xs"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                            }`}
+                            title="Project actions"
+                            aria-expanded={activeMenuProjectId === project.id}
+                          >
+                            <PiDotsThreeVertical size={18} weight="bold" />
+                          </button>
 
-                          <Can perform="project:delete">
-                            <button
-                              onClick={(event) =>
-                                handleDelete(project.id, event)
-                              }
-                              title="Delete project"
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-[#DC2626] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-red-400"
+                          {activeMenuProjectId === project.id && (
+                            <div
+                              className="absolute right-0 top-full z-30 mt-1.5 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-[#1e293b] text-left animate-in fade-in zoom-in-95 duration-100"
+                              onClick={(event) => event.stopPropagation()}
                             >
-                              <PiTrash size={16} />
-                            </button>
-                          </Can>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setActiveMenuProjectId(null);
+                                  navigate(`/projects/${project.id}`);
+                                }}
+                                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-700/60 dark:hover:text-white transition"
+                              >
+                                <PiArrowSquareOut size={16} className="text-blue-500 dark:text-blue-400" />
+                                <span>Open Workspace</span>
+                              </button>
+
+                              <Can perform="project:edit">
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setActiveMenuProjectId(null);
+                                    handleEdit(project, event);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-700/60 dark:hover:text-white transition"
+                                >
+                                  <PiPencilSimple size={16} className="text-slate-500 dark:text-slate-400" />
+                                  <span>Edit Project</span>
+                                </button>
+                              </Can>
+
+                              <Can perform="project:delete">
+                                <div className="my-1 border-t border-slate-100 dark:border-slate-700/60" />
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setActiveMenuProjectId(null);
+                                    handleDelete(project.id, event);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300 transition"
+                                >
+                                  <PiTrash size={16} />
+                                  <span>Delete Project</span>
+                                </button>
+                              </Can>
+                            </div>
+                          )}
                         </div>
                       </td>
                     )}
@@ -681,6 +772,14 @@ const ProjectManagement = () => {
           </div>
         )}
       </div>
+
+      {connectRepoProject && (
+        <ConnectRepoModal
+          isOpen={Boolean(connectRepoProject)}
+          project={connectRepoProject}
+          onClose={() => setConnectRepoProject(null)}
+        />
+      )}
     </div>
   );
 };

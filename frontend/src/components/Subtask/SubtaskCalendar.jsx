@@ -250,12 +250,36 @@ const SubtaskCalendar = () => {
                 type="button"
                 onClick={() =>
                   navigate(
-                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban`
+                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban?view=board`
                   )
                 }
                 className="rounded-xl px-5 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
               >
                 Kanban
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban?view=timeline`
+                  )
+                }
+                className="rounded-xl px-5 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                Timeline
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban?view=list`
+                  )
+                }
+                className="rounded-xl px-5 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                List
               </button>
 
               <button
