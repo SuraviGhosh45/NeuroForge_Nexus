@@ -1,6 +1,17 @@
 import React, { useMemo, useState } from "react";
-import { PiListChecks, PiClock, PiSpinner, PiCheckCircle } from "react-icons/pi";
+import {
+  PiListChecks,
+  PiClock,
+  PiSpinner,
+  PiCheckCircle,
+  PiKanban,
+  PiChartBarHorizontal,
+  PiListBullets,
+} from "react-icons/pi";
 import KanbanColumn from "./KanbanColumn.jsx";
+import KanbanTimelineView from "./KanbanTimelineView.jsx";
+import KanbanListView from "./KanbanListView.jsx";
+import TaskDetails from "../task/TaskDetails.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 import { useProjects } from "../../context/ProjectContext.jsx";
 import "./Kanban.css";
@@ -20,6 +31,20 @@ function KanbanBoard() {
     selectedProjectId,
     selectProject,
   } = useProjects();
+
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem("kanban_view_mode") || "board";
+  });
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("kanban_view_mode", mode);
+    } catch {
+      // Ignore storage errors in restricted contexts
+    }
+  };
 
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [dragOverColumnId, setDragOverColumnId] = useState(null);
@@ -102,6 +127,27 @@ function KanbanBoard() {
     setDraggedTaskId(null);
   };
 
+  const handleStatusChange = async (taskId, newStatus) => {
+    /*
+     * [BACKEND_INTEGRATION_POINT]: Task Status Update from Timeline / List View
+     * - Route: PATCH http://localhost:8080/api/tasks/{id}/status (or PUT /api/tasks/{id})
+     * - Payload: { status: "To Do" | "In Progress" | "In Review" | "Done" }
+     * - Expected Response: 200 OK with updated task JSON
+     * - Handled via TasksContext.jsx (updateTaskStatus / updateTask)
+     */
+    const task = tasks.find((item) => String(item.id) === String(taskId));
+    if (!task) return;
+
+    if (updateTaskStatus) {
+      await updateTaskStatus(taskId, newStatus);
+    } else if (updateTask) {
+      await updateTask({
+        ...task,
+        status: newStatus,
+      });
+    }
+  };
+
   const projectTasks = useMemo(() => {
     if (!selectedProjectId) {
       return [];
@@ -113,6 +159,11 @@ function KanbanBoard() {
         String(selectedProjectId)
     );
   }, [tasks, selectedProjectId]);
+
+  const selectedTask = useMemo(() => {
+    if (!selectedTaskId) return null;
+    return tasks.find((t) => String(t.id) === String(selectedTaskId)) || null;
+  }, [tasks, selectedTaskId]);
 
   const normalizeStatus = (status) => {
     if (!status) return "To Do";
@@ -302,40 +353,116 @@ function KanbanBoard() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-white">
               Project Workflow
             </h2>
             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-              Drag tasks between columns to update their status.
+              {viewMode === "board" && "Drag tasks between columns to update their status."}
+              {viewMode === "timeline" && "Chronological milestone timeline grouped by deadlines."}
+              {viewMode === "list" && "Comprehensive tabular overview with sorting and status transitions."}
             </p>
           </div>
 
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200/80 dark:bg-slate-800 dark:text-slate-200 dark:ring-1 dark:ring-slate-700">
-            {totalTasks} task{totalTasks === 1 ? "" : "s"}
-          </span>
-        </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* View Switcher Segmented Control */}
+            <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-100/90 p-1 dark:border-slate-800 dark:bg-slate-800/80">
+              <button
+                type="button"
+                onClick={() => handleViewModeChange("board")}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "board"
+                    ? "bg-white text-blue-600 shadow-xs dark:bg-slate-900 dark:text-blue-400"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+                title="Board (Cards) View"
+              >
+                <PiKanban size={15} />
+                <span>Cards</span>
+              </button>
 
-        <div className="overflow-x-auto pb-2">
-          <div className="grid min-w-[1000px] grid-cols-4 gap-4">
-            {COLUMNS.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                tasks={tasksByStatus[column.id]}
-                draggedTaskId={draggedTaskId}
-                isDropTarget={dragOverColumnId === column.id}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragOver={(e) => handleDragOver(e, column.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              />
-            ))}
+              <button
+                type="button"
+                onClick={() => handleViewModeChange("timeline")}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "timeline"
+                    ? "bg-white text-blue-600 shadow-xs dark:bg-slate-900 dark:text-blue-400"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+                title="Chronological Milestone Timeline View"
+              >
+                <PiChartBarHorizontal size={15} />
+                <span>Timeline</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleViewModeChange("list")}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "list"
+                    ? "bg-white text-blue-600 shadow-xs dark:bg-slate-900 dark:text-blue-400"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+                title="Structured Table / List View"
+              >
+                <PiListBullets size={15} />
+                <span>List</span>
+              </button>
+            </div>
+
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200/80 dark:bg-slate-800 dark:text-slate-200 dark:ring-1 dark:ring-slate-700">
+              {totalTasks} task{totalTasks === 1 ? "" : "s"}
+            </span>
           </div>
         </div>
+
+        {/* View Switcher Content */}
+        {viewMode === "board" && (
+          <div className="overflow-x-auto pb-2">
+            <div className="grid min-w-[1000px] grid-cols-4 gap-4">
+              {COLUMNS.map((column) => (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  tasks={tasksByStatus[column.id]}
+                  draggedTaskId={draggedTaskId}
+                  isDropTarget={dragOverColumnId === column.id}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, column.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {viewMode === "timeline" && (
+          <KanbanTimelineView
+            tasks={projectTasks}
+            onUpdateStatus={handleStatusChange}
+            onSelectTask={(task) => setSelectedTaskId(task.id)}
+          />
+        )}
+
+        {viewMode === "list" && (
+          <KanbanListView
+            tasks={projectTasks}
+            onUpdateStatus={handleStatusChange}
+            onSelectTask={(task) => setSelectedTaskId(task.id)}
+          />
+        )}
       </div>
+
+      {/* Task Details Modal / Panel */}
+      {selectedTask && (
+        <TaskDetails
+          task={selectedTask}
+          onClose={() => setSelectedTaskId(null)}
+        />
+      )}
     </section>
   );
 }

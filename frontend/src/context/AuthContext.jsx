@@ -263,9 +263,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /** Update current user's profile details and working status */
+  const updateCurrentUser = async (updates) => {
+    try {
+      /* ==========================================================================
+         [BACKEND_INTEGRATION_POINT]
+         Endpoint:    PUT http://localhost:8080/api/users/me
+         Description: Self-service profile update for current user (name, email, skills, phone, status).
+         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
+         Payload:     { "fullName": "Marcus Vance", "email": "dev@neuroforge.io", "status": "In Meeting" }
+         Response:    200 OK -> updated user profile object
+         cURL:        curl -X PUT http://localhost:8080/api/users/me -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"fullName":"Marcus Vance","status":"In Meeting"}'
+         ========================================================================== */
+      const response = await axios.put(`${USERS_BASE}/me`, updates);
+      const updated = normalizeUser(response.data);
+      const storage = localStorage.getItem(AUTH_USER_KEY) ? localStorage : sessionStorage;
+      storage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+      setCurrentUser(updated);
+      return { success: true, user: updated };
+    } catch (err) {
+      /* ==========================================================================
+         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
+         When backend is offline, update current user state and session storage locally
+         so the user immediately experiences the updated profile and status without errors.
+         ========================================================================== */
+      const updated = normalizeUser({
+        ...currentUser,
+        ...updates,
+      });
+      const storage = localStorage.getItem(AUTH_USER_KEY) ? localStorage : sessionStorage;
+      storage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+      setCurrentUser(updated);
+      return { success: true, user: updated, offlineFallback: true };
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ currentUser, authReady, register, login, logout, deleteAccount }}
+      value={{
+        currentUser,
+        authReady,
+        register,
+        login,
+        logout,
+        deleteAccount,
+        updateCurrentUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

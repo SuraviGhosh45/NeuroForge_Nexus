@@ -312,19 +312,43 @@ const SubtaskDetails = () => {
                 type="button"
                 className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-sm"
               >
-                Sub Task Details
+                Subtask Details
               </button>
 
               <button
                 type="button"
                 onClick={() =>
                   navigate(
-                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban`
+                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban?view=board`
                   )
                 }
                 className="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               >
                 Kanban
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban?view=timeline`
+                  )
+                }
+                className="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+              >
+                Timeline
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/projects/${projectId}/tasks/${taskId}/${subtaskId}/kanban?view=list`
+                  )
+                }
+                className="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+              >
+                List
               </button>
 
               <button

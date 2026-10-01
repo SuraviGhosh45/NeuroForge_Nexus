@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   PiArrowLeft,
   PiCalendarBlank,
   PiUserCircle,
   PiLockKey,
+  PiKanban,
+  PiChartBarHorizontal,
+  PiListBullets,
 } from "react-icons/pi";
 
 import { useTasks } from "../../context/TasksContext.jsx";
@@ -14,6 +17,8 @@ import { useProjects } from "../../context/ProjectContext.jsx";
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
 import { useTeams } from "../../context/TeamsContext.jsx";
 import { canMoveSubtaskKanban } from "../../utils/access.js";
+import SubtaskTimelineView from "./SubtaskTimelineView.jsx";
+import SubtaskListView from "./SubtaskListView.jsx";
 
 const COLUMNS = [
   {
@@ -57,6 +62,31 @@ const SubtaskKanban = () => {
   } = useParams();
 
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlView = searchParams.get("view");
+
+  const [viewMode, setViewMode] = useState(() => {
+    if (urlView && ["board", "timeline", "list"].includes(urlView)) {
+      return urlView;
+    }
+    return localStorage.getItem("subtask_kanban_view_mode") || "board";
+  });
+
+  useEffect(() => {
+    if (urlView && ["board", "timeline", "list"].includes(urlView)) {
+      setViewMode(urlView);
+    }
+  }, [urlView]);
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("subtask_kanban_view_mode", mode);
+    } catch {
+      // Ignore storage errors in restricted contexts
+    }
+    setSearchParams({ view: mode }, { replace: true });
+  };
 
   const {
     getTaskById,
@@ -276,6 +306,52 @@ const SubtaskKanban = () => {
     );
   };
 
+  const handleStatusUpdate = async (targetSubtaskId, newStatus) => {
+    /*
+     * [BACKEND_INTEGRATION_POINT]
+     * Action: Update Subtask Status from Timeline / List View
+     * Endpoint: PATCH /api/subtasks/{subtaskId}/status or PUT /api/subtasks/{subtaskId}
+     * Payload: { status: "To Do" | "In Progress" | "In Review" | "Ready for Testing" | "In Testing" | "In QA" | "Done" }
+     * Headers: { Authorization: "Bearer <token>", "Content-Type": "application/json" }
+     * Response: 200 OK with updated subtask JSON
+     */
+    setIsUpdating(true);
+    const targetSubtask = subtasks.find(
+      (s) => String(s.id) === String(targetSubtaskId)
+    );
+    if (!targetSubtask) {
+      setIsUpdating(false);
+      return;
+    }
+
+    const canMove = canMoveSubtaskKanban(
+      currentUser,
+      targetSubtask,
+      parentTask,
+      project,
+      projectTeams,
+      teams
+    );
+
+    if (!canMove) {
+      setIsUpdating(false);
+      alert("You do not have permission to transition this subtask.");
+      return;
+    }
+
+    const result = updateSubtaskStatus
+      ? await updateSubtaskStatus(targetSubtaskId, newStatus)
+      : await updateSubtask(taskId, {
+          ...targetSubtask,
+          status: newStatus,
+        });
+
+    setIsUpdating(false);
+    if (!result.success) {
+      alert(result.message || "Failed to update subtask status.");
+    }
+  };
+
   if (!parentTask) {
     return (
       <div className="min-h-full bg-transparent p-6 text-[#172033] dark:text-slate-100">
@@ -356,7 +432,11 @@ const SubtaskKanban = () => {
           </button>
           <span>/</span>
           <span className="font-semibold text-[#172033] dark:text-slate-200">
-            Kanban
+            {viewMode === "timeline"
+              ? "Timeline"
+              : viewMode === "list"
+              ? "List"
+              : "Kanban"}
           </span>
         </div>
 
@@ -369,7 +449,11 @@ const SubtaskKanban = () => {
                 </span>
 
                 <span className="text-sm text-[#64748B] dark:text-slate-400">
-                  Subtask Kanban
+                  {viewMode === "timeline"
+                    ? "Subtask Timeline"
+                    : viewMode === "list"
+                    ? "Subtask List View"
+                    : "Subtask Kanban"}
                 </span>
               </div>
 
@@ -378,7 +462,12 @@ const SubtaskKanban = () => {
               </h1>
 
               <p className="mt-2 text-sm text-[#475569] dark:text-slate-400">
-                Drag and drop subtasks between columns to update their delivery status.
+                {viewMode === "board" &&
+                  "Drag and drop subtasks between columns to update their delivery status."}
+                {viewMode === "timeline" &&
+                  "Chronological milestone schedule grouped by due date targets."}
+                {viewMode === "list" &&
+                  "Structured overview of all subtasks with multi-column sorting and direct status transitions."}
               </p>
             </div>
           </div>
@@ -399,9 +488,38 @@ const SubtaskKanban = () => {
 
               <button
                 type="button"
-                className="rounded-xl bg-gradient-to-r from-[#2563EB] to-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-sm"
+                onClick={() => handleViewModeChange("board")}
+                className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                  viewMode === "board"
+                    ? "bg-gradient-to-r from-[#2563EB] to-[#4F46E5] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                }`}
               >
                 Kanban
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleViewModeChange("timeline")}
+                className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                  viewMode === "timeline"
+                    ? "bg-gradient-to-r from-[#2563EB] to-[#4F46E5] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                }`}
+              >
+                Timeline
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleViewModeChange("list")}
+                className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                  viewMode === "list"
+                    ? "bg-gradient-to-r from-[#2563EB] to-[#4F46E5] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                }`}
+              >
+                List
               </button>
 
               <button
@@ -419,271 +537,377 @@ const SubtaskKanban = () => {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {COLUMNS.map((column) => {
-            const count =
-              subtasks.filter((subtask) => {
-                const st =
-                  subtask.status || "To Do";
+        {/* View Switcher Controls Bar */}
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+              {viewMode === "board" && "Subtask Workflow Board"}
+              {viewMode === "timeline" && "Milestone Timeline"}
+              {viewMode === "list" && "Subtask Table Overview"}
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              {viewMode === "board" && "Drag cards between columns to change delivery state."}
+              {viewMode === "timeline" && "Chronological milestone rail grouped by deadlines."}
+              {viewMode === "list" && "Full tabular listing with multi-column sorting and filtering."}
+            </p>
+          </div>
 
-                if (column.id === "In Review") {
-                  return [
-                    "In Review",
-                    "Ready for Testing",
-                    "In Testing",
-                    "In QA",
-                  ].includes(st);
-                }
-
-                return st === column.id;
-              }).length;
-
-            return (
-              <div
-                key={column.id}
-                className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0f172a] p-5 shadow-sm"
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* View Switcher Segmented Control */}
+            <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-100/90 p-1 dark:border-slate-800 dark:bg-slate-800/80">
+              <button
+                type="button"
+                onClick={() => handleViewModeChange("board")}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "board"
+                    ? "bg-white text-blue-600 shadow-xs dark:bg-slate-900 dark:text-blue-400"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+                title="Board (Cards) View"
               >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-[#475569] dark:text-slate-400">
-                    {column.title}
-                  </p>
+                <PiKanban size={15} />
+                <span>Cards</span>
+              </button>
 
-                  <span
-                    className={`text-sm font-semibold ${column.color}`}
-                  >
-                    {count}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              <button
+                type="button"
+                onClick={() => handleViewModeChange("timeline")}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "timeline"
+                    ? "bg-white text-blue-600 shadow-xs dark:bg-slate-900 dark:text-blue-400"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+                title="Chronological Milestone Timeline View"
+              >
+                <PiChartBarHorizontal size={15} />
+                <span>Timeline</span>
+              </button>
 
-        <div className="mt-6 overflow-x-auto">
-          <div className="grid min-w-[1000px] grid-cols-4 gap-5">
-            {COLUMNS.map((column) => {
-              const columnSubtasks =
-                subtasks.filter((subtask) => {
-                  const st =
-                    subtask.status || "To Do";
+              <button
+                type="button"
+                onClick={() => handleViewModeChange("list")}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "list"
+                    ? "bg-white text-blue-600 shadow-xs dark:bg-slate-900 dark:text-blue-400"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+                title="Structured Table / List View"
+              >
+                <PiListBullets size={15} />
+                <span>List</span>
+              </button>
+            </div>
 
-                  if (column.id === "In Review") {
-                    return [
-                      "In Review",
-                      "Ready for Testing",
-                      "In Testing",
-                      "In QA",
-                    ].includes(st);
-                  }
-
-                  return st === column.id;
-                });
-
-              const isDropTarget =
-                dragOverColumn === column.id;
-
-              return (
-                <div
-                  key={column.id}
-                  onDragOver={(event) =>
-                    handleDragOver(
-                      event,
-                      column.id
-                    )
-                  }
-                  onDragLeave={(event) =>
-                    handleDragLeave(
-                      event,
-                      column.id
-                    )
-                  }
-                  onDrop={(event) =>
-                    handleDrop(
-                      event,
-                      column.id
-                    )
-                  }
-                  className={`min-h-[500px] rounded-2xl border transition-all duration-200 ${
-                    isDropTarget
-                      ? "border-blue-400 bg-blue-50/60 dark:bg-blue-950/20 shadow-[0_0_0_1px_rgba(37,99,235,0.12)]"
-                      : "border-slate-200 dark:border-slate-800 bg-[#F8FAFC] dark:bg-[#111927] shadow-sm"
-                  }`}
-                >
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 p-5">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`h-2.5 w-2.5 rounded-full ${column.dot}`}
-                      />
-
-                      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {column.title}
-                      </h2>
-                    </div>
-
-                    <span className="rounded-full bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm ring-1 ring-slate-200 dark:ring-0">
-                      {columnSubtasks.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 p-4">
-                    {columnSubtasks.length === 0 ? (
-                      <div
-                        className={`flex min-h-[220px] items-center justify-center rounded-xl border border-dashed transition ${
-                          isDropTarget
-                            ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30"
-                            : "border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-[#0b1120]"
-                        }`}
-                      >
-                        <div className="text-center">
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {isDropTarget
-                              ? "Drop subtask here"
-                              : "No subtasks"}
-                          </p>
-
-                          {!isDropTarget && (
-                            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                              Drag a card here
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      columnSubtasks.map(
-                        (subtask) => {
-                          const assignee =
-                            getAssignee(
-                              subtask.assigneeId
-                            );
-
-                          const priorityStyles =
-                            priorityColor[
-                              subtask.priority
-                            ] ||
-                            priorityColor.Medium;
-
-                          const isDragging =
-                            String(
-                              draggedSubtaskId
-                            ) ===
-                            String(
-                              subtask.id
-                            );
-
-                          const canDrag =
-                            !isUpdating &&
-                            canMoveSubtaskKanban(
-                              currentUser,
-                              subtask,
-                              parentTask,
-                              project,
-                              projectTeams,
-                              teams
-                            );
-
-                          return (
-                            <div
-                              key={subtask.id}
-                              draggable={canDrag}
-                              onDragStart={(event) =>
-                                handleDragStart(
-                                  event,
-                                  subtask
-                                )
-                              }
-                              onDragEnd={
-                                handleDragEnd
-                              }
-                              className={`rounded-xl border bg-white dark:bg-[#1e293b] p-4 shadow-sm transition-all duration-200 ${
-                                canDrag
-                                  ? "cursor-grab border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md active:cursor-grabbing"
-                                  : "cursor-default opacity-85 border-slate-200 dark:border-slate-700"
-                              } ${
-                                isDragging
-                                  ? "scale-[0.98] border-blue-400 opacity-40 shadow-lg"
-                                  : ""
-                              }`}
-                            >
-                              <div className="mb-3 flex items-center justify-between">
-                                <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-400">
-                                  {canDrag ? (
-                                    "Drag to move"
-                                  ) : (
-                                    <>
-                                      <PiLockKey
-                                        size={12}
-                                        className="text-amber-600 dark:text-amber-400"
-                                      />
-                                      <span>
-                                        Locked
-                                      </span>
-                                    </>
-                                  )}
-                                </span>
-
-                                <span className="text-[10px] text-slate-400 dark:text-slate-400">
-                                  {subtask.id}
-                                </span>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleOpenSubtask(
-                                    subtask
-                                  )
-                                }
-                                className="w-full text-left text-sm font-semibold text-[#172033] dark:text-slate-100 transition hover:text-[#2563EB] dark:hover:text-blue-400"
-                              >
-                                {subtask.title}
-                              </button>
-
-                              <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#64748B] dark:text-slate-400">
-                                {subtask.description ||
-                                  "No description has been added."}
-                              </p>
-
-                              <div className="mt-4">
-                                <span
-                                  className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${priorityStyles}`}
-                                >
-                                  {subtask.priority ||
-                                    "Medium"}
-                                </span>
-                              </div>
-
-                              <div className="mt-4 space-y-2">
-                                <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-slate-400">
-                                  <PiUserCircle />
-
-                                  <span className="truncate">
-                                    {assignee?.fullName ||
-                                      assignee?.name ||
-                                      assignee?.username ||
-                                      "Unassigned"}
-                                  </span>
-                                </div>
-
-                                <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-slate-400">
-                                  <PiCalendarBlank />
-
-                                  <span>
-                                    {subtask.dueDate ||
-                                      "No due date"}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-                      )
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200/80 dark:bg-slate-800 dark:text-slate-200 dark:ring-1 dark:ring-slate-700">
+              {subtasks.length} subtask{subtasks.length === 1 ? "" : "s"}
+            </span>
           </div>
         </div>
+
+        {/* View Mode: Board / Cards */}
+        {viewMode === "board" && (
+          <>
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {COLUMNS.map((column) => {
+                const count =
+                  subtasks.filter((subtask) => {
+                    const st =
+                      subtask.status || "To Do";
+
+                    if (column.id === "In Review") {
+                      return [
+                        "In Review",
+                        "Ready for Testing",
+                        "In Testing",
+                        "In QA",
+                      ].includes(st);
+                    }
+
+                    return st === column.id;
+                  }).length;
+
+                return (
+                  <div
+                    key={column.id}
+                    className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0f172a] p-5 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-[#475569] dark:text-slate-400">
+                        {column.title}
+                      </p>
+
+                      <span
+                        className={`text-sm font-semibold ${column.color}`}
+                      >
+                        {count}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 overflow-x-auto">
+              <div className="grid min-w-[1000px] grid-cols-4 gap-5">
+                {COLUMNS.map((column) => {
+                  const columnSubtasks =
+                    subtasks.filter((subtask) => {
+                      const st =
+                        subtask.status || "To Do";
+
+                      if (column.id === "In Review") {
+                        return [
+                          "In Review",
+                          "Ready for Testing",
+                          "In Testing",
+                          "In QA",
+                        ].includes(st);
+                      }
+
+                      return st === column.id;
+                    });
+
+                  const isDropTarget =
+                    dragOverColumn === column.id;
+
+                  return (
+                    <div
+                      key={column.id}
+                      onDragOver={(event) =>
+                        handleDragOver(
+                          event,
+                          column.id
+                        )
+                      }
+                      onDragLeave={(event) =>
+                        handleDragLeave(
+                          event,
+                          column.id
+                        )
+                      }
+                      onDrop={(event) =>
+                        handleDrop(
+                          event,
+                          column.id
+                        )
+                      }
+                      className={`min-h-[500px] rounded-2xl border transition-all duration-200 ${
+                        isDropTarget
+                          ? "border-blue-400 bg-blue-50/60 dark:bg-blue-950/20 shadow-[0_0_0_1px_rgba(37,99,235,0.12)]"
+                          : "border-slate-200 dark:border-slate-800 bg-[#F8FAFC] dark:bg-[#111927] shadow-sm"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 p-5">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`h-2.5 w-2.5 rounded-full ${column.dot}`}
+                          />
+
+                          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {column.title}
+                          </h2>
+                        </div>
+
+                        <span className="rounded-full bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm ring-1 ring-slate-200 dark:ring-0">
+                          {columnSubtasks.length}
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 p-4">
+                        {columnSubtasks.length === 0 ? (
+                          <div
+                            className={`flex min-h-[220px] items-center justify-center rounded-xl border border-dashed transition ${
+                              isDropTarget
+                                ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30"
+                                : "border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-[#0b1120]"
+                            }`}
+                          >
+                            <div className="text-center">
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                {isDropTarget
+                                  ? "Drop subtask here"
+                                  : "No subtasks"}
+                              </p>
+
+                              {!isDropTarget && (
+                                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                                  Drag a card here
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          columnSubtasks.map(
+                            (subtask) => {
+                              const assignee =
+                                getAssignee(
+                                  subtask.assigneeId
+                                );
+
+                              const priorityStyles =
+                                priorityColor[
+                                  subtask.priority
+                                ] ||
+                                priorityColor.Medium;
+
+                              const isDragging =
+                                String(
+                                  draggedSubtaskId
+                                ) ===
+                                String(
+                                  subtask.id
+                                );
+
+                              const canDrag =
+                                !isUpdating &&
+                                canMoveSubtaskKanban(
+                                  currentUser,
+                                  subtask,
+                                  parentTask,
+                                  project,
+                                  projectTeams,
+                                  teams
+                                );
+
+                              return (
+                                <div
+                                  key={subtask.id}
+                                  draggable={canDrag}
+                                  onDragStart={(event) =>
+                                    handleDragStart(
+                                      event,
+                                      subtask
+                                    )
+                                  }
+                                  onDragEnd={
+                                    handleDragEnd
+                                  }
+                                  className={`rounded-xl border bg-white dark:bg-[#1e293b] p-4 shadow-sm transition-all duration-200 ${
+                                    canDrag
+                                      ? "cursor-grab border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md active:cursor-grabbing"
+                                      : "cursor-default opacity-85 border-slate-200 dark:border-slate-700"
+                                  } ${
+                                    isDragging
+                                      ? "scale-[0.98] border-blue-400 opacity-40 shadow-lg"
+                                      : ""
+                                  }`}
+                                >
+                                  <div className="mb-3 flex items-center justify-between">
+                                    <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                                      {canDrag ? (
+                                        "Drag to move"
+                                      ) : (
+                                        <>
+                                          <PiLockKey
+                                            size={12}
+                                            className="text-amber-600 dark:text-amber-400"
+                                          />
+                                          <span>
+                                            Locked
+                                          </span>
+                                        </>
+                                      )}
+                                    </span>
+
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-400">
+                                      {subtask.id}
+                                    </span>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleOpenSubtask(
+                                        subtask
+                                      )
+                                    }
+                                    className="w-full text-left text-sm font-semibold text-[#172033] dark:text-slate-100 transition hover:text-[#2563EB] dark:hover:text-blue-400"
+                                  >
+                                    {subtask.title}
+                                  </button>
+
+                                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#64748B] dark:text-slate-400">
+                                    {subtask.description ||
+                                      "No description has been added."}
+                                  </p>
+
+                                  <div className="mt-4">
+                                    <span
+                                      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${priorityStyles}`}
+                                    >
+                                      {subtask.priority ||
+                                        "Medium"}
+                                    </span>
+                                  </div>
+
+                                  <div className="mt-4 space-y-2">
+                                    <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-slate-400">
+                                      <PiUserCircle />
+
+                                      <span className="truncate">
+                                        {assignee?.fullName ||
+                                          assignee?.name ||
+                                          assignee?.username ||
+                                          "Unassigned"}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-slate-400">
+                                      <PiCalendarBlank />
+
+                                      <span>
+                                        {subtask.dueDate ||
+                                          "No due date"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* View Mode: Timeline */}
+        {viewMode === "timeline" && (
+          <div className="mt-6">
+            <SubtaskTimelineView
+              subtasks={subtasks}
+              parentTask={parentTask}
+              project={project}
+              users={users}
+              currentUser={currentUser}
+              projectTeams={projectTeams}
+              teams={teams}
+              onUpdateStatus={handleStatusUpdate}
+              onOpenSubtask={handleOpenSubtask}
+            />
+          </div>
+        )}
+
+        {/* View Mode: List */}
+        {viewMode === "list" && (
+          <div className="mt-6">
+            <SubtaskListView
+              subtasks={subtasks}
+              parentTask={parentTask}
+              project={project}
+              users={users}
+              currentUser={currentUser}
+              projectTeams={projectTeams}
+              teams={teams}
+              onUpdateStatus={handleStatusUpdate}
+              onOpenSubtask={handleOpenSubtask}
+            />
+          </div>
+        )}
 
         {draggedSubtaskId && (
           <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 shadow-xl">

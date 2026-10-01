@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useTasks } from "../../context/TasksContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
@@ -12,6 +13,9 @@ import {
   PiPlus,
   PiPencilSimple,
   PiTrash,
+  PiDotsThreeVertical,
+  PiArrowSquareOut,
+  PiX,
 } from "react-icons/pi";
 
 const priorityColor = {
@@ -43,6 +47,21 @@ const TaskManagement = () => {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
+  const [menuAnchor, setMenuAnchor] = useState(null);
+
+  // Close floating action menu on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setMenuAnchor(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState("");
@@ -551,34 +570,34 @@ const TaskManagement = () => {
 
                     <td className="px-6 py-4 text-right">
                       <div
-                        className="inline-flex items-center gap-1.5"
+                        className="inline-block text-left"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Can perform="task:edit">
-                          <button
-                            type="button"
-                            onClick={(e) =>
-                              handleEditClick(task, e)
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (menuAnchor?.task?.id === task.id) {
+                              setMenuAnchor(null);
+                            } else {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setMenuAnchor({
+                                task,
+                                top: rect.bottom + 6,
+                                right: window.innerWidth - rect.right,
+                              });
                             }
-                            title="Edit task"
-                            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#2563EB] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-blue-700 dark:hover:text-blue-300"
-                          >
-                            <PiPencilSimple size={16} />
-                          </button>
-                        </Can>
-
-                        <Can perform="task:delete">
-                          <button
-                            type="button"
-                            onClick={(e) =>
-                              handleDeleteTask(task.id, e)
-                            }
-                            title="Delete task"
-                            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-[#DC2626] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-red-700 dark:hover:text-red-300"
-                          >
-                            <PiTrash size={16} />
-                          </button>
-                        </Can>
+                          }}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+                            menuAnchor?.task?.id === task.id
+                              ? "border-blue-400 bg-blue-50 text-blue-600 dark:border-blue-500/40 dark:bg-blue-950/50 dark:text-blue-400 shadow-xs"
+                              : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                          }`}
+                          title="Task actions"
+                          aria-expanded={menuAnchor?.task?.id === task.id}
+                        >
+                          <PiDotsThreeVertical size={18} weight="bold" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -588,6 +607,97 @@ const TaskManagement = () => {
           </div>
         )}
       </div>
+
+      {/* Floating Action Menu rendered OUTSIDE the table/list via React Portal */}
+      {menuAnchor && createPortal(
+        <div
+          className="fixed inset-0 z-50 overflow-hidden"
+          onClick={() => setMenuAnchor(null)}
+        >
+          <div
+            className="fixed z-50 w-60 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-[#1e293b] text-left animate-in fade-in zoom-in-95 duration-150"
+            style={{
+              top: `${Math.min(menuAnchor.top, window.innerHeight - 210)}px`,
+              right: `${Math.max(16, menuAnchor.right)}px`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-2.5 py-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-700/60">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                Parent Task Actions
+              </span>
+              <button
+                type="button"
+                onClick={() => setMenuAnchor(null)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition"
+              >
+                <PiX size={14} />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const task = menuAnchor.task;
+                  setMenuAnchor(null);
+                  handleTaskClick(task);
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 dark:text-slate-200 dark:hover:bg-blue-950/50 dark:hover:text-blue-300 transition"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400 shrink-0">
+                  <PiArrowSquareOut size={15} />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold">View Details</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">Open task drawer</p>
+                </div>
+              </button>
+
+              <Can perform="task:edit">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    const task = menuAnchor.task;
+                    setMenuAnchor(null);
+                    handleEditClick(task, e);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-700 dark:text-slate-200 dark:hover:bg-amber-950/50 dark:hover:text-amber-300 transition"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400 shrink-0">
+                    <PiPencilSimple size={15} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold">Edit Parent Task</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">Modify title & details</p>
+                  </div>
+                </button>
+              </Can>
+
+              <Can perform="task:delete">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    const task = menuAnchor.task;
+                    setMenuAnchor(null);
+                    handleDeleteTask(task.id, e);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40 transition"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400 shrink-0">
+                    <PiTrash size={15} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold">Delete Parent Task</p>
+                    <p className="text-[10px] text-rose-400/80 dark:text-rose-400/80 font-normal">Permanently remove</p>
+                  </div>
+                </button>
+              </Can>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {selectedTask && (
         <TaskDetails

@@ -235,6 +235,23 @@ export const ProjectTeamProvider = ({ children }) => {
     return next;
   });
 
+  const syncUserStatusAcrossTeams = (userId, status) => {
+    setProjectTeams((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      Object.keys(next).forEach((projectId) => {
+        next[projectId] = next[projectId].map((m) => {
+          if (String(m.userId) === String(userId)) {
+            changed = true;
+            return { ...m, status };
+          }
+          return m;
+        });
+      });
+      return changed ? next : prev;
+    });
+  };
+
   const value = useMemo(() => ({
     projectTeams,
     getProjectMembers,
@@ -243,6 +260,7 @@ export const ProjectTeamProvider = ({ children }) => {
     addProjectMember,
     updateProjectMember,
     updateProjectMemberStatus,
+    syncUserStatusAcrossTeams,
     removeProjectMember,
     clearProjectTeam,
     MEMBER_STATUSES,
