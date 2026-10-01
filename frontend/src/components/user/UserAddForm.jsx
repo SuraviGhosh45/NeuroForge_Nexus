@@ -19,6 +19,7 @@ const AVAILABLE_ROLES = [
 const UserAddForm = ({ onCancel, onCreateUser }) => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState("developer");
   const [status, setStatus] = useState("Active");
   const [skills, setSkills] = useState(
@@ -65,10 +66,16 @@ const UserAddForm = ({ onCancel, onCreateUser }) => {
       return;
     }
 
+    if (password.length < 8) {
+      alert("Password must be at least 8 characters.");
+      return;
+    }
+
     const newUser = {
       fullName: fullName.trim(),
       name: fullName.trim(),
       email: email.trim(),
+      password,
       role,
       status,
       skills,
@@ -138,6 +145,31 @@ const UserAddForm = ({ onCancel, onCreateUser }) => {
               required
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-blue-400"
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="add-password"
+              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300"
+            >
+              Password
+            </label>
+
+            <input
+              id="add-password"
+              type="password"
+              placeholder="At least 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-blue-400"
+            />
+
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              The user logs in with this password.
+            </p>
           </div>
 
           <div>

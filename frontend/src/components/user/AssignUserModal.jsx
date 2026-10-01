@@ -1,14 +1,23 @@
 import { useState } from "react";
 import { PiX, PiFolder, PiBriefcase, PiUserPlus } from "react-icons/pi";
 
-const PROJECT_ROLES = [
-  "Developer",
-  "Team Lead",
-  "Project Lead",
-  "Project Manager",
-  "Tester",
-  "QA",
-];
+// Project Lead and Project Manager are set when the project is created.
+// The backend only accepts these four roles for project members.
+const PROJECT_ROLES = ["Developer", "Team Lead", "Tester", "QA"];
+
+// The backend requires the project role to match the user's system role,
+// so start with the role that matches this user.
+const defaultRoleForUser = (user) => {
+  const key = String(user?.role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (key === "team_lead") return "Team Lead";
+  if (key === "tester") return "Tester";
+  if (key === "qa") return "QA";
+  return "Developer";
+};
 
 const AssignUserModal = ({
   isOpen,
@@ -21,7 +30,7 @@ const AssignUserModal = ({
   const [selectedProjectId, setSelectedProjectId] = useState(
     projects.length > 0 ? String(projects[0].id) : ""
   );
-  const [selectedRole, setSelectedRole] = useState("Developer");
+  const [selectedRole, setSelectedRole] = useState(defaultRoleForUser(user));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 

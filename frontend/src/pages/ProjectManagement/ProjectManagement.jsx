@@ -10,6 +10,26 @@ import Can from "../../components/common/Can.jsx";
 import { ROLES, normalizeRole } from "../../constants/roles.js";
 import { PiPlus, PiFolder, PiTrash, PiPencilSimple } from "react-icons/pi";
 
+// Builds a project code from the project name, e.g. "Cloud Migration Suite" -> "CMS-101".
+// If the code already exists, the number goes up (CMS-102, CMS-103, ...).
+const generateProjectCode = (name, existingCodes) => {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "";
+
+  const raw =
+    words.length === 1
+      ? words[0].slice(0, 3)
+      : words.map((w) => w[0]).join("").slice(0, 4);
+
+  const prefix = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!prefix) return "";
+
+  let n = 101;
+  while (existingCodes.includes(`${prefix}-${n}`)) n++;
+
+  return `${prefix}-${n}`;
+};
+
 const ProjectManagement = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -31,6 +51,9 @@ const ProjectManagement = () => {
 
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+
+  // true once the user types in the Project Code field by hand
+  const [codeEdited, setCodeEdited] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -60,6 +83,28 @@ const ProjectManagement = () => {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
+    // Typing in the code field: stop auto-filling it
+    if (name === "code") {
+      setCodeEdited(true);
+      setForm((prev) => ({ ...prev, code: value }));
+      return;
+    }
+
+    // Typing the project name: auto-generate the code (unless edited by hand)
+    if (name === "name") {
+      setForm((prev) => ({
+        ...prev,
+        name: value,
+        code: codeEdited
+          ? prev.code
+          : generateProjectCode(
+              value,
+              (projects || []).map((p) => p.code)
+            ),
+      }));
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]: value,
@@ -80,6 +125,7 @@ const ProjectManagement = () => {
       endDate: "",
     });
 
+    setCodeEdited(false);
     setEditingProject(null);
     setShowForm(false);
   };
@@ -121,6 +167,7 @@ const ProjectManagement = () => {
   };
 
   const handleCreateClick = () => {
+    setCodeEdited(false);
     setEditingProject(null);
 
     setForm({
@@ -142,6 +189,8 @@ const ProjectManagement = () => {
   const handleEdit = (project, event) => {
     event.stopPropagation();
 
+    // Keep the existing code when the name of an existing project changes
+    setCodeEdited(true);
     setEditingProject(project);
 
     setForm({
