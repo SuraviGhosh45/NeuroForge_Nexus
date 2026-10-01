@@ -10,7 +10,7 @@ import {
 
 import "../services/api.js";
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 const API_BASE = "http://localhost:8080/api/auth";
 const USERS_BASE = "http://localhost:8080/api/users";
@@ -29,7 +29,11 @@ export const normalizeUser = (user) => {
     email: user.email || "",
     role,
     teamId: user.teamId ?? null,
-    skills: Array.isArray(user.skills) ? user.skills : (user.skill ? [user.skill] : []),
+    skills: Array.isArray(user.skills)
+      ? user.skills
+      : user.skill
+        ? [user.skill]
+        : [],
     status: user.status || "Active",
   };
 };
@@ -48,7 +52,7 @@ export const AuthProvider = ({ children }) => {
     if (savedUser && token) {
       try {
         setCurrentUser(normalizeUser(JSON.parse(savedUser)));
-      } catch (error) {
+      } catch {
         sessionStorage.removeItem(AUTH_USER_KEY);
         localStorage.removeItem(AUTH_USER_KEY);
         clearToken();
@@ -60,14 +64,6 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    /* ==========================================================================
-       [BACKEND_INTEGRATION_POINT]
-       Endpoint:    GET http://localhost:8080/api/auth/me
-       Description: Fetch the authenticated user profile based on Bearer JWT token.
-       Headers:     Authorization: Bearer <jwt-token>
-       Response:    200 OK -> { "id": 1, "fullName": "Admin User", "email": "admin@example.com", "role": "ADMIN", "status": "Active" }
-       cURL:        curl -H "Authorization: Bearer <TOKEN>" http://localhost:8080/api/auth/me
-       ========================================================================== */
     axios
       .get(`${API_BASE}/me`)
       .then((response) => {
@@ -86,14 +82,6 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    POST http://localhost:8080/api/auth/signup
-         Description: Register a new user and return user object with JWT token.
-         Payload:     { "fullName": "Jane Doe", "email": "jane@example.com", "password": "Password123!", "confirmPassword": "Password123!" }
-         Response:    201/200 OK -> { "token": "jwt...", "id": 12, "fullName": "Jane Doe", "email": "jane@example.com", "role": "DEVELOPER" }
-         cURL:        curl -X POST http://localhost:8080/api/auth/signup -H "Content-Type: application/json" -d '{"fullName":"Jane Doe","email":"jane@example.com","password":"Password123!","confirmPassword":"Password123!"}'
-         ========================================================================== */
       const response = await axios.post(`${API_BASE}/signup`, {
         fullName: userData.name || userData.fullName,
         email: userData.email,
@@ -106,6 +94,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const user = normalizeUser(response.data);
+
       sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
       setCurrentUser(user);
 
@@ -113,21 +102,14 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Registration failed.",
+        message:
+          error.response?.data?.message || "Registration failed.",
       };
     }
   };
 
   const login = async (email, password, remember = false) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    POST http://localhost:8080/api/auth/login
-         Description: Authenticate user credentials and return JWT token.
-         Payload:     { "identifier": "user@example.com", "email": "user@example.com", "password": "Password123!" }
-         Response:    200 OK -> { "token": "jwt...", "id": 1, "fullName": "Rahul Sharma", "email": "user@example.com", "role": "DEVELOPER" }
-         cURL:        curl -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d '{"email":"user@example.com","password":"Password123!"}'
-         ========================================================================== */
       const response = await axios.post(`${API_BASE}/login`, {
         identifier: email,
         email,
@@ -144,6 +126,7 @@ export const AuthProvider = ({ children }) => {
 
       const user = normalizeUser(response.data);
       const storage = remember ? localStorage : sessionStorage;
+
       storage.setItem(AUTH_USER_KEY, JSON.stringify(user));
 
       if (remember) {
@@ -166,22 +149,24 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Offline / Network Fallback Mode
-         When Spring Boot backend is unreachable (e.g. team member exploring frontend
-         locally without running the backend), activate role session seamlessly.
-         ========================================================================== */
       const emailLower = (email || "").toLowerCase().trim();
+
       let fallbackRole = "developer";
       let fullName = "Marcus Vance (Developer)";
 
       if (emailLower.includes("admin")) {
         fallbackRole = "admin";
         fullName = "Alexander Wright (Admin)";
-      } else if (emailLower.includes("pm") || emailLower.includes("manager")) {
+      } else if (
+        emailLower.includes("pm") ||
+        emailLower.includes("manager")
+      ) {
         fallbackRole = "project_manager";
         fullName = "Sarah Jenkins (PM)";
-      } else if (emailLower.includes("lead") && !emailLower.includes("team")) {
+      } else if (
+        emailLower.includes("lead") &&
+        !emailLower.includes("team")
+      ) {
         fallbackRole = "project_lead";
         fullName = "David Chen (Project Lead)";
       } else if (emailLower.includes("team")) {
@@ -204,6 +189,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       const storage = remember ? localStorage : sessionStorage;
+
       storage.setItem(AUTH_USER_KEY, JSON.stringify(mockUser));
       setCurrentUser(mockUser);
 
@@ -217,18 +203,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    POST http://localhost:8080/api/auth/logout
-         Description: Invalidate current user session / token on backend.
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK / 204 No Content
-         cURL:        curl -X POST http://localhost:8080/api/auth/logout -H "Authorization: Bearer <TOKEN>"
-         ========================================================================== */
       await axios.post(`${API_BASE}/logout`);
-    } catch (_) {
-      // Local logout must still complete if backend logout fails.
-    }
+    } catch {}
 
     clearToken();
     sessionStorage.removeItem(AUTH_USER_KEY);
@@ -236,17 +212,8 @@ export const AuthProvider = ({ children }) => {
     setCurrentUser(null);
   };
 
-  /** Self-service account deletion. Backend re-validates everything (last-admin, live responsibilities). */
   const deleteAccount = async () => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    DELETE http://localhost:8080/api/users/me
-         Description: Self-service account deletion for the currently authenticated user.
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK / 204 No Content
-         cURL:        curl -X DELETE http://localhost:8080/api/users/me -H "Authorization: Bearer <TOKEN>"
-         ========================================================================== */
       await axios.delete(`${USERS_BASE}/me`);
 
       clearToken();
@@ -258,43 +225,47 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Unable to delete your account.",
+        message:
+          error.response?.data?.message ||
+          "Unable to delete your account.",
       };
     }
   };
 
-  /** Update current user's profile details and working status */
   const updateCurrentUser = async (updates) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PUT http://localhost:8080/api/users/me
-         Description: Self-service profile update for current user (name, email, skills, phone, status).
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "fullName": "Marcus Vance", "email": "dev@neuroforge.io", "status": "In Meeting" }
-         Response:    200 OK -> updated user profile object
-         cURL:        curl -X PUT http://localhost:8080/api/users/me -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"fullName":"Marcus Vance","status":"In Meeting"}'
-         ========================================================================== */
       const response = await axios.put(`${USERS_BASE}/me`, updates);
       const updated = normalizeUser(response.data);
-      const storage = localStorage.getItem(AUTH_USER_KEY) ? localStorage : sessionStorage;
+
+      const storage = localStorage.getItem(AUTH_USER_KEY)
+        ? localStorage
+        : sessionStorage;
+
       storage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
       setCurrentUser(updated);
-      return { success: true, user: updated };
-    } catch (err) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         When backend is offline, update current user state and session storage locally
-         so the user immediately experiences the updated profile and status without errors.
-         ========================================================================== */
+
+      return {
+        success: true,
+        user: updated,
+      };
+    } catch {
       const updated = normalizeUser({
         ...currentUser,
         ...updates,
       });
-      const storage = localStorage.getItem(AUTH_USER_KEY) ? localStorage : sessionStorage;
+
+      const storage = localStorage.getItem(AUTH_USER_KEY)
+        ? localStorage
+        : sessionStorage;
+
       storage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
       setCurrentUser(updated);
-      return { success: true, user: updated, offlineFallback: true };
+
+      return {
+        success: true,
+        user: updated,
+        offlineFallback: true,
+      };
     }
   };
 

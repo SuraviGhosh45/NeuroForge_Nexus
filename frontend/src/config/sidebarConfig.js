@@ -7,6 +7,7 @@ import {
   PiKanban,
   PiRobot,
   PiGear,
+  PiBug,
 } from "react-icons/pi";
 import { ROLES, MEMBER_ROLES, normalizeRole } from "../constants/roles.js";
 
@@ -18,7 +19,7 @@ const ALL_ROLES = [
   ...MEMBER_ROLES,
 ];
 
-export const sidebarItems = [
+const SIDEBAR_ITEMS = [
   {
     label: "Dashboard",
     path: "/dashboard",
@@ -53,7 +54,6 @@ export const sidebarItems = [
     path: "/my-tasks",
     icon: PiBriefcase,
     roles: [
-      // NOTE: Admin NEVER has My Work
       ROLES.PROJECT_MANAGER,
       ROLES.PROJECT_LEAD,
       ROLES.TEAM_LEAD,
@@ -61,12 +61,16 @@ export const sidebarItems = [
     ],
   },
   {
+    label: "Testing",
+    path: "/testing",
+    icon: PiBug,
+    roles: ALL_ROLES,
+  },
+  {
     label: "Users",
     path: "/user-management",
     icon: PiUser,
-    roles: [
-      ROLES.ADMIN,
-    ],
+    roles: [ROLES.ADMIN],
   },
   {
     label: "AI Assistant",
@@ -83,8 +87,9 @@ export const sidebarItems = [
 ];
 
 export const getSidebarItems = (role) => {
-  const normalized = normalizeRole(role);
-  return sidebarItems.filter((item) =>
-    item.roles.map(normalizeRole).includes(normalized)
+  const normalizedRole = normalizeRole(role);
+
+  return SIDEBAR_ITEMS.filter((item) =>
+    item.roles.includes(normalizedRole)
   );
 };

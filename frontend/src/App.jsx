@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
+import BugReporting from "./pages/Testing/BugReporting.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { UsersProvider } from "./context/UsersContext.jsx";
@@ -210,6 +211,11 @@ const AppRoutes = () => {
           </RoleRoute>
         )}
       />
+
+      <Route
+        path="/testing"
+        element={protect(<BugReporting />)}
+     />
 
       <Route
         path="/kanban"
