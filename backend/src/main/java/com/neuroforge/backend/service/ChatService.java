@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import com.neuroforge.backend.dto.ChatDtos.ChatRequest;
 import com.neuroforge.backend.dto.ChatDtos.ChatResponse;
@@ -24,6 +25,10 @@ public class ChatService {
 
     private static final int MAX_HISTORY_TURNS = 6;
     private static final int MAX_CALLS_PER_MINUTE_PER_USER = 6;
+
+    private static final String UNAVAILABLE_MESSAGE =
+            "AI Assistant is currently unavailable. "
+                    + "Please check the Groq API configuration.";
 
     private static final String SYSTEM_PROMPT_PREFIX = """
             You are the NeuroForge Nexus project assistant, embedded inside a project
@@ -56,7 +61,7 @@ public class ChatService {
             @Value("${neuroforge.chat.api-key}")
             String apiKey,
 
-            @Value("${neuroforge.chat.model:llama-3.3-70b-versatile}")
+            @Value("${neuroforge.chat.model:openai/gpt-oss-20b}")
             String model) {
 
         this.contextBuilder = contextBuilder;
@@ -130,6 +135,7 @@ public class ChatService {
         );
 
         // Groq request body
+        // max_tokens is 1000 because gpt-oss models use tokens for thinking too.
         Map<String, Object> body = Map.of(
                 "model",
                 model,
@@ -141,7 +147,7 @@ public class ChatService {
                 0.3,
 
                 "max_tokens",
-                400
+                1000
         );
 
         try {
@@ -165,19 +171,28 @@ public class ChatService {
 
             return new ChatResponse(content);
 
+        } catch (RestClientResponseException ex) {
+
+            // Groq replied with an error (401, 404, 429 ...).
+            // Print status + body in backend console only, not in the UI.
+            System.err.println(
+                    "Groq error "
+                            + ex.getStatusCode()
+                            + ": "
+                            + ex.getResponseBodyAsString()
+            );
+
+            return new ChatResponse(UNAVAILABLE_MESSAGE);
+
         } catch (RestClientException ex) {
 
-            // Keep the actual API error out of the UI.
-            // Print it in backend console for debugging.
+            // Could not reach Groq at all (no internet, timeout ...).
             System.err.println(
                     "Groq API request failed: "
                             + ex.getMessage()
             );
 
-            return new ChatResponse(
-                    "AI Assistant is currently unavailable. "
-                            + "Please check the Groq API configuration."
-            );
+            return new ChatResponse(UNAVAILABLE_MESSAGE);
         }
     }
 
