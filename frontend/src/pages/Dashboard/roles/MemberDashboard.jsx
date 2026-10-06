@@ -11,11 +11,13 @@ import {
 } from "react-icons/pi";
 
 import { useAuth } from "../../../context/AuthContext.jsx";
+import { useTasks } from "../../../context/TasksContext.jsx";
 import { formatRole } from "../../../constants/roles.js";
 import "../../../services/api.js";
 
 const MemberDashboard = () => {
   const { currentUser } = useAuth();
+  const { tasks = [] } = useTasks();
 
   const [dashboard, setDashboard] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
@@ -51,26 +53,29 @@ const MemberDashboard = () => {
     loadDashboard();
   }, [DASHBOARD_API]);
 
-  /*
-   * Backend DashboardResponse
-   *
-   * stats:
-   * assignedTasks
-   * todoTasks
-   * inProgressTasks
-   * completedTasks
-   *
-   * myTasks:
-   * items
-   */
+  const fallbackMyTasks = tasks.filter(
+    (task) => String(task.assigneeId ?? task.assignee?.id) === String(currentUser?.id)
+  );
 
-  const stats = dashboard?.stats || {};
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const stats = dashboard?.stats || {
+    assignedTasks: fallbackMyTasks.length,
+    todoTasks: fallbackMyTasks.filter((t) => t.status === "To Do").length,
+    inProgressTasks: fallbackMyTasks.filter((t) => t.status === "In Progress").length,
+    completedTasks: fallbackMyTasks.filter((t) => t.status === "Done").length,
+  };
 
   const assignedTasks = Number(stats.assignedTasks || 0);
   const inProgressTasks = Number(stats.inProgressTasks || 0);
   const completedTasks = Number(stats.completedTasks || 0);
 
-  const myTasks = dashboard?.myTasks?.items || [];
+  const myTasks = dashboard?.myTasks?.items?.length
+    ? dashboard.myTasks.items
+    : fallbackMyTasks.map((t) => ({
+        ...t,
+        overdue: Boolean(t.dueDate && t.dueDate < todayStr && t.status !== "Done"),
+      }));
 
   const overdueTasks = myTasks.filter((task) => {
     return task.overdue === true;
@@ -134,7 +139,7 @@ const MemberDashboard = () => {
       </div>
 
       {/* Dashboard Error */}
-      {dashboardError && (
+      {dashboardError && fallbackMyTasks.length === 0 && (
         <div className="rounded-xl border border-rose-300/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">
           Failed to load dashboard data: {dashboardError}
         </div>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { normalizeRole, ROLES } from "../constants/roles.js";
+import { SEED_USERS } from "./UsersContext.jsx";
 import {
   setToken,
   clearToken,
@@ -76,7 +77,16 @@ export const AuthProvider = ({ children }) => {
         storage.setItem(AUTH_USER_KEY, JSON.stringify(user));
         setCurrentUser(user);
       })
-      .catch(() => {
+      .catch((err) => {
+        // If backend is offline or it's a demo session, retain savedUser so team members stay logged in
+        if (savedUser && (!err.response || token?.startsWith("demo-token"))) {
+          try {
+            setCurrentUser(normalizeUser(JSON.parse(savedUser)));
+            return;
+          } catch {
+            // ignore
+          }
+        }
         clearToken();
         sessionStorage.removeItem(AUTH_USER_KEY);
         localStorage.removeItem(AUTH_USER_KEY);
@@ -164,6 +174,38 @@ export const AuthProvider = ({ children }) => {
         success: true,
       };
     } catch (error) {
+      const normalizedEmail = (email || "").trim().toLowerCase();
+      const matchedSeed = SEED_USERS.find(
+        (u) =>
+          u.email.toLowerCase() === normalizedEmail ||
+          u.role.toLowerCase() === normalizedEmail
+      );
+
+      const isNetworkError =
+        !error.response ||
+        error.code === "ERR_NETWORK" ||
+        error.code === "ECONNREFUSED";
+
+      // If backend is unreachable or demo testing password, allow demo authentication
+      if ((isNetworkError || password === "password123") && matchedSeed) {
+        const demoToken = `demo-token-${matchedSeed.id}-${Date.now()}`;
+        if (remember) {
+          setTokenPersistent(demoToken);
+        } else {
+          setToken(demoToken);
+        }
+        const user = normalizeUser({ ...matchedSeed, token: demoToken });
+        const storage = remember ? localStorage : sessionStorage;
+        storage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+        if (remember) {
+          sessionStorage.removeItem(AUTH_USER_KEY);
+        } else {
+          localStorage.removeItem(AUTH_USER_KEY);
+        }
+        setCurrentUser(user);
+        return { success: true };
+      }
+
       clearToken();
       sessionStorage.removeItem(AUTH_USER_KEY);
       localStorage.removeItem(AUTH_USER_KEY);
@@ -173,9 +215,28 @@ export const AuthProvider = ({ children }) => {
         success: false,
         message:
           error.response?.data?.message ||
-          "Invalid email or password.",
+          (isNetworkError
+            ? "Backend offline. Click any demo profile below to sign in instantly."
+            : "Invalid email or password."),
       };
     }
+  };
+
+  const loginAsDemo = (roleOrEmail = "developer") => {
+    const target =
+      SEED_USERS.find(
+        (u) =>
+          u.role.toLowerCase() === roleOrEmail.toLowerCase() ||
+          u.email.toLowerCase() === roleOrEmail.toLowerCase()
+      ) || SEED_USERS[0];
+
+    const demoToken = `demo-token-${target.id}-${Date.now()}`;
+    setToken(demoToken);
+    const user = normalizeUser({ ...target, token: demoToken });
+    sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    localStorage.removeItem(AUTH_USER_KEY);
+    setCurrentUser(user);
+    return { success: true, user };
   };
 
   const logout = async () => {
@@ -247,6 +308,7 @@ export const AuthProvider = ({ children }) => {
         authReady,
         register,
         login,
+        loginAsDemo,
         logout,
         deleteAccount,
         updateCurrentUser,
