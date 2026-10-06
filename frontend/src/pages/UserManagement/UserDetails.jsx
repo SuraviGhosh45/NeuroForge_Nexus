@@ -36,27 +36,13 @@ const UserDetails = () => {
         setLoading(true);
         setError("");
 
-        /* ==========================================================================
-           [BACKEND_INTEGRATION_POINT]
-           Endpoint:    GET http://localhost:8080/api/users/{userId}/profile
-           Description: Fetch full user profile, project assignments, teams, and tasks.
-           Headers:     Authorization: Bearer <jwt-token>
-           Response:    200 OK -> Full User Profile Object
-           cURL:        curl -H "Authorization: Bearer <TOKEN>" http://localhost:8080/api/users/1/profile
-           ========================================================================== */
-        const response = await axios.get(
+                const response = await axios.get(
           `http://localhost:8080/api/users/${userId}/profile`
         );
 
         setUser(response.data);
       } catch (err) {
-        /* ==========================================================================
-           [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-           If Spring Boot backend is offline or unreachable, construct realistic profile
-           from UsersContext, ProjectContext, and ProjectTeamContext so user profile
-           can be evaluated with zero errors when teammates pull the repo.
-           ========================================================================== */
-        const foundUser = users.find((u) => String(u.id) === String(userId));
+                const foundUser = users.find((u) => String(u.id) === String(userId));
         if (foundUser) {
           // Find projects this user belongs to
           const userProjects = [];

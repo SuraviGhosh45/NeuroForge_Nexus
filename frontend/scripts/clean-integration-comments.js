@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const srcDir = path.resolve(__dirname, '../src');
 
-const regex = /\/\*[\s\S]*?\[BACKEND_INTEGRATION_POINT\][\s\S]*?\*\/[\r\n]*/g;
+const regex = /\/\*(?:(?!\*\/)[\s\S])*?\[BACKEND_INTEGRATION_POINT\][\s\S]*?\*\/[\r\n]*/g;
 
 let totalCleaned = 0;
 let filesModified = 0;

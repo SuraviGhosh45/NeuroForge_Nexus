@@ -329,13 +329,7 @@ const ProjectWorkspace = () => {
 
     if (!project?.id) return;
 
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Update Project Details
-     * - Route: PUT http://localhost:8080/api/projects/{id}
-     * - Payload: { name, description, code, repository, status, startDate, endDate }
-     * - Handled via ProjectContext.jsx updateProject
-     */
-    const result = await updateProject(project.id, projectForm);
+        const result = await updateProject(project.id, projectForm);
 
     if (result?.success) {
       setShowEditProject(false);
@@ -406,14 +400,7 @@ const ProjectWorkspace = () => {
 
     let result;
 
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Add / Update Team Member in Project
-     * - Add Route: POST http://localhost:8080/api/projects/{projectId}/team
-     * - Update Route: PUT http://localhost:8080/api/projects/{projectId}/team/{userId}
-     * - Payload: { userId, projectRole }
-     * - Handled via ProjectTeamContext.jsx
-     */
-    if (editingMember) {
+        if (editingMember) {
       result = await updateProjectMember(
         project.id,
         editingMember.userId,
@@ -447,13 +434,7 @@ const ProjectWorkspace = () => {
       return;
     }
 
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Update Member Status in Project
-     * - Route: PUT http://localhost:8080/api/projects/{projectId}/team/{userId}/status
-     * - Payload: { status: "Active" | "Inactive" | "In Meeting" }
-     * - Handled via ProjectTeamContext.jsx
-     */
-    const result = await updateProjectMemberStatus(
+        const result = await updateProjectMemberStatus(
       project.id,
       member.userId,
       status
@@ -467,12 +448,7 @@ const ProjectWorkspace = () => {
   const handleDeleteMember = async () => {
     if (!project?.id || !confirmDeleteMember) return;
 
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Remove Member from Project Team
-     * - Route: DELETE http://localhost:8080/api/projects/{projectId}/team/{userId}
-     * - Handled via ProjectTeamContext.jsx
-     */
-    const result = await removeProjectMember(
+        const result = await removeProjectMember(
       project.id,
       confirmDeleteMember.userId
     );
@@ -559,14 +535,7 @@ const ProjectWorkspace = () => {
 
     let result;
 
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Create / Update Deliverable Parent Task
-     * - Create Route: POST http://localhost:8080/api/tasks
-     * - Update Route: PUT http://localhost:8080/api/tasks/{id}
-     * - Payload: { title, description, projectId, assigneeId, priority, status, dueDate }
-     * - Handled via TasksContext.jsx
-     */
-    if (editingTask) {
+        if (editingTask) {
       result = await updateTask(payload);
     } else {
       result = await createTask(payload);
@@ -587,12 +556,7 @@ const ProjectWorkspace = () => {
   const handleDeleteTask = async () => {
     if (!confirmDeleteTask) return;
 
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Delete Deliverable Parent Task
-     * - Route: DELETE http://localhost:8080/api/tasks/{id}
-     * - Handled via TasksContext.jsx
-     */
-    const result = await deleteTask(confirmDeleteTask.id);
+        const result = await deleteTask(confirmDeleteTask.id);
 
     if (!result?.success) {
       alert(result?.message || "Failed to delete task.");

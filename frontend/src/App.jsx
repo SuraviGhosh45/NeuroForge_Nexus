@@ -34,7 +34,6 @@ import SubtaskCalendar from "./components/Subtask/SubtaskCalendar.jsx";
 import GlobalCalendar from "./pages/Calendar/GlobalCalendar.jsx";
 import MyTask from "./pages/Mytask/MyTask.jsx";
 import KanbanBoard from "./components/KanbanBoard/KanbanBoard.jsx";
-import AIAssistant from "./pages/AIAssistant/AIAssistant.jsx";
 import Settings from "./pages/Settings/Settings.jsx";
 
 import { ROLES, MEMBER_ROLES } from "./constants/roles.js";
@@ -215,7 +214,7 @@ const AppRoutes = () => {
       <Route
         path="/testing"
         element={protect(<BugReporting />)}
-     />
+      />
 
       <Route
         path="/kanban"
@@ -224,7 +223,7 @@ const AppRoutes = () => {
 
       <Route
         path="/ai-assistant"
-        element={protect(<AIAssistant />)}
+        element={<Navigate to="/dashboard" replace />}
       />
 
       <Route

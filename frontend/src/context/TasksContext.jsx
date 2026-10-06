@@ -118,15 +118,7 @@ export const TasksProvider = ({ children }) => {
     setLoading(true);
     setError("");
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    GET http://localhost:8080/api/tasks
-         Description: Retrieve all parent tasks.
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK -> [ { "id": 1, "title": "Setup CI/CD", "projectId": 2, "assigneeId": 3, "status": "In Progress", "priority": "High", "dueDate": "2026-10-15" } ]
-         cURL:        curl -H "Authorization: Bearer <TOKEN>" http://localhost:8080/api/tasks
-         ========================================================================== */
-      const response = await axios.get(API_BASE);
+            const response = await axios.get(API_BASE);
       const data = Array.isArray(response.data) ? response.data : [];
 
       if (data.length === 0) {
@@ -147,12 +139,7 @@ export const TasksProvider = ({ children }) => {
         }
       }
     } catch (err) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         If Spring Boot backend is offline, populate seed tasks and subtasks
-         so Kanban board, task list, and task detail views remain fully functional.
-         ========================================================================== */
-      setTasks(SEED_TASKS.map(normalizeTask));
+            setTasks(SEED_TASKS.map(normalizeTask));
       setSubtasks(SEED_SUBTASKS.map(normalizeSubtask));
     } finally {
       setLoading(false);
@@ -179,16 +166,7 @@ export const TasksProvider = ({ children }) => {
 
   const createTask = async (formData) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    POST http://localhost:8080/api/tasks
-         Description: Create a new parent task.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "title": "Design Database Schema", "description": "...", "projectId": 1, "assigneeId": 2, "status": "To Do", "priority": "High", "dueDate": "2026-10-20" }
-         Response:    201/200 OK -> { "id": 10, "title": "Design Database Schema", ... }
-         cURL:        curl -X POST http://localhost:8080/api/tasks -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"title":"Design Database Schema","projectId":1,"assigneeId":2,"status":"To Do","priority":"High"}'
-         ========================================================================== */
-      const response = await axios.post(
+            const response = await axios.post(
         API_BASE,
         buildPayload(formData)
       );
@@ -228,16 +206,7 @@ export const TasksProvider = ({ children }) => {
 
   const updateTaskStatus = async (taskId, newStatus) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PATCH http://localhost:8080/api/tasks/{taskId}/status
-         Description: Update task status (used by execution roles: Developer, Tester, QA, Team Member, and Kanban drag-drop).
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "status": "In Progress" }
-         Response:    200 OK -> { "id": 1, "status": "In Progress", "boardStatus": "IN_PROGRESS" }
-         cURL:        curl -X PATCH http://localhost:8080/api/tasks/1/status -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"status":"In Progress"}'
-         ========================================================================== */
-      const response = await axios.patch(`${API_BASE}/${taskId}/status`, {
+            const response = await axios.patch(`${API_BASE}/${taskId}/status`, {
         status: newStatus,
       });
 
@@ -347,16 +316,7 @@ export const TasksProvider = ({ children }) => {
     }
 
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PUT http://localhost:8080/api/tasks/{id}
-         Description: Full update of parent task fields (Admin / Project Manager).
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "title": "Updated Task", "description": "...", "projectId": 1, "assigneeId": 2, "status": "In Progress", "priority": "High", "dueDate": "2026-10-25" }
-         Response:    200 OK -> { "id": 1, "title": "Updated Task", ... }
-         cURL:        curl -X PUT http://localhost:8080/api/tasks/1 -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"title":"Updated Task","projectId":1,"status":"In Progress"}'
-         ========================================================================== */
-      const response = await axios.put(
+            const response = await axios.put(
         `${API_BASE}/${formData.id}`,
         buildPayload(formData)
       );
@@ -411,15 +371,7 @@ export const TasksProvider = ({ children }) => {
 
   const deleteTask = async (taskId) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    DELETE http://localhost:8080/api/tasks/{id}
-         Description: Delete a parent task and its corresponding subtasks.
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK / 204 No Content
-         cURL:        curl -X DELETE http://localhost:8080/api/tasks/1 -H "Authorization: Bearer <TOKEN>"
-         ========================================================================== */
-      await axios.delete(
+            await axios.delete(
         `${API_BASE}/${taskId}`
       );
     } catch (err) {
@@ -465,16 +417,7 @@ export const TasksProvider = ({ children }) => {
   const createSubtask = async (taskId, subtaskData) => {
     if (!taskId || !subtaskData?.title) return { success: false, message: "Task ID and title are required." };
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    POST http://localhost:8080/api/tasks/{taskId}/subtasks
-         Description: Create a subtask under the specified parent task.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "title": "Write Unit Tests", "description": "...", "assigneeId": 4, "teamId": 1, "status": "To Do", "priority": "Medium", "dueDate": "2026-10-18" }
-         Response:    201/200 OK -> { "id": 201, "taskId": 1, "title": "Write Unit Tests", "status": "To Do" }
-         cURL:        curl -X POST http://localhost:8080/api/tasks/1/subtasks -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"title":"Write Unit Tests","status":"To Do","priority":"Medium"}'
-         ========================================================================== */
-      const response = await axios.post(`${API_BASE}/${taskId}/subtasks`, {
+            const response = await axios.post(`${API_BASE}/${taskId}/subtasks`, {
         title: subtaskData.title.trim(),
         description: subtaskData.description || "",
         assigneeId: subtaskData.assigneeId ? Number(subtaskData.assigneeId) : null,
@@ -503,16 +446,7 @@ export const TasksProvider = ({ children }) => {
 
   const updateSubtaskStatus = async (subtaskId, newStatus) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PATCH http://localhost:8080/api/subtasks/{subtaskId}/status
-         Description: Transition subtask status (Supported statuses: "To Do", "In Progress", "In Review", "Ready for Testing", "In Testing", "In QA", "Done").
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "status": "In Progress" }
-         Response:    200 OK -> { "id": 201, "status": "In Progress" }
-         cURL:        curl -X PATCH http://localhost:8080/api/subtasks/201/status -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"status":"In Progress"}'
-         ========================================================================== */
-      const response = await axios.patch(
+            const response = await axios.patch(
         `${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${subtaskId}/status`,
         {
           status: newStatus || "To Do",
@@ -571,16 +505,7 @@ export const TasksProvider = ({ children }) => {
     }
 
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PUT http://localhost:8080/api/subtasks/{subtaskId}
-         Description: Full update of subtask properties.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "title": "Updated Subtask Title", "description": "...", "assigneeId": 4, "teamId": 1, "status": "In Progress", "priority": "High", "dueDate": "2026-10-25" }
-         Response:    200 OK -> { "id": 201, "title": "Updated Subtask Title", ... }
-         cURL:        curl -X PUT http://localhost:8080/api/subtasks/201 -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"title":"Updated Subtask Title","status":"In Progress"}'
-         ========================================================================== */
-      const response = await axios.put(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${updatedSubtask.id}`, {
+            const response = await axios.put(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${updatedSubtask.id}`, {
         title: updatedSubtask.title,
         description: updatedSubtask.description || "",
         assigneeId: updatedSubtask.assigneeId ? Number(updatedSubtask.assigneeId) : null,
@@ -613,15 +538,7 @@ export const TasksProvider = ({ children }) => {
   const deleteSubtask = async (taskId, subtaskId) => {
     if (!subtaskId) return { success: false, message: "Subtask ID is required." };
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    DELETE http://localhost:8080/api/subtasks/{subtaskId}
-         Description: Delete a subtask.
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK / 204 No Content
-         cURL:        curl -X DELETE http://localhost:8080/api/subtasks/201 -H "Authorization: Bearer <TOKEN>"
-         ========================================================================== */
-      await axios.delete(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${subtaskId}`);
+            await axios.delete(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${subtaskId}`);
     } catch (error) {
       console.warn("Backend delete subtask failed, removing locally:", error.message);
     }

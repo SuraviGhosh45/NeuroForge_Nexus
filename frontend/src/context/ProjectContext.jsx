@@ -83,15 +83,7 @@ export const ProjectProvider = ({ children }) => {
     setError("");
 
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    GET http://localhost:8080/api/projects
-         Description: Retrieve all projects accessible to the current user.
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK -> [ { "id": 1, "name": "App Alpha", "code": "ALP-01", "description": "...", "status": "In Progress", "projectLead": {...}, "projectManager": {...} } ]
-         cURL:        curl -H "Authorization: Bearer <TOKEN>" http://localhost:8080/api/projects
-         ========================================================================== */
-      const response = await axios.get(API_BASE);
+            const response = await axios.get(API_BASE);
 
       const data = Array.isArray(response.data)
         ? response.data
@@ -122,12 +114,7 @@ export const ProjectProvider = ({ children }) => {
         }
       }
     } catch (err) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         If Spring Boot backend is offline or unreachable, hydrate with seed
-         projects so team members can immediately evaluate project workspaces.
-         ========================================================================== */
-      const repos = getStoredRepos();
+            const repos = getStoredRepos();
       const enrichedSeed = SEED_PROJECTS.map((item) => ({
         ...item,
         repository: item.repository || repos[String(item.id)] || "",
@@ -165,16 +152,7 @@ export const ProjectProvider = ({ children }) => {
 
   const createProject = async (formData) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    POST http://localhost:8080/api/projects
-         Description: Create a new project workspace.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "name": "E-Commerce Revamp", "code": "ECOMM-2026", "description": "...", "projectLeadId": 2, "projectManagerId": 3, "teamId": 1, "status": "Not Started", "startDate": "2026-10-01", "endDate": "2026-12-31" }
-         Response:    201/200 OK -> { "id": 5, "name": "E-Commerce Revamp", ... }
-         cURL:        curl -X POST http://localhost:8080/api/projects -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"name":"E-Commerce Revamp","code":"ECOMM-2026","status":"Not Started"}'
-         ========================================================================== */
-      const response = await axios.post(
+            const response = await axios.post(
         API_BASE,
         buildPayload(formData)
       );
@@ -215,16 +193,7 @@ export const ProjectProvider = ({ children }) => {
 
     const targetId = formData.id;
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PUT http://localhost:8080/api/projects/{id}
-         Description: Fully update project attributes.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "name": "Updated Title", "description": "...", "code": "...", "projectLeadId": 2, "projectManagerId": 3, "status": "In Progress" }
-         Response:    200 OK -> { "id": 1, "name": "Updated Title", ... }
-         cURL:        curl -X PUT http://localhost:8080/api/projects/1 -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"name":"Updated Title","status":"In Progress"}'
-         ========================================================================== */
-      const response = await axios.put(
+            const response = await axios.put(
         `${API_BASE}/${targetId}`,
         buildPayload(formData)
       );
@@ -294,17 +263,7 @@ export const ProjectProvider = ({ children }) => {
     try {
       let response;
       try {
-        /* ==========================================================================
-           [BACKEND_INTEGRATION_POINT]
-           Endpoint:    PATCH http://localhost:8080/api/projects/{id}/status
-           Description: Partially update only project status.
-           NOTE:        If backend controller lacks this route (404), frontend falls back to PUT /api/projects/{id}.
-           Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-           Payload:     { "status": "In Progress" }
-           Response:    200 OK -> { "id": 1, "status": "In Progress", ... }
-           cURL:        curl -X PATCH http://localhost:8080/api/projects/1/status -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"status":"In Progress"}'
-           ========================================================================== */
-        response = await axios.patch(
+                response = await axios.patch(
           `${API_BASE}/${projectId}/status`,
           { status }
         );
@@ -353,15 +312,7 @@ export const ProjectProvider = ({ children }) => {
 
   const deleteProject = async (projectId) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    DELETE http://localhost:8080/api/projects/{id}
-         Description: Delete a project and cascade/detach its associations.
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK / 204 No Content
-         cURL:        curl -X DELETE http://localhost:8080/api/projects/1 -H "Authorization: Bearer <TOKEN>"
-         ========================================================================== */
-      await axios.delete(
+            await axios.delete(
         `${API_BASE}/${projectId}`
       );
 

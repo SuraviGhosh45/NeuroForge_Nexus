@@ -70,15 +70,7 @@ const ParentTaskDetailsPage = () => {
     );
   }
 
-  /**
-   * [BACKEND_INTEGRATION_POINT]
-   * Action: Update Parent Task Status
-   * Endpoint: PATCH /api/tasks/{id}/status or PUT /api/tasks/{id}
-   * Payload: { status: "To Do" | "In Progress" | "Done" }
-   * Headers: { Authorization: "Bearer <token>", "Content-Type": "application/json" }
-   * Response: 200 OK with updated task JSON
-   */
-  const handleStatusChange = async (e) => {
+    const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
 
     setStatus(newStatus);

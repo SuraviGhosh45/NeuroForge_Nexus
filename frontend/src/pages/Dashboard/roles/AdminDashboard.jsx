@@ -4,7 +4,6 @@ import {
   PiUsers,
   PiFolder,
   PiCheckCircle,
-  PiPlus,
   PiChartPieSlice,
 } from "react-icons/pi";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";

@@ -171,13 +171,7 @@ const ProjectManagement = () => {
       return;
     }
 
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Create / Update Project
-     * - Update Route: PUT http://localhost:8080/api/projects/{id}
-     * - Create Route: POST http://localhost:8080/api/projects
-     * - Payload: { name, code, description, repository, projectLeadId, projectManagerId, teamId, status, startDate, endDate }
-     */
-    if (editingProject) {
+        if (editingProject) {
       const result = await updateProject({
         ...form,
         id: editingProject.id,
@@ -255,12 +249,7 @@ const ProjectManagement = () => {
 
     if (!confirmed) return;
 
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Delete Project
-     * - Route: DELETE http://localhost:8080/api/projects/{id}
-     * - Handled via ProjectContext.jsx deleteProject
-     */
-    const result = await deleteProject(projectId);
+        const result = await deleteProject(projectId);
 
     if (!result.success) {
       alert(result.message);
@@ -638,12 +627,7 @@ const ProjectManagement = () => {
 
                             const newStatus = event.target.value;
 
-                            /*
-                             * [BACKEND_INTEGRATION_POINT]: Project Status Update
-                             * - Route: PUT http://localhost:8080/api/projects/{id} (or PATCH /api/projects/{id}/status)
-                             * - Fallback handled in ProjectContext.jsx to prevent 404
-                             */
-                            const result = await updateProjectStatus(
+                                                        const result = await updateProjectStatus(
                               project.id,
                               newStatus
                             );

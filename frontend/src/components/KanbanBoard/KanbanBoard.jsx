@@ -103,14 +103,7 @@ function KanbanBoard() {
       return;
     }
 
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Task Status Update on Kanban Drag & Drop
-     * - Route: PATCH http://localhost:8080/api/tasks/{id}/status (or PUT /api/tasks/{id})
-     * - Payload: { status: "To Do" | "In Progress" | "In Review" | "Done" }
-     * - Expected Response: 200 OK with updated task JSON
-     * - Handled via TasksContext.jsx (updateTaskStatus / updateTask)
-     */
-    const result = updateTaskStatus
+        const result = updateTaskStatus
       ? await updateTaskStatus(task.id, newStatus)
       : await updateTask({
           ...task,
@@ -128,14 +121,7 @@ function KanbanBoard() {
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
-    /*
-     * [BACKEND_INTEGRATION_POINT]: Task Status Update from Timeline / List View
-     * - Route: PATCH http://localhost:8080/api/tasks/{id}/status (or PUT /api/tasks/{id})
-     * - Payload: { status: "To Do" | "In Progress" | "In Review" | "Done" }
-     * - Expected Response: 200 OK with updated task JSON
-     * - Handled via TasksContext.jsx (updateTaskStatus / updateTask)
-     */
-    const task = tasks.find((item) => String(item.id) === String(taskId));
+        const task = tasks.find((item) => String(item.id) === String(taskId));
     if (!task) return;
 
     if (updateTaskStatus) {

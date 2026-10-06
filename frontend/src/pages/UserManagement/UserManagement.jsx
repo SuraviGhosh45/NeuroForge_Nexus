@@ -202,16 +202,7 @@ const UserManagement = () => {
   };
 
   const handleAssignUser = async (projectId, userId, projectRole) => {
-    /* ==========================================================================
-       [BACKEND_INTEGRATION_POINT]
-       Endpoint:    POST http://localhost:8080/api/projects/{projectId}/members
-       Description: Assign user to project team from Admin User Management.
-       Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-       Payload:     { "userId": userId, "projectRole": projectRole, "status": "Active" }
-       Response:    201/200 OK -> { "id": 1, "userId": userId, "projectRole": projectRole }
-       Fallback:    Optimistically updates ProjectTeamContext if backend is offline.
-       ========================================================================== */
-    if (!addProjectMember) return { success: false, message: "Assignment service is not available." };
+        if (!addProjectMember) return { success: false, message: "Assignment service is not available." };
     return await addProjectMember(projectId, userId, projectRole);
   };
 

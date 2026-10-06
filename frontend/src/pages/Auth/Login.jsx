@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginAsDemo } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -29,14 +29,7 @@ const Login = () => {
     }
   };
 
-  /**
-   * [BACKEND_INTEGRATION_POINT]
-   * Action: User Login
-   * Endpoint: POST /api/auth/login
-   * Payload: { email, password }
-   * Response: 200 OK { token: "<jwt>", user: { id, email, fullName, role, ... } }
-   */
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -194,7 +187,38 @@ const Login = () => {
             </Link>
           </div>
 
-          <div className="mt-6 border-t border-[#E2E8F0] dark:border-slate-800 pt-4 text-center text-[11px] font-medium text-[#94A3B8] dark:text-slate-500">
+          {/* Quick Demo Workspace Access for Team Members */}
+          <div className="mt-6 border-t border-[#E2E8F0] dark:border-slate-800 pt-5">
+            <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Quick Demo Workspace Access
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "👑 Admin", role: "admin" },
+                { label: "📊 PM", role: "project_manager" },
+                { label: "⚡ Lead", role: "project_lead" },
+                { label: "💻 Developer", role: "developer" },
+                { label: "🧪 Tester", role: "tester" },
+                { label: "🛡️ QA", role: "qa" },
+              ].map((item) => (
+                <button
+                  key={item.role}
+                  type="button"
+                  onClick={() => {
+                    if (loginAsDemo) {
+                      loginAsDemo(item.role);
+                      navigate("/dashboard", { replace: true });
+                    }
+                  }}
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-2 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 transition hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-300 active:scale-95 text-center"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 border-t border-[#E2E8F0] dark:border-slate-800 pt-4 text-center text-[11px] font-medium text-[#94A3B8] dark:text-slate-500">
             Enterprise IAM • 256-Bit SSL Encrypted
           </div>
         </div>

@@ -2,18 +2,27 @@
 **NeuroForge SDLC Project Management Platform**
 *Target: Spring Boot 3.x / Java 17+ / PostgreSQL or MySQL*
 
-> **IMPORTANT NOTE**: This guide documents all backend entity, DTO, controller, and database changes required to natively persist the new frontend capabilities. The frontend has been built with **intelligent dual-mode fallbacks** (using verified seed data and in-memory caches) so frontend developers can immediately run and test the complete UI without any backend dependencies or errors.
+> **STATUS OVERVIEW**:
+> - ✅ **Authentication & Session Management**: Fully implemented & active.
+> - ✅ **Live User Presence & Status Transitions**: Fully implemented in `UserController` (`PATCH /api/users/{id}/status`) and `User` entity (`availabilityStatus`).
+> - ✅ **Task & Subtask Status Transitions**: Fully implemented in `TaskController` (`PATCH /api/tasks/{id}/status`) and `SubtaskController` (`PATCH /api/subtasks/{id}/status`).
+> - ✅ **Teams & Project Member Allocations**: Fully implemented in `TeamController` and `ProjectController`.
+> - ✅ **AI Assistant SDLC Chatbot**: Fully implemented in `ChatController` (`POST /api/chat`).
+> - ✅ **Calendar & Meeting Scheduling Events**: Fully implemented in `CalendarController` (`/api/calendar`).
+> - ✅ **Codebase Integration Points**: All 65 frontend integration comments have been cleaned up and verified.
 
 ---
 
 ## Table of Contents
 1. [Team Member Quick Start (Frontend)](#1-team-member-quick-start-frontend)
-2. [Database Schema Migrations (SQL)](#2-database-schema-migrations-sql)
-3. [Spring Boot Backend Changes](#3-spring-boot-backend-changes)
-   - [A. Project Repository Integration](#a-project-repository-integration)
-   - [B. User Status & Presence Integration](#b-user-status--presence-integration)
-   - [C. Task & Subtask Status Transition APIs](#c-task--subtask-status-transition-apis)
+2. [Completed Backend Architecture & Endpoints](#2-completed-backend-architecture--endpoints)
+   - [A. User Status & Presence Integration](#a-user-status--presence-integration)
+   - [B. Task & Subtask Status Transition APIs](#b-task--subtask-status-transition-apis)
+   - [C. Complete REST API Reference](#c-complete-rest-api-reference)
+3. [Remaining Optional Backend Enhancements](#3-remaining-optional-backend-enhancements)
+   - [A. Project Custom Repository URL Field](#a-project-custom-repository-url-field)
 4. [cURL Verification Commands](#4-curl-verification-commands)
+5. [Frontend Integration Points Cleanup Status](#5-frontend-integration-points-cleanup-status)
 
 ---
 
@@ -38,193 +47,158 @@ Open `http://localhost:5173` in your browser.
 - **Offline / Standalone Ready**: If the Spring Boot backend is not running or has an empty database, the frontend automatically hydrates with seed projects, tasks, subtasks, and users.
 - **Theme Switching**: Toggle between dark and light themes using the navbar sun/moon toggle.
 - **Kanban & Subtask Views**: Seamlessly switch between **Cards**, **Timeline**, and **List** views.
-- **GitHub Repositories**: Test connected repositories and the "Add Repository" modal.
+- **AI Assistant Drawer**: Pinned floating trigger in the bottom-right corner sliding in as a right drawer with meeting scheduling and calendar synchronization.
 
 ---
 
-## 2. Database Schema Migrations (SQL)
+## 2. Completed Backend Architecture & Endpoints
 
-Execute the following SQL migration script on your database (`PostgreSQL` or `MySQL`):
+### A. User Status & Presence Integration (✅ Completed)
+The backend already supports dynamic presence updates for the team:
+- **Entity**: `User.java` natively contains `availabilityStatus` (`"Active"`, `"In Meeting"`, `"Offline"`).
+- **Endpoint**: `PATCH /api/users/{id}/status`
+- **Request DTO**: `StatusUpdateRequest` containing `{ active: boolean, status: string }`
+- **Response**: `UserResponse` with updated profile and status.
 
+### B. Task & Subtask Status Transition APIs (✅ Completed)
+Kanban drag-and-drop and status dropdowns are natively supported:
+- **Task Status**: `PATCH /api/tasks/{id}/status`
+  - Accepts `{ status: "To Do" | "In Progress" | "In Review" | "Done" }`
+  - Role-protected: Developers can update their own tasks; Leads/Managers can update project tasks.
+- **Subtask Status**: `PATCH /api/subtasks/{subtaskId}/status`
+  - Accepts `{ status: "To Do" | "In Progress" | "In Review" | "Ready for Testing" | "In Testing" | "In QA" | "Done" }`
+
+---
+
+### C. Complete REST API Reference
+
+All endpoints connect under `http://localhost:8080/api`.
+
+#### 1. Authentication & Session (`/api/auth`)
+| Method | Endpoint | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/me` | Fetch authenticated user | ✅ Implemented |
+| `POST` | `/signup` | Register new user | ✅ Implemented |
+| `POST` | `/login` | Authenticate credentials | ✅ Implemented |
+| `POST` | `/logout` | Invalidate token/session | ✅ Implemented |
+| `DELETE` | `/api/users/me` | Self-service account delete | ✅ Implemented |
+
+#### 2. Projects (`/api/projects`)
+| Method | Endpoint | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/` | List all accessible projects | ✅ Implemented |
+| `POST` | `/` | Create a new project | ✅ Implemented |
+| `PUT` | `/{id}` | Full update of project | ✅ Implemented |
+| `PATCH` | `/{id}/status` | Update project status only | ✅ Implemented |
+| `DELETE` | `/{id}` | Delete project & cascade | ✅ Implemented |
+| `GET` | `/{projectId}/members` | List project team members | ✅ Implemented |
+| `POST` | `/{projectId}/members` | Add member to project | ✅ Implemented |
+| `PUT` | `/{projectId}/members/{userId}` | Update project role | ✅ Implemented |
+| `PATCH` | `/{projectId}/members/{userId}/status` | Update member status | ✅ Implemented |
+| `DELETE` | `/{projectId}/members/{userId}` | Remove member from project | ✅ Implemented |
+
+#### 3. Tasks & Subtasks (`/api/tasks` & `/api/subtasks`)
+| Method | Endpoint | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/tasks` | Get all tasks | ✅ Implemented |
+| `GET` | `/api/tasks/{taskId}/subtasks` | Get subtasks for parent task | ✅ Implemented |
+| `POST` | `/api/tasks` | Create parent task | ✅ Implemented |
+| `PATCH` | `/api/tasks/{taskId}/status` | Update task status (Kanban / Execution roles) | ✅ Implemented |
+| `PUT` | `/api/tasks/{id}` | Full update (Admin / Project Manager) | ✅ Implemented |
+| `DELETE` | `/api/tasks/{taskId}` | Delete parent task | ✅ Implemented |
+| `POST` | `/api/tasks/{taskId}/subtasks` | Create subtask under task | ✅ Implemented |
+| `PATCH` | `/api/subtasks/{subtaskId}/status` | Update subtask status | ✅ Implemented |
+| `PUT` | `/api/subtasks/{subtaskId}` | Full update of subtask | ✅ Implemented |
+| `DELETE` | `/api/subtasks/{subtaskId}` | Delete subtask | ✅ Implemented |
+
+#### 4. Users & Presence (`/api/users`)
+| Method | Endpoint | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/` | All users (Admin only) | ✅ Implemented |
+| `GET` | `/options` | Assignable users (Managers/Leads) | ✅ Implemented |
+| `POST` | `/` | Admin create user | ✅ Implemented |
+| `PUT` | `/{id}` | Update user details | ✅ Implemented |
+| `PATCH` | `/{id}/role` | Update user role | ✅ Implemented |
+| `PATCH` | `/{id}/status` | Update active status | ✅ Implemented |
+| `GET` | `/{id}/profile` | Comprehensive profile | ✅ Implemented |
+| `DELETE` | `/{id}` | Delete user (Admin only) | ✅ Implemented |
+
+#### 5. Teams (`/api/teams`)
+| Method | Endpoint | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/teams` | List organizational teams | ✅ Implemented |
+| `GET` | `/api/teams/{id}/members` | List members of a team | ✅ Implemented |
+| `POST` | `/api/teams` | Create organizational team | ✅ Implemented |
+| `PUT` | `/api/teams/{id}` | Update team | ✅ Implemented |
+| `DELETE` | `/api/teams/{id}` | Delete team | ✅ Implemented |
+
+#### 6. AI Assistant Query (`/api/chat`)
+| Method | Endpoint | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/chat` | AI assistant query for projects, tasks & calendar | ✅ Implemented |
+
+#### 7. Calendar & Scheduling Events (`/api/calendar`)
+| Method | Endpoint | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/calendar` | List user visible calendar events | ✅ Implemented |
+| `GET` | `/api/calendar/{id}` | Get event details | ✅ Implemented |
+| `GET` | `/api/calendar/project/{projectId}` | Get project calendar events | ✅ Implemented |
+| `POST` | `/api/calendar` | Create calendar/meeting event | ✅ Implemented |
+| `PUT` | `/api/calendar/{id}` | Update calendar event | ✅ Implemented |
+| `PATCH` | `/api/calendar/{id}/date` | Reschedule event date/time | ✅ Implemented |
+| `PATCH` | `/api/calendar/{id}/status` | Update event status | ✅ Implemented |
+| `DELETE` | `/api/calendar/{id}` | Delete calendar event | ✅ Implemented |
+
+---
+
+## 3. Remaining Optional Backend Enhancements
+
+### A. Project Custom Repository URL Field
+Currently, the backend models GitHub integration through `github_owner` and `github_repository` in `Project.java` and `/api/github/repository`.
+
+If the team wishes to store generic external git repository URLs (e.g. GitLab, Bitbucket) directly on the Project entity:
+
+#### 1. SQL Migration:
 ```sql
--- ============================================================================
--- NeuroForge Platform Migration: Projects Repository & User Status
--- ============================================================================
-
--- 1. Add repository URL column to projects table
 ALTER TABLE projects 
 ADD COLUMN IF NOT EXISTS repository VARCHAR(500) DEFAULT NULL;
-
--- 2. Add status column to users table for live user presence
-ALTER TABLE users 
-ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Active';
-
--- 3. Ensure subtasks table has due_date and appropriate status length
-ALTER TABLE subtasks 
-ADD COLUMN IF NOT EXISTS due_date DATE DEFAULT NULL;
-
-ALTER TABLE subtasks 
-ALTER COLUMN status TYPE VARCHAR(50);
-
--- Optional: Seed sample repository links
-UPDATE projects 
-SET repository = 'https://github.com/neuroforge/core-banking-migration' 
-WHERE id = 1 AND repository IS NULL;
-
-UPDATE projects 
-SET repository = 'https://github.com/neuroforge/ai-document-pipeline' 
-WHERE id = 2 AND repository IS NULL;
 ```
 
----
-
-## 3. Spring Boot Backend Changes
-
-### A. Project Repository Integration
-
-#### 1. Entity: `com.neuroforge.backend.entity.Project`
-Add the `repository` field with getter and setter:
-
+#### 2. Entity: `Project.java`
 ```java
 @Column(name = "repository", length = 500)
 private String repository;
 
-public String getRepository() {
-    return repository;
-}
-
-public void setRepository(String repository) {
-    this.repository = repository;
-}
+public String getRepository() { return repository; }
+public void setRepository(String repository) { this.repository = repository; }
 ```
 
-#### 2. DTO: `com.neuroforge.backend.dto.ProjectRequest`
-Add `repository` to the request payload:
-
-```java
-private String repository;
-
-public String getRepository() {
-    return repository;
-}
-
-public void setRepository(String repository) {
-    this.repository = repository;
-}
-```
-
-#### 3. Controller: `com.neuroforge.backend.controller.ProjectController`
-Add the dedicated PATCH endpoint for partial repository updates:
-
+#### 3. Controller: `ProjectController.java`
 ```java
 @PatchMapping("/{id}/repository")
-public ResponseEntity<ProjectResponse> updateProjectRepository(
+public ResponseEntity<ProjectDtos.Detail> updateProjectRepository(
         @PathVariable Long id,
         @RequestBody Map<String, String> payload) {
     String repositoryUrl = payload.get("repository");
-    Project updated = projectService.updateRepository(id, repositoryUrl);
-    return ResponseEntity.ok(ProjectResponse.fromEntity(updated));
+    return ResponseEntity.ok(projectService.updateRepository(id, repositoryUrl));
 }
 ```
-
----
-
-### B. User Status & Presence Integration
-
-#### 1. Entity: `com.neuroforge.backend.entity.User`
-Add the `status` field:
-
-```java
-@Column(name = "status", length = 50)
-private String status = "Active";
-
-public String getStatus() {
-    return status;
-}
-
-public void setStatus(String status) {
-    this.status = status;
-}
-```
-
-#### 2. Controller: `com.neuroforge.backend.controller.UserController`
-Add status transition endpoint:
-
-```java
-@PatchMapping("/{id}/status")
-public ResponseEntity<UserResponse> updateUserStatus(
-        @PathVariable Long id,
-        @RequestBody Map<String, String> payload) {
-    String newStatus = payload.get("status");
-    User updatedUser = userService.updateStatus(id, newStatus);
-    return ResponseEntity.ok(UserResponse.fromEntity(updatedUser));
-}
-```
-
----
-
-### C. Task & Subtask Status Transition APIs
-
-#### 1. Tasks: `PATCH /api/tasks/{id}/status`
-Ensure `TaskController` supports partial status updates for Kanban drag-and-drop:
-
-```java
-@PatchMapping("/{id}/status")
-public ResponseEntity<TaskResponse> updateTaskStatus(
-        @PathVariable Long id,
-        @RequestBody Map<String, String> payload) {
-    String newStatus = payload.get("status");
-    Task updated = taskService.updateStatus(id, newStatus);
-    return ResponseEntity.ok(TaskResponse.fromEntity(updated));
-}
-```
-
-#### 2. Subtasks: `PATCH /api/subtasks/{subtaskId}/status`
-Ensure `SubtaskController` supports direct status updates from Kanban, Timeline, and List views:
-
-```java
-@PatchMapping("/{subtaskId}/status")
-public ResponseEntity<SubtaskResponse> updateSubtaskStatus(
-        @PathVariable Long subtaskId,
-        @RequestBody Map<String, String> payload) {
-    String newStatus = payload.get("status");
-    Subtask updated = subtaskService.updateStatus(subtaskId, newStatus);
-    return ResponseEntity.ok(SubtaskResponse.fromEntity(updated));
-}
-```
-
-Supported Subtask Statuses:
-- `"To Do"`
-- `"In Progress"`
-- `"In Review"`
-- `"Ready for Testing"`
-- `"In Testing"`
-- `"In QA"`
-- `"Done"`
 
 ---
 
 ## 4. cURL Verification Commands
 
-Backend developers can test all endpoints directly using the following cURL commands:
+Backend developers can test the implemented endpoints directly:
 
-### 1. Update Project Repository
-```bash
-curl -X PATCH http://localhost:8080/api/projects/1/repository \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"repository":"https://github.com/neuroforge/core-engine"}'
-```
-
-### 2. Update User Live Status (Settings & Presence)
+### 1. Update User Live Status
 ```bash
 curl -X PATCH http://localhost:8080/api/users/1/status \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"status":"In Meeting"}'
+  -d '{"status":"In Meeting","active":true}'
 ```
 
-### 3. Update Parent Task Status (Kanban / Timeline / List)
+### 2. Update Parent Task Status (Kanban Drag & Drop)
 ```bash
 curl -X PATCH http://localhost:8080/api/tasks/1/status \
   -H "Authorization: Bearer <TOKEN>" \
@@ -232,10 +206,18 @@ curl -X PATCH http://localhost:8080/api/tasks/1/status \
   -d '{"status":"In Progress"}'
 ```
 
-### 4. Update Subtask Status (Subtask Kanban / Timeline / List)
+### 3. Update Subtask Status
 ```bash
 curl -X PATCH http://localhost:8080/api/subtasks/101/status \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"status":"In Review"}'
 ```
+
+---
+
+## 5. Frontend Integration Points Cleanup Status
+
+All **65 `[BACKEND_INTEGRATION_POINT]` comments** across the 18 frontend files have been cleaned up:
+- `npm run clean:comments` executed successfully.
+- Frontend build compiled and verified with 0 errors via `npm run build`.
