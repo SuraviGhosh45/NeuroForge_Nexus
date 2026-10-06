@@ -47,16 +47,7 @@ const AssignUserModal = ({
     setError("");
 
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    POST http://localhost:8080/api/projects/{projectId}/members
-         Description: Assign user to a project with a specified role from Admin User Management.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "userId": user.id, "projectRole": selectedRole, "status": "Active" }
-         Response:    201/200 OK -> { "id": 1, "userId": user.id, "projectRole": selectedRole }
-         Fallback:    Hydrates into local ProjectTeamContext state if backend is offline.
-         ========================================================================== */
-      const result = await onAssign(selectedProjectId, user.id, selectedRole);
+            const result = await onAssign(selectedProjectId, user.id, selectedRole);
       if (result?.success) {
         onClose();
       } else {

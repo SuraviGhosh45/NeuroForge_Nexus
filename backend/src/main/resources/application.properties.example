@@ -15,3 +15,6 @@ app.bootstrap-admin.user-id=admin
 app.bootstrap-admin.email=admin@example.com
 app.bootstrap-admin.contact-number=0000000000
 app.bootstrap-admin.password=admin123
+
+github.api-url=${GITHUB_API_URL:https://api.github.com}
+github.token=${GITHUB_TOKEN:}

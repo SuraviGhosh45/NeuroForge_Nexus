@@ -29,14 +29,7 @@ const Login = () => {
     }
   };
 
-  /**
-   * [BACKEND_INTEGRATION_POINT]
-   * Action: User Login
-   * Endpoint: POST /api/auth/login
-   * Payload: { email, password }
-   * Response: 200 OK { token: "<jwt>", user: { id, email, fullName, role, ... } }
-   */
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 

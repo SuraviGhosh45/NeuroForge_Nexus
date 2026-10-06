@@ -13,7 +13,7 @@ public class GitHubService {
     private final RestClient restClient;
 
     public GitHubService(
-            @Value("${github.api-url}") String apiUrl,
+            @Value("${github.api-url:https://api.github.com}") String apiUrl,
             @Value("${github.token:}") String token) {
 
         RestClient.Builder builder = RestClient.builder()

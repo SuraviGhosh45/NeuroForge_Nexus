@@ -27,6 +27,17 @@
 @REM   MVNW_VERBOSE - true: enable verbose log; others: silence the output
 @REM ----------------------------------------------------------------------------
 
+@IF NOT EXIST "%JAVA_HOME%\bin\java.exe" (
+  @FOR /F "delims=" %%I IN ('where java.exe 2^>nul') DO @(
+    @FOR %%J IN ("%%~dpI..") DO @IF EXIST "%%~fJ\bin\java.exe" SET "JAVA_HOME=%%~fJ"
+  )
+)
+@IF NOT EXIST "%JAVA_HOME%\bin\java.exe" (
+  @IF EXIST "%LOCALAPPDATA%\Programs\Eclipse Adoptium\jdk-17.0.20.101-hotspot\bin\java.exe" (
+    @SET "JAVA_HOME=%LOCALAPPDATA%\Programs\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
+  )
+)
+
 @IF "%__MVNW_ARG0_NAME__%"=="" (SET __MVNW_ARG0_NAME__=%~nx0)
 @SET __MVNW_CMD__=
 @SET __MVNW_ERROR__=

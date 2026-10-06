@@ -42,25 +42,12 @@ export const ProjectTeamProvider = ({ children }) => {
   const loadProjectMembers = useCallback(async (projectId) => {
     if (!projectId) return [];
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    GET http://localhost:8080/api/projects/{projectId}/members
-         Description: Retrieve members assigned to a specific project.
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK -> [ { "id": 1, "userId": 2, "projectRole": "Developer", "status": "Active", "fullName": "Alice Smith" } ]
-         cURL:        curl -H "Authorization: Bearer <TOKEN>" http://localhost:8080/api/projects/1/members
-         ========================================================================== */
-      const { data } = await axios.get(`${API_BASE}/${projectId}/members`);
+            const { data } = await axios.get(`${API_BASE}/${projectId}/members`);
       const normalized = (Array.isArray(data) ? data : []).map(normalizeMember);
       setProjectTeams((prev) => ({ ...prev, [String(projectId)]: normalized }));
       return normalized;
     } catch (error) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         If Spring Boot backend is offline or unreachable, hydrate with seed
-         project members so team members can evaluate team member lists without errors.
-         ========================================================================== */
-      const fallback = (SEED_PROJECT_MEMBERS[String(projectId)] || []).map(normalizeMember);
+            const fallback = (SEED_PROJECT_MEMBERS[String(projectId)] || []).map(normalizeMember);
       setProjectTeams((prev) => ({ ...prev, [String(projectId)]: fallback }));
       return fallback;
     }
@@ -102,25 +89,11 @@ export const ProjectTeamProvider = ({ children }) => {
 
   const addProjectMember = async (projectId, userId, projectRole) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    POST http://localhost:8080/api/projects/{projectId}/members
-         Description: Assign a team member to a project with a role.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "userId": 2, "projectRole": "Developer", "status": "Active" }
-         Response:    201/200 OK -> { "id": 1, "userId": 2, "projectRole": "Developer", "status": "Active" }
-         cURL:        curl -X POST http://localhost:8080/api/projects/1/members -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"userId":2,"projectRole":"Developer","status":"Active"}'
-         ========================================================================== */
-      const { data } = await axios.post(`${API_BASE}/${projectId}/members`, { userId: Number(userId), projectRole, status: "Active" });
+            const { data } = await axios.post(`${API_BASE}/${projectId}/members`, { userId: Number(userId), projectRole, status: "Active" });
       await loadProjectMembers(projectId);
       return { success: true, data: normalizeMember(data) };
     } catch (error) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         If backend API is offline, optimistically assign member to project team
-         in local state so assignment immediately reflects across User Management and Workspace.
-         ========================================================================== */
-      const newMember = normalizeMember({
+            const newMember = normalizeMember({
         id: Date.now(),
         userId: Number(userId),
         projectRole,
@@ -140,23 +113,11 @@ export const ProjectTeamProvider = ({ children }) => {
 
   const updateProjectMember = async (projectId, userId, projectRole) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PUT http://localhost:8080/api/projects/{projectId}/members/{userId}
-         Description: Update a user's role assignment inside a project.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "userId": 2, "projectRole": "Team Lead" }
-         Response:    200 OK -> { "id": 1, "userId": 2, "projectRole": "Team Lead", "status": "Active" }
-         cURL:        curl -X PUT http://localhost:8080/api/projects/1/members/2 -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"userId":2,"projectRole":"Team Lead"}'
-         ========================================================================== */
-      const { data } = await axios.put(`${API_BASE}/${projectId}/members/${userId}`, { userId: Number(userId), projectRole });
+            const { data } = await axios.put(`${API_BASE}/${projectId}/members/${userId}`, { userId: Number(userId), projectRole });
       await loadProjectMembers(projectId);
       return { success: true, data: normalizeMember(data) };
     } catch (error) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         ========================================================================== */
-      setProjectTeams((prev) => {
+            setProjectTeams((prev) => {
         const existing = prev[String(projectId)] || [];
         return {
           ...prev,
@@ -172,23 +133,11 @@ export const ProjectTeamProvider = ({ children }) => {
   const updateProjectMemberStatus = async (projectId, userId, status) => {
     if (!MEMBER_STATUSES.includes(status)) return { success: false, message: "Invalid member status." };
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PATCH http://localhost:8080/api/projects/{projectId}/members/{userId}/status
-         Description: Update a member's working status inside a project ("Active", "Inactive", "In Meeting").
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "status": "In Meeting" }
-         Response:    200 OK -> { "id": 1, "userId": 2, "status": "In Meeting" }
-         cURL:        curl -X PATCH http://localhost:8080/api/projects/1/members/2/status -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"status":"In Meeting"}'
-         ========================================================================== */
-      const { data } = await axios.patch(`${API_BASE}/${projectId}/members/${userId}/status`, { status });
+            const { data } = await axios.patch(`${API_BASE}/${projectId}/members/${userId}/status`, { status });
       await loadProjectMembers(projectId);
       return { success: true, data: normalizeMember(data) };
     } catch (error) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         ========================================================================== */
-      setProjectTeams((prev) => {
+            setProjectTeams((prev) => {
         const existing = prev[String(projectId)] || [];
         return {
           ...prev,
@@ -203,22 +152,11 @@ export const ProjectTeamProvider = ({ children }) => {
 
   const removeProjectMember = async (projectId, userId) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    DELETE http://localhost:8080/api/projects/{projectId}/members/{userId}
-         Description: Unassign / remove a user from a project team.
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK / 204 No Content
-         cURL:        curl -X DELETE http://localhost:8080/api/projects/1/members/2 -H "Authorization: Bearer <TOKEN>"
-         ========================================================================== */
-      await axios.delete(`${API_BASE}/${projectId}/members/${userId}`);
+            await axios.delete(`${API_BASE}/${projectId}/members/${userId}`);
       await loadProjectMembers(projectId);
       return { success: true };
     } catch (error) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         ========================================================================== */
-      setProjectTeams((prev) => {
+            setProjectTeams((prev) => {
         const existing = prev[String(projectId)] || [];
         return {
           ...prev,

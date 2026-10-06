@@ -101,16 +101,7 @@ export const UsersProvider = ({ children }) => {
     setError("");
 
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    GET http://localhost:8080/api/users (Admin)
-                      GET http://localhost:8080/api/users/options (Managers & Leads)
-         Description: Retrieve all users (admin) or assignable user options (manager/lead).
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK -> [ { "id": 1, "fullName": "Rahul Sharma", "email": "rahul@example.com", "role": "PROJECT_LEAD", "status": "Active" } ]
-         cURL:        curl -H "Authorization: Bearer <TOKEN>" http://localhost:8080/api/users
-         ========================================================================== */
-      const response = currentRole === "ADMIN"
+            const response = currentRole === "ADMIN"
         ? await axios.get(API_BASE)
         : ["PROJECT_MANAGER", "PROJECT_LEAD", "TEAM_LEAD"].includes(currentRole)
           ? await axios.get(`${API_BASE}/options`)
@@ -136,12 +127,7 @@ export const UsersProvider = ({ children }) => {
         if (currentRole === "ADMIN") saveToStorage(normalized);
       }
     } catch (error) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         If Spring Boot backend is offline or unreachable, hydrate with cached
-         or seed users so team members experience the exact intended UI without errors.
-         ========================================================================== */
-      const cached = localStorage.getItem(USERS_STORAGE_KEY);
+            const cached = localStorage.getItem(USERS_STORAGE_KEY);
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -165,16 +151,7 @@ export const UsersProvider = ({ children }) => {
 
   const createUser = async (newUser) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    POST http://localhost:8080/api/users
-         Description: Create a user account (Admin only).
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "fullName": "Alex Smith", "email": "alex@example.com", "password": "TempPass@123", "role": "DEVELOPER", "status": "Active" }
-         Response:    201/200 OK -> { "id": 15, "fullName": "Alex Smith", "email": "alex@example.com", "role": "DEVELOPER", "status": "Active" }
-         cURL:        curl -X POST http://localhost:8080/api/users -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"fullName":"Alex Smith","email":"alex@example.com","password":"TempPass@123","role":"DEVELOPER","status":"Active"}'
-         ========================================================================== */
-      const response = await axios.post(API_BASE, {
+            const response = await axios.post(API_BASE, {
         fullName: newUser.fullName || newUser.name,
         email: newUser.email,
         password: newUser.password || "TempPass@123",
@@ -194,20 +171,7 @@ export const UsersProvider = ({ children }) => {
     if (!existing) return { success: false, message: "User not found." };
 
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PUT http://localhost:8080/api/users/{id}
-                      PATCH http://localhost:8080/api/users/{id}/role
-                      PATCH http://localhost:8080/api/users/{id}/status
-         Description: Update user profile, role, or active status.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     PUT: { "fullName": "Alex Smith", "email": "alex@example.com" }
-                      PATCH role: { "role": "TEAM_LEAD" }
-                      PATCH status: { "status": "Inactive" }
-         Response:    200 OK -> updated user object
-         cURL:        curl -X PUT http://localhost:8080/api/users/1 -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"fullName":"Alex Smith","email":"alex@example.com"}'
-         ========================================================================== */
-      let response = await axios.put(`${API_BASE}/${updatedUser.id}`, {
+            let response = await axios.put(`${API_BASE}/${updatedUser.id}`, {
         fullName: updatedUser.fullName || updatedUser.name,
         email: updatedUser.email,
       });
@@ -225,12 +189,7 @@ export const UsersProvider = ({ children }) => {
       });
       return { success: true, data: normalized };
     } catch (error) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         If backend is unreachable, apply the update locally in memory & localStorage
-         so the entire team sees the change instantly across User Management, Projects, etc.
-         ========================================================================== */
-      const normalized = normalizeUser({ ...existing, ...updatedUser });
+            const normalized = normalizeUser({ ...existing, ...updatedUser });
       setUsers((prev) => {
         const next = prev.map((u) => String(u.id) === String(normalized.id) ? normalized : u);
         saveToStorage(next);
@@ -242,16 +201,7 @@ export const UsersProvider = ({ children }) => {
 
   const updateUserStatus = async (targetUserId, newStatus, currentUserId) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PATCH http://localhost:8080/api/users/{id}/status
-         Description: Quick status transition ("Active", "In Meeting", "Inactive").
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "status": "In Meeting" }
-         Response:    200 OK -> { "id": 1, "status": "In Meeting" }
-         cURL:        curl -X PATCH http://localhost:8080/api/users/1/status -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"status":"In Meeting"}'
-         ========================================================================== */
-      const response = await axios.patch(`${API_BASE}/${targetUserId}/status`, { status: newStatus });
+            const response = await axios.patch(`${API_BASE}/${targetUserId}/status`, { status: newStatus });
       const normalized = normalizeUser(response.data);
       setUsers((prev) => {
         const next = prev.map((u) => String(u.id) === String(targetUserId) ? normalized : u);
@@ -260,11 +210,7 @@ export const UsersProvider = ({ children }) => {
       });
       return { success: true, data: normalized };
     } catch (error) {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]: Graceful Offline Fallback
-         If backend is unreachable, apply status transition locally and persist in cache.
-         ========================================================================== */
-      setUsers((prev) => {
+            setUsers((prev) => {
         const next = prev.map((u) => {
           if (String(u.id) === String(targetUserId)) {
             return normalizeUser({ ...u, status: newStatus });
@@ -287,15 +233,7 @@ export const UsersProvider = ({ children }) => {
 
   const deleteUser = async (userId) => {
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    DELETE http://localhost:8080/api/users/{id}
-         Description: Permanently remove a user account (Admin only).
-         Headers:     Authorization: Bearer <jwt-token>
-         Response:    200 OK / 204 No Content
-         cURL:        curl -X DELETE http://localhost:8080/api/users/1 -H "Authorization: Bearer <TOKEN>"
-         ========================================================================== */
-      await axios.delete(`${API_BASE}/${userId}`);
+            await axios.delete(`${API_BASE}/${userId}`);
       setUsers((prev) => prev.filter((u) => String(u.id) !== String(userId)));
       return { success: true };
     } catch (error) {

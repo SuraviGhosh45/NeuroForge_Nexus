@@ -110,14 +110,7 @@ const SubtaskDetails = () => {
     );
   }, [users, subtask]);
 
-  /**
-   * [BACKEND_INTEGRATION_POINT]
-   * Action: Delete Subtask
-   * Endpoint: DELETE /api/subtasks/{subtaskId} or DELETE /api/tasks/{taskId}/subtasks/{subtaskId}
-   * Headers: { Authorization: "Bearer <token>" }
-   * Response: 204 No Content or { success: true }
-   */
-  const handleDelete = async () => {
+    const handleDelete = async () => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this subtask?"
     );

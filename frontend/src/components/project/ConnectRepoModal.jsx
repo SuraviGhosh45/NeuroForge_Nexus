@@ -36,18 +36,7 @@ const ConnectRepoModal = ({ isOpen, project, onClose }) => {
     setError("");
 
     try {
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PATCH http://localhost:8080/api/projects/{id}/repository
-                      PUT http://localhost:8080/api/projects/{id}
-         Description: Link / update a GitHub repository for a project.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "repository": "https://github.com/organization/repo" }
-         Response:    200 OK -> updated project object
-         cURL:        curl -X PATCH http://localhost:8080/api/projects/1/repository -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"repository":"https://github.com/organization/repo"}'
-         Fallback:    Handled via ProjectContext.jsx updateProject with persistent localStorage cache.
-         ========================================================================== */
-      const result = await updateProject(project.id, {
+            const result = await updateProject(project.id, {
         ...project,
         repository: fullUrl,
       });

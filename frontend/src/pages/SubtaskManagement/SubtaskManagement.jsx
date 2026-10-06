@@ -111,15 +111,7 @@ const SubtaskManagement = () => {
     setShowForm(false);
   };
 
-  /**
-   * [BACKEND_INTEGRATION_POINT]
-   * Action: Create Subtask
-   * Endpoint: POST /api/tasks/{taskId}/subtasks or POST /api/subtasks
-   * Payload: { title, description, assigneeId, priority, status: "To Do", dueDate }
-   * Headers: { Authorization: "Bearer <token>", "Content-Type": "application/json" }
-   * Response: 201 Created with subtask JSON
-   */
-  const handleCreateSubtask = async (event) => {
+    const handleCreateSubtask = async (event) => {
     event.preventDefault();
 
     if (!title.trim()) {
@@ -161,15 +153,7 @@ const SubtaskManagement = () => {
     setShowForm(true);
   };
 
-  /**
-   * [BACKEND_INTEGRATION_POINT]
-   * Action: Update Subtask
-   * Endpoint: PUT /api/subtasks/{id} or PUT /api/tasks/{taskId}/subtasks/{id}
-   * Payload: { id, title, description, assigneeId, priority, status, dueDate }
-   * Headers: { Authorization: "Bearer <token>", "Content-Type": "application/json" }
-   * Response: 200 OK with updated subtask JSON
-   */
-  const handleUpdateSubtask = async (event) => {
+    const handleUpdateSubtask = async (event) => {
     event.preventDefault();
 
     if (!title.trim()) {
@@ -195,14 +179,7 @@ const SubtaskManagement = () => {
     resetForm();
   };
 
-  /**
-   * [BACKEND_INTEGRATION_POINT]
-   * Action: Delete Subtask
-   * Endpoint: DELETE /api/subtasks/{subtaskId} or DELETE /api/tasks/{taskId}/subtasks/{subtaskId}
-   * Headers: { Authorization: "Bearer <token>" }
-   * Response: 204 No Content or { success: true }
-   */
-  const handleDeleteSubtask = async (subtask) => {
+    const handleDeleteSubtask = async (subtask) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${subtask.title}"?`
     );

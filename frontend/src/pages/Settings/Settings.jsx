@@ -143,17 +143,7 @@ const Settings = () => {
     setFormData((prev) => ({ ...prev, status: newStatus }));
     setErrorMsg("");
 
-    /* ==========================================================================
-       [BACKEND_INTEGRATION_POINT]
-       Endpoint:    PATCH http://localhost:8080/api/users/{id}/status
-       Description: Update user working status ("Active", "In Meeting", "Inactive").
-       Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-       Payload:     { "status": newStatus }
-       Response:    200 OK -> { "id": 5, "status": "In Meeting" }
-       cURL:        curl -X PATCH http://localhost:8080/api/users/5/status -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"status":"In Meeting"}'
-       Fallback:    Updates AuthContext, UsersContext, and ProjectTeamContext in memory & localStorage.
-       ========================================================================== */
-    if (currentUser?.id) {
+        if (currentUser?.id) {
       if (updateCurrentUser) {
         await updateCurrentUser({ status: newStatus });
       }
@@ -184,18 +174,7 @@ const Settings = () => {
         status: formData.status,
       };
 
-      /* ==========================================================================
-         [BACKEND_INTEGRATION_POINT]
-         Endpoint:    PUT http://localhost:8080/api/users/me
-                      PUT http://localhost:8080/api/users/{id}
-         Description: Persist profile modifications to backend database.
-         Headers:     Authorization: Bearer <jwt-token>, Content-Type: application/json
-         Payload:     { "fullName": "Marcus Vance", "email": "dev@neuroforge.io", "skills": ["React"], "status": "In Meeting" }
-         Response:    200 OK -> updated user profile object
-         cURL:        curl -X PUT http://localhost:8080/api/users/me -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"fullName":"Marcus Vance","status":"In Meeting"}'
-         Fallback:    Seamlessly updates AuthContext, UsersContext cache, and ProjectTeamContext.
-         ========================================================================== */
-      if (updateCurrentUser) {
+            if (updateCurrentUser) {
         await updateCurrentUser(updates);
       }
 

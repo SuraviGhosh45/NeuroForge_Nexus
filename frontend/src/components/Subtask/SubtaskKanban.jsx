@@ -274,15 +274,7 @@ const SubtaskKanban = () => {
 
     setIsUpdating(true);
 
-    /**
-     * [BACKEND_INTEGRATION_POINT]
-     * Action: Update Subtask Status via Drag & Drop
-     * Endpoint: PATCH /api/subtasks/{subtaskId}/status or PUT /api/subtasks/{subtaskId}
-     * Payload: { status: "To Do" | "In Progress" | "In Review" | "Done" }
-     * Headers: { Authorization: "Bearer <token>", "Content-Type": "application/json" }
-     * Response: 200 OK with updated subtask JSON
-     */
-    const result = updateSubtaskStatus
+        const result = updateSubtaskStatus
       ? await updateSubtaskStatus(
           draggedSubtask.id,
           newStatus
@@ -307,15 +299,7 @@ const SubtaskKanban = () => {
   };
 
   const handleStatusUpdate = async (targetSubtaskId, newStatus) => {
-    /*
-     * [BACKEND_INTEGRATION_POINT]
-     * Action: Update Subtask Status from Timeline / List View
-     * Endpoint: PATCH /api/subtasks/{subtaskId}/status or PUT /api/subtasks/{subtaskId}
-     * Payload: { status: "To Do" | "In Progress" | "In Review" | "Ready for Testing" | "In Testing" | "In QA" | "Done" }
-     * Headers: { Authorization: "Bearer <token>", "Content-Type": "application/json" }
-     * Response: 200 OK with updated subtask JSON
-     */
-    setIsUpdating(true);
+        setIsUpdating(true);
     const targetSubtask = subtasks.find(
       (s) => String(s.id) === String(targetSubtaskId)
     );
