@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -24,11 +23,32 @@ public class CalendarEvent {
     private String description;
 
     @Column(name = "event_date", nullable = false)
-    private LocalDate eventDate;
+    private LocalDateTime eventDate;
+
+    @Column(name = "event_type", nullable = false, length = 20)
+    private String type = "OTHER";
 
     /** null = personal event, not tied to any project */
     @Column(name = "project_id")
     private Long projectId;
+
+    @Column(name = "task_id")
+    private Long taskId;
+
+    @Column(name = "sprint_id")
+    private Long sprintId;
+
+    @Column(name = "subtask_id")
+    private Long subtaskId;
+
+    @Column(name = "assigned_to")
+    private Long assignedTo;
+
+    @Column(nullable = false, length = 20)
+    private String status = "PENDING";
+
+    @Column(nullable = false, length = 20)
+    private String source = "MANUAL";
 
     @Column(nullable = false, length = 20)
     private String priority;
@@ -50,6 +70,9 @@ public class CalendarEvent {
         if (priority == null || priority.isBlank()) {
             priority = "Medium";
         }
+        if (type == null || type.isBlank()) type = "OTHER";
+        if (status == null || status.isBlank()) status = "PENDING";
+        if (source == null || source.isBlank()) source = "MANUAL";
     }
 
     @PreUpdate

@@ -4,7 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public final class CalendarDtos {
@@ -22,9 +21,20 @@ public final class CalendarDtos {
             String description,
 
             @NotNull(message = "Date is required")
-            LocalDate dueDate,
+            LocalDateTime eventDate,
+
+            @NotBlank(message = "Event type is required")
+            String type,
 
             Long projectId,
+
+            Long taskId,
+
+            Long sprintId,
+
+            Long subtaskId,
+
+            Long assignedTo,
 
             @Size(max = 20, message = "Priority cannot exceed 20 characters")
             String priority
@@ -33,8 +43,15 @@ public final class CalendarDtos {
 
     public record RescheduleRequest(
 
-            @NotNull(message = "Date is required")
-            LocalDate dueDate
+            @NotNull(message = "Event date is required")
+            LocalDateTime eventDate
+    ) {
+    }
+
+    public record StatusRequest(
+
+            @NotBlank(message = "Status is required")
+            String status
     ) {
     }
 
@@ -42,11 +59,20 @@ public final class CalendarDtos {
             Long id,
             String title,
             String description,
-            LocalDate dueDate,
+                        LocalDateTime eventDate,
+                        String type,
             Long projectId,
+                        Long taskId,
+                        Long sprintId,
+                        Long subtaskId,
+                        Long assignedTo,
             String priority,
+                        String status,
+                        String source,
             Long createdBy,
-            LocalDateTime createdAt
+                        LocalDateTime createdAt,
+                            LocalDateTime updatedAt,
+                            boolean editable
     ) {
     }
 }

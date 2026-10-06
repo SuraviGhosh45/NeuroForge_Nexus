@@ -8,7 +8,6 @@ import {
 } from "react-icons/pi";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useProjects } from "../../context/ProjectContext.jsx";
-import { useTasks } from "../../context/TasksContext.jsx";
 import { useTeams } from "../../context/TeamsContext.jsx";
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
 import axios from "../../services/api.js";
@@ -20,8 +19,6 @@ const SUGGESTIONS = [
   "What's on today?",
   "Mark 25 Dec as Holiday",
 ];
-
-const CHATBOT_EVENTS_KEY = "nfn_calendar_events_";
 
 const lower = (value) => String(value ?? "").toLowerCase();
 
@@ -48,369 +45,9 @@ const daysUntil = (dateString) => {
   return Math.ceil((end - today) / 86400000);
 };
 
-const pad2 = (n) => String(n).padStart(2, "0");
-
-const toISO = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
-
-const formatDisplayDate = (iso) => {
-  const d = new Date(`${iso}T00:00:00`);
-
-  if (Number.isNaN(d.getTime())) return iso;
-
-  return d.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-const MONTHS = [
-  "jan",
-  "feb",
-  "mar",
-  "apr",
-  "may",
-  "jun",
-  "jul",
-  "aug",
-  "sep",
-  "oct",
-  "nov",
-  "dec",
-];
-
-const monthIndex = (token) => {
-  const t = lower(token).slice(0, 3);
-  const idx = MONTHS.indexOf(t);
-
-  return idx === -1 ? null : idx;
-};
-
-const extractDate = (text) => {
-  const q = text.trim();
-  const today = new Date();
-
-  if (/\btoday\b/i.test(q)) {
-    return {
-      iso: toISO(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        today.getDate()
-      ),
-      matchText: "today",
-    };
-  }
-
-  if (/\btomorrow\b/i.test(q)) {
-    const t = new Date(today);
-    t.setDate(t.getDate() + 1);
-
-    return {
-      iso: toISO(t.getFullYear(), t.getMonth() + 1, t.getDate()),
-      matchText: "tomorrow",
-    };
-  }
-
-  if (/\byesterday\b/i.test(q)) {
-    const t = new Date(today);
-    t.setDate(t.getDate() - 1);
-
-    return {
-      iso: toISO(t.getFullYear(), t.getMonth() + 1, t.getDate()),
-      matchText: "yesterday",
-    };
-  }
-
-  let m = q.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
-
-  if (m) {
-    return {
-      iso: toISO(+m[1], +m[2], +m[3]),
-      matchText: m[0],
-    };
-  }
-
-  m = q.match(/\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})\b/);
-
-  if (m) {
-    let year = +m[3];
-
-    if (year < 100) {
-      year += 2000;
-    }
-
-    return {
-      iso: toISO(year, +m[2], +m[1]),
-      matchText: m[0],
-    };
-  }
-
-  m = q.match(
-    /\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s*,?\s*(\d{4}))?/i
-  );
-
-  if (m) {
-    const mi = monthIndex(m[2]);
-
-    if (mi !== null) {
-      let year = m[3] ? +m[3] : today.getFullYear();
-
-      let iso = toISO(year, mi + 1, +m[1]);
-
-      if (
-        !m[3] &&
-        new Date(`${iso}T00:00:00`) <
-          new Date(
-            `${toISO(
-              today.getFullYear(),
-              today.getMonth() + 1,
-              today.getDate()
-            )}T00:00:00`
-          )
-      ) {
-        year += 1;
-        iso = toISO(year, mi + 1, +m[1]);
-      }
-
-      return {
-        iso,
-        matchText: m[0],
-      };
-    }
-  }
-
-  m = q.match(
-    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?/i
-  );
-
-  if (m) {
-    const mi = monthIndex(m[1]);
-
-    if (mi !== null) {
-      let year = m[3] ? +m[3] : today.getFullYear();
-
-      let iso = toISO(year, mi + 1, +m[2]);
-
-      if (
-        !m[3] &&
-        new Date(`${iso}T00:00:00`) <
-          new Date(
-            `${toISO(
-              today.getFullYear(),
-              today.getMonth() + 1,
-              today.getDate()
-            )}T00:00:00`
-          )
-      ) {
-        year += 1;
-        iso = toISO(year, mi + 1, +m[2]);
-      }
-
-      return {
-        iso,
-        matchText: m[0],
-      };
-    }
-  }
-
-  // Day number only: "date 4", "on 4th", "on the 4th".
-  // Uses this month, or next month if that day has already passed.
-  m = q.match(
-    /\b(?:date|on)\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\b/i
-  );
-
-  if (m) {
-    const day = +m[1];
-
-    if (day >= 1 && day <= 31) {
-      let month = today.getMonth();
-
-      if (day < today.getDate()) {
-        month += 1;
-      }
-
-      const candidate = new Date(today.getFullYear(), month, day);
-
-      // reject overflow dates like 31 in a 30-day month
-      if (candidate.getDate() === day) {
-        return {
-          iso: toISO(
-            candidate.getFullYear(),
-            candidate.getMonth() + 1,
-            candidate.getDate()
-          ),
-          matchText: m[0],
-        };
-      }
-    }
-  }
-
-  return null;
-};
-
-const extractLabel = (text, dateMatchText) => {
-  let rest = text;
-
-  if (dateMatchText) {
-    const escapedDate = dateMatchText.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      "\\$&"
-    );
-
-    rest = rest.replace(new RegExp(escapedDate, "i"), " ");
-  }
-
-  const m =
-    rest.match(/\bas\s+(.+)$/i) ||
-    rest.match(/\b(?:called|named|titled)\s+(.+)$/i) ||
-    rest.match(/\bevent[: ]+([^,.]+)/i);
-
-  if (m) {
-    return m[1].trim().replace(/[.?!]+$/, "");
-  }
-
-  const stripped = rest
-    .replace(
-      /\b(mark|set|save|add|remind|note|reminder|on|for|the|my|calendar|date|in|to|please)\b/gi,
-      " "
-    )
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return stripped.length > 1 ? stripped : null;
-};
-
-const loadCalendarEvents = (userId) => {
-  try {
-    const raw = localStorage.getItem(
-      CHATBOT_EVENTS_KEY + (userId ?? "guest")
-    );
-
-    if (!raw) {
-      return [];
-    }
-
-    const parsed = JSON.parse(raw);
-
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveCalendarEvents = (userId, events) => {
-  try {
-    localStorage.setItem(
-      CHATBOT_EVENTS_KEY + (userId ?? "guest"),
-      JSON.stringify(events)
-    );
-
-    window.dispatchEvent(new Event("nfn-calendar-events-updated"));
-
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/* ------------------------------------------------------------------
-   Calendar commands -> saved in the backend (/api/calendar)
-   e.g. "Schedule Online Food Order on 4 Dec"
-        "schedule this project to date 4"
-   Questions like "what is scheduled today" are NOT treated as commands.
------------------------------------------------------------------- */
-const CALENDAR_INTENT =
-  /\b(schedule|mark|add|remind|reminder|save|note down)\b/i;
-
-const QUESTION_START =
-  /^\s*(what|which|show|any|when|list|how|who)\b/i;
-
-const findProjectForCommand = (question, projects, pathname) => {
-  const q = question.toLowerCase();
-
-  // 1) project name written in the message (longest name wins)
-  let best = null;
-
-  for (const p of projects) {
-    const name = (p.name || p.title || p.projectName || "").toLowerCase();
-
-    if (name && q.includes(name) && (!best || name.length > best.len)) {
-      best = { project: p, len: name.length };
-    }
-  }
-
-  if (best) return best.project;
-
-  // 2) "this project" -> the project open in the URL
-  const match = pathname.match(/\/projects\/(\d+)/);
-
-  if (match && /\bthis project\b/.test(q)) {
-    return projects.find((p) => String(p.id) === match[1]) || null;
-  }
-
-  return null;
-};
-
-const tryCalendarCommand = async ({ question, projects, pathname }) => {
-  if (QUESTION_START.test(question) || !CALENDAR_INTENT.test(question)) {
-    return null;
-  }
-
-  const dateHit = extractDate(question);
-
-  if (!dateHit) return null;
-
-  const project = findProjectForCommand(question, projects, pathname);
-
-  // user talks about a project but we could not identify which one
-  if (!project && /\bproject\b/i.test(question)) {
-    return 'Which project? Try: "Schedule Online Food Order on 4 Dec" (use the exact project name).';
-  }
-
-  const label = extractLabel(question, dateHit.matchText);
-
-  let title;
-
-  if (project) {
-    title = `${project.name || project.title || project.projectName} scheduled`;
-  } else if (label) {
-    title = label;
-  } else {
-    return `Got the date (${formatDisplayDate(
-      dateHit.iso
-    )}), but I couldn't tell what to call it. Try: "Mark ${formatDisplayDate(
-      dateHit.iso
-    )} as Team Outing".`;
-  }
-
-  try {
-    await axios.post("http://localhost:8080/api/calendar", {
-      title,
-      dueDate: dateHit.iso,
-      projectId: project ? project.id : null,
-      priority: "Medium",
-    });
-
-    window.dispatchEvent(new Event("nfn-calendar-events-updated"));
-
-    return `Done. "${title}" is marked on ${formatDisplayDate(
-      dateHit.iso
-    )} in your NeuroForge Calendar.`;
-  } catch (error) {
-    if (error?.response?.status === 403) {
-      return "You don't have permission to schedule on this project. Only the Admin, or the project's Manager or Lead, can do that.";
-    }
-
-    return "I couldn't save that calendar event. Please try again.";
-  }
-};
-
 const buildReply = ({
   question,
   projects,
-  subtasks,
-  tasks,
-  userId,
 }) => {
   const q = lower(question).trim();
 
@@ -429,116 +66,6 @@ const buildReply = ({
       "• Mark 25 Dec 2026 as Diwali\n" +
       "• Schedule <project name> on 4 Dec\n" +
       "• What's on today / tomorrow / 25 Dec?"
-    );
-  }
-
-  const dateHit = extractDate(question);
-  const calendarEvents = loadCalendarEvents(userId);
-
-  if (dateHit) {
-    const isMarkIntent =
-      /\b(mark|set|save|add|remind|note down|reminder)\b/i.test(q);
-
-    if (isMarkIntent) {
-      const label = extractLabel(question, dateHit.matchText);
-
-      if (!label) {
-        return `Got the date (${formatDisplayDate(
-          dateHit.iso
-        )}), but I couldn't tell what to call it. Try: "Mark ${formatDisplayDate(
-          dateHit.iso
-        )} as Team Outing".`;
-      }
-
-      const newEvent = {
-        id: `chatbot-${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 8)}`,
-        title: label,
-        label,
-        dueDate: dateHit.iso,
-        priority: "Medium",
-        type: "chatbot",
-        calendarType: "chatbot",
-        createdBy: userId ?? "guest",
-        createdAt: new Date().toISOString(),
-      };
-
-      const updatedEvents = [...calendarEvents, newEvent];
-
-      const saved = saveCalendarEvents(userId, updatedEvents);
-
-      if (!saved) {
-        return "I couldn't save that calendar event because browser storage is unavailable.";
-      }
-
-      return `Saved. ${formatDisplayDate(
-        dateHit.iso
-      )} is now marked as "${label}". It will appear on your NeuroForge Calendar.`;
-    }
-
-    const dayEvents = calendarEvents.filter(
-      (event) => event?.dueDate === dateHit.iso
-    );
-
-    const dueSubtasks = subtasks.filter(
-      (s) => s.dueDate === dateHit.iso
-    );
-
-    if (dayEvents.length === 0 && dueSubtasks.length === 0) {
-      return `Nothing marked on ${formatDisplayDate(
-        dateHit.iso
-      )}. Want me to add something? Try "Mark ${formatDisplayDate(
-        dateHit.iso
-      )} as ...".`;
-    }
-
-    const lines = [
-      `Here's what's on ${formatDisplayDate(dateHit.iso)}:`,
-    ];
-
-    dayEvents.forEach((event) => {
-      lines.push(
-        `• ${event.title || event.label || "Calendar event"}`
-      );
-    });
-
-    dueSubtasks.forEach((s) => {
-      const parentTask = tasks.find(
-        (t) => String(t.id) === String(s.taskId)
-      );
-
-      lines.push(
-        `• ${s.title || s.name || "Subtask"} — deliverable due${
-          parentTask ? ` (${parentTask.title})` : ""
-        }`
-      );
-    });
-
-    return lines.join("\n");
-  }
-
-  if (
-    /\b(my notes|my events|list events|all events|saved events)\b/.test(q)
-  ) {
-    if (calendarEvents.length === 0) {
-      return "You haven't marked any calendar dates yet.";
-    }
-
-    return (
-      "Your saved calendar events:\n" +
-      calendarEvents
-        .slice()
-        .sort((a, b) =>
-          String(a.dueDate).localeCompare(String(b.dueDate))
-        )
-        .map(
-          (event) =>
-            `• ${formatDisplayDate(event.dueDate)}: ${
-              event.title || event.label || "Calendar event"
-            }`
-        )
-        .join("\n")
     );
   }
 
@@ -696,12 +223,6 @@ const ChatBot = () => {
   const { currentUser } = useAuth();
   const { getVisibleProjects } = useProjects();
 
-  const {
-    tasks = [],
-    subtasks = [],
-    getVisibleSubtasks,
-  } = useTasks();
-
   const { teams = [] } = useTeams();
   const { projectTeams = {} } = useProjectTeam();
 
@@ -719,26 +240,6 @@ const ChatBot = () => {
       currentUser,
       projectTeams,
       teams,
-    ]
-  );
-
-  const visibleSubtasks = useMemo(
-    () =>
-      getVisibleSubtasks
-        ? getVisibleSubtasks(
-            currentUser,
-            projectTeams,
-            teams,
-            projects
-          )
-        : subtasks,
-    [
-      getVisibleSubtasks,
-      currentUser,
-      projectTeams,
-      teams,
-      projects,
-      subtasks,
     ]
   );
 
@@ -783,26 +284,6 @@ const ChatBot = () => {
     setSending(true);
 
     try {
-      // Calendar commands are saved in the backend first.
-      // Anything else continues to the AI chatbot below.
-      const calendarReply = await tryCalendarCommand({
-        question,
-        projects,
-        pathname: location.pathname,
-      });
-
-      if (calendarReply) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            from: "bot",
-            text: calendarReply,
-          },
-        ]);
-
-        return;
-      }
-
       /* ==========================================================================
          [BACKEND_INTEGRATION_POINT]
          Endpoint:    POST http://localhost:8080/api/chat
@@ -829,6 +310,10 @@ const ChatBot = () => {
         }
       );
 
+      if (/\b(schedule|add|create|remind|reminder|mark|deadline|release)\b/i.test(question)) {
+        window.dispatchEvent(new Event("nfn-calendar-events-updated"));
+      }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -839,13 +324,9 @@ const ChatBot = () => {
     } catch (error) {
       console.error("Chatbot backend error:", error);
 
-      const fallback = buildReply({
-        question,
-        projects,
-        subtasks: visibleSubtasks,
-        tasks,
-        userId: currentUser?.id,
-      });
+      const fallback = /\b(calendar|schedule|deadline|overdue|today|tomorrow|mark|remind|release)\b/i.test(question)
+        ? "Calendar assistant is unavailable right now. Please try again when the backend is online."
+        : buildReply({ question, projects });
 
       setMessages((prev) => [
         ...prev,
