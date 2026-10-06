@@ -213,6 +213,38 @@ const extractDate = (text) => {
     }
   }
 
+  // Day number only: "date 4", "on 4th", "on the 4th".
+  // Uses this month, or next month if that day has already passed.
+  m = q.match(
+    /\b(?:date|on)\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\b/i
+  );
+
+  if (m) {
+    const day = +m[1];
+
+    if (day >= 1 && day <= 31) {
+      let month = today.getMonth();
+
+      if (day < today.getDate()) {
+        month += 1;
+      }
+
+      const candidate = new Date(today.getFullYear(), month, day);
+
+      // reject overflow dates like 31 in a 30-day month
+      if (candidate.getDate() === day) {
+        return {
+          iso: toISO(
+            candidate.getFullYear(),
+            candidate.getMonth() + 1,
+            candidate.getDate()
+          ),
+          matchText: m[0],
+        };
+      }
+    }
+  }
+
   return null;
 };
 
@@ -281,6 +313,98 @@ const saveCalendarEvents = (userId, events) => {
   }
 };
 
+/* ------------------------------------------------------------------
+   Calendar commands -> saved in the backend (/api/calendar)
+   e.g. "Schedule Online Food Order on 4 Dec"
+        "schedule this project to date 4"
+   Questions like "what is scheduled today" are NOT treated as commands.
+------------------------------------------------------------------ */
+const CALENDAR_INTENT =
+  /\b(schedule|mark|add|remind|reminder|save|note down)\b/i;
+
+const QUESTION_START =
+  /^\s*(what|which|show|any|when|list|how|who)\b/i;
+
+const findProjectForCommand = (question, projects, pathname) => {
+  const q = question.toLowerCase();
+
+  // 1) project name written in the message (longest name wins)
+  let best = null;
+
+  for (const p of projects) {
+    const name = (p.name || p.title || p.projectName || "").toLowerCase();
+
+    if (name && q.includes(name) && (!best || name.length > best.len)) {
+      best = { project: p, len: name.length };
+    }
+  }
+
+  if (best) return best.project;
+
+  // 2) "this project" -> the project open in the URL
+  const match = pathname.match(/\/projects\/(\d+)/);
+
+  if (match && /\bthis project\b/.test(q)) {
+    return projects.find((p) => String(p.id) === match[1]) || null;
+  }
+
+  return null;
+};
+
+const tryCalendarCommand = async ({ question, projects, pathname }) => {
+  if (QUESTION_START.test(question) || !CALENDAR_INTENT.test(question)) {
+    return null;
+  }
+
+  const dateHit = extractDate(question);
+
+  if (!dateHit) return null;
+
+  const project = findProjectForCommand(question, projects, pathname);
+
+  // user talks about a project but we could not identify which one
+  if (!project && /\bproject\b/i.test(question)) {
+    return 'Which project? Try: "Schedule Online Food Order on 4 Dec" (use the exact project name).';
+  }
+
+  const label = extractLabel(question, dateHit.matchText);
+
+  let title;
+
+  if (project) {
+    title = `${project.name || project.title || project.projectName} scheduled`;
+  } else if (label) {
+    title = label;
+  } else {
+    return `Got the date (${formatDisplayDate(
+      dateHit.iso
+    )}), but I couldn't tell what to call it. Try: "Mark ${formatDisplayDate(
+      dateHit.iso
+    )} as Team Outing".`;
+  }
+
+  try {
+    await axios.post("http://localhost:8080/api/calendar", {
+      title,
+      dueDate: dateHit.iso,
+      projectId: project ? project.id : null,
+      priority: "Medium",
+    });
+
+    window.dispatchEvent(new Event("nfn-calendar-events-updated"));
+
+    return `Done. "${title}" is marked on ${formatDisplayDate(
+      dateHit.iso
+    )} in your NeuroForge Calendar.`;
+  } catch (error) {
+    if (error?.response?.status === 403) {
+      return "You don't have permission to schedule on this project. Only the Admin, or the project's Manager or Lead, can do that.";
+    }
+
+    return "I couldn't save that calendar event. Please try again.";
+  }
+};
+
 const buildReply = ({
   question,
   projects,
@@ -303,6 +427,7 @@ const buildReply = ({
       "• Any upcoming or overdue deadlines?\n" +
       "• Tell me about <project name or code>\n" +
       "• Mark 25 Dec 2026 as Diwali\n" +
+      "• Schedule <project name> on 4 Dec\n" +
       "• What's on today / tomorrow / 25 Dec?"
     );
   }
@@ -658,6 +783,26 @@ const ChatBot = () => {
     setSending(true);
 
     try {
+      // Calendar commands are saved in the backend first.
+      // Anything else continues to the AI chatbot below.
+      const calendarReply = await tryCalendarCommand({
+        question,
+        projects,
+        pathname: location.pathname,
+      });
+
+      if (calendarReply) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            from: "bot",
+            text: calendarReply,
+          },
+        ]);
+
+        return;
+      }
+
       /* ==========================================================================
          [BACKEND_INTEGRATION_POINT]
          Endpoint:    POST http://localhost:8080/api/chat

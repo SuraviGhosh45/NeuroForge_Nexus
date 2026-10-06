@@ -15,9 +15,11 @@ import { useProjects } from "../../context/ProjectContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 import { useTeams } from "../../context/TeamsContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
+import axios from "../../services/api.js";   
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
 import { usePermission } from "../../hooks/usePermission.js";
 import { normalizeRole, ROLES } from "../../constants/roles.js";
+
 
 const CHATBOT_EVENTS_KEY = "nfn_calendar_events_";
 
@@ -621,7 +623,7 @@ const GlobalCalendar = () => {
             }
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
           >
-            <option value="" className="dark:bg-[#1e293b] dark:text-white">
+            <option value="All" className="dark:bg-[#1e293b] dark:text-white">
               All Projects
             </option>
 
@@ -650,7 +652,7 @@ const GlobalCalendar = () => {
             }
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
           >
-            <option value="" className="dark:bg-[#1e293b] dark:text-white">
+            <option value="All" className="dark:bg-[#1e293b] dark:text-white">
               All Teams
             </option>
 
@@ -676,7 +678,7 @@ const GlobalCalendar = () => {
             }
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-[#172033] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-[#1e293b] dark:text-white"
           >
-            <option value="" className="dark:bg-[#1e293b] dark:text-white">
+            <option value="All" className="dark:bg-[#1e293b] dark:text-white">
               All Users
             </option>
 
