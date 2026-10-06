@@ -8,6 +8,7 @@
 > - ✅ **Task & Subtask Status Transitions**: Fully implemented in `TaskController` (`PATCH /api/tasks/{id}/status`) and `SubtaskController` (`PATCH /api/subtasks/{id}/status`).
 > - ✅ **Teams & Project Member Allocations**: Fully implemented in `TeamController` and `ProjectController`.
 > - ✅ **AI Assistant SDLC Chatbot**: Fully implemented in `ChatController` (`POST /api/chat`).
+> - ✅ **Calendar & Meeting Scheduling Events**: Fully implemented in `CalendarController` (`/api/calendar`).
 > - ✅ **Codebase Integration Points**: All 65 frontend integration comments have been cleaned up and verified.
 
 ---
@@ -135,6 +136,18 @@ All endpoints connect under `http://localhost:8080/api`.
 | Method | Endpoint | Description | Status |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/chat` | AI assistant query for projects, tasks & calendar | ✅ Implemented |
+
+#### 7. Calendar & Scheduling Events (`/api/calendar`)
+| Method | Endpoint | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/calendar` | List user visible calendar events | ✅ Implemented |
+| `GET` | `/api/calendar/{id}` | Get event details | ✅ Implemented |
+| `GET` | `/api/calendar/project/{projectId}` | Get project calendar events | ✅ Implemented |
+| `POST` | `/api/calendar` | Create calendar/meeting event | ✅ Implemented |
+| `PUT` | `/api/calendar/{id}` | Update calendar event | ✅ Implemented |
+| `PATCH` | `/api/calendar/{id}/date` | Reschedule event date/time | ✅ Implemented |
+| `PATCH` | `/api/calendar/{id}/status` | Update event status | ✅ Implemented |
+| `DELETE` | `/api/calendar/{id}` | Delete calendar event | ✅ Implemented |
 
 ---
 

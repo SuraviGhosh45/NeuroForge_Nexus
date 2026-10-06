@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   PiPaperPlaneRight,
   PiRobot,
@@ -11,6 +11,8 @@ import {
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useProjects } from "../../context/ProjectContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
+import { useTeams } from "../../context/TeamsContext.jsx";
+import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
 import axios from "../../services/api.js";
 
 const CHATBOT_EVENTS_KEY = "nfn_calendar_events_";
@@ -263,8 +265,18 @@ const createMsg = (from, text) => ({
 
 const ChatBot = () => {
   const { currentUser } = useAuth();
-  const { projects = [] } = useProjects() || {};
+  const { projects: allProjects = [], getVisibleProjects } = useProjects() || {};
   const { tasks = [] } = useTasks() || {};
+  const { teams = [] } = useTeams() || {};
+  const { projectTeams = {} } = useProjectTeam() || {};
+
+  const projects = useMemo(
+    () =>
+      getVisibleProjects
+        ? getVisibleProjects(currentUser, projectTeams, teams)
+        : allProjects,
+    [getVisibleProjects, currentUser, projectTeams, teams, allProjects]
+  );
 
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -849,6 +861,10 @@ const ChatBot = () => {
         history,
       });
 
+      if (/\b(schedule|add|create|remind|reminder|mark|deadline|release)\b/i.test(question)) {
+        window.dispatchEvent(new Event("nfn-calendar-events-updated"));
+      }
+
       const reply = data?.reply;
 
       if (!reply) {
@@ -1029,7 +1045,7 @@ const ChatBot = () => {
                         </>
                       ) : (
                         <>
-                          <PiCopy size={11} />
+                          <PiCheckCircle size={11} className="hidden" />
                           <span>Copy</span>
                         </>
                       )}

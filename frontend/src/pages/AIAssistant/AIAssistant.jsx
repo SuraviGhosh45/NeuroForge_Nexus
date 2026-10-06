@@ -13,127 +13,6 @@ import { useProjects } from "../../context/ProjectContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 import axios from "../../services/api.js";
 
-const CHATBOT_EVENTS_KEY = "nfn_calendar_events_";
-
-const lower = (value) => String(value ?? "").toLowerCase();
-
-const formatDisplayDate = (iso) => {
-  if (!iso) return "";
-  const d = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-const pad2 = (n) => String(n).padStart(2, "0");
-const toISO = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
-
-const extractDate = (text) => {
-  const q = text.trim();
-  const today = new Date();
-
-  if (/\btoday\b/i.test(q)) {
-    return {
-      iso: toISO(today.getFullYear(), today.getMonth() + 1, today.getDate()),
-      matchText: "today",
-    };
-  }
-
-  if (/\btomorrow\b/i.test(q)) {
-    const t = new Date(today);
-    t.setDate(t.getDate() + 1);
-    return {
-      iso: toISO(t.getFullYear(), t.getMonth() + 1, t.getDate()),
-      matchText: "tomorrow",
-    };
-  }
-
-  let m = q.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
-
-  if (m) {
-    return {
-      iso: toISO(+m[1], +m[2], +m[3]),
-      matchText: m[0],
-    };
-  }
-
-  m = q.match(/\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})\b/);
-
-  if (m) {
-    let year = +m[3];
-    if (year < 100) year += 2000;
-
-    return {
-      iso: toISO(year, +m[2], +m[1]),
-      matchText: m[0],
-    };
-  }
-
-  return null;
-};
-
-const extractLabel = (text, dateMatchText) => {
-  let rest = text;
-
-  if (dateMatchText) {
-    const escaped = dateMatchText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    rest = rest.replace(new RegExp(escaped, "i"), " ");
-  }
-
-  const m =
-    rest.match(/\bas\s+(.+)$/i) ||
-    rest.match(/\b(?:called|named|titled)\s+(.+)$/i) ||
-    rest.match(/\bevent[: ]+([^,.]+)/i);
-
-  if (m) {
-    return m[1].trim().replace(/[.?!]+$/, "");
-  }
-
-  const stripped = rest
-    .replace(
-      /\b(mark|set|save|add|remind|note|reminder|on|for|the|my|calendar|date|in|to|please)\b/gi,
-      " "
-    )
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return stripped.length > 1 ? stripped : null;
-};
-
-const loadCalendarEvents = (userId) => {
-  try {
-    const raw = localStorage.getItem(
-      CHATBOT_EVENTS_KEY + (userId ?? "guest")
-    );
-
-    if (!raw) return [];
-
-    const parsed = JSON.parse(raw);
-
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveCalendarEvents = (userId, events) => {
-  try {
-    localStorage.setItem(
-      CHATBOT_EVENTS_KEY + (userId ?? "guest"),
-      JSON.stringify(events)
-    );
-
-    window.dispatchEvent(new Event("nfn-calendar-events-updated"));
-
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const QUICK_PROMPTS = [
   {
     category: "Projects",
@@ -211,114 +90,6 @@ const AIAssistant = () => {
     }),
   });
 
-  const handleCalendarQuery = (query) => {
-    const userId = currentUser?.id;
-    const q = lower(query).trim();
-
-    const calendarEvents = loadCalendarEvents(userId);
-    const dateHit = extractDate(query);
-
-    if (dateHit) {
-      const isMarkIntent =
-        /\b(mark|set|save|add|remind|note|reminder)\b/i.test(q);
-
-      if (isMarkIntent) {
-        const label = extractLabel(query, dateHit.matchText);
-
-        if (!label) {
-          return `Got the date (${formatDisplayDate(
-            dateHit.iso
-          )}), but couldn't detect the event title. Try: "Mark ${formatDisplayDate(
-            dateHit.iso
-          )} as Sprint Review".`;
-        }
-
-        const newEvent = {
-          id: `chatbot-${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2, 8)}`,
-          title: label,
-          label,
-          dueDate: dateHit.iso,
-          priority: "Medium",
-          type: "chatbot",
-          calendarType: "chatbot",
-          createdBy: userId ?? "guest",
-          createdAt: new Date().toISOString(),
-        };
-
-        const saved = saveCalendarEvents(userId, [
-          ...calendarEvents,
-          newEvent,
-        ]);
-
-        if (!saved) {
-          return "I couldn't save that calendar event in this browser.";
-        }
-
-        return `✅ Event saved! **${formatDisplayDate(
-          dateHit.iso
-        )}** is now marked as **"${label}"**.`;
-      }
-
-      const dayEvents = calendarEvents.filter(
-        (event) => event?.dueDate === dateHit.iso
-      );
-
-      const dueTasks = tasks.filter(
-        (task) => task?.dueDate === dateHit.iso
-      );
-
-      if (dayEvents.length === 0 && dueTasks.length === 0) {
-        return `📅 Nothing is scheduled on **${formatDisplayDate(
-          dateHit.iso
-        )}**.`;
-      }
-
-      const lines = [
-        `📅 **Schedule for ${formatDisplayDate(dateHit.iso)}:**`,
-      ];
-
-      dayEvents.forEach((event) =>
-        lines.push(
-          `• 📌 **Calendar Event**: ${event.title || event.label}`
-        )
-      );
-
-      dueTasks.forEach((task) =>
-        lines.push(
-          `• 📋 **Task Deadline**: ${task.title} (${
-            task.status || "To Do"
-          })`
-        )
-      );
-
-      return lines.join("\n");
-    }
-
-    if (
-      /\b(saved events|all events|list events|my events)\b/.test(q)
-    ) {
-      if (calendarEvents.length === 0) {
-        return "You don't have any custom calendar events saved yet.";
-      }
-
-      return (
-        `📅 **Your Saved Calendar Events (${calendarEvents.length}):**\n` +
-        calendarEvents
-          .map(
-            (event) =>
-              `• **${formatDisplayDate(event.dueDate)}**: ${
-                event.title || event.label
-              }`
-          )
-          .join("\n")
-      );
-    }
-
-    return null;
-  };
-
   const handleSend = async (e) => {
     e?.preventDefault();
 
@@ -334,21 +105,6 @@ const AIAssistant = () => {
     setIsTyping(true);
 
     try {
-      /*
-       * Calendar commands are kept as local browser functionality.
-       * Everything else goes to the real AI backend.
-       */
-      const calendarReply = handleCalendarQuery(query);
-
-      if (calendarReply) {
-        setMessages((prev) => [
-          ...prev,
-          createMessage("ai", calendarReply),
-        ]);
-
-        return;
-      }
-
       /*
        * Send recent conversation history to the backend.
        * The backend uses the authenticated JWT user to determine
@@ -372,6 +128,10 @@ const AIAssistant = () => {
         message: query,
         history,
       });
+
+      if (/\b(schedule|add|create|remind|reminder|mark|deadline|release)\b/i.test(query)) {
+        window.dispatchEvent(new Event("nfn-calendar-events-updated"));
+      }
 
       const reply = response.data?.reply;
 
