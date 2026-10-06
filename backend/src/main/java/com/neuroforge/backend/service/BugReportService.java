@@ -7,6 +7,7 @@ import com.neuroforge.backend.dto.BugReportDtos.UpdateBugRequest;
 import com.neuroforge.backend.dto.BugReportDtos.UpdateStatusRequest;
 import com.neuroforge.backend.entity.BugReport;
 import com.neuroforge.backend.entity.Project;
+import com.neuroforge.backend.entity.Role;
 import com.neuroforge.backend.repository.BugReportRepository;
 import com.neuroforge.backend.repository.ProjectRepository;
 import com.neuroforge.backend.security.AuthUser;
@@ -21,15 +22,32 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class BugReportService {
 
+    /*
+     * Status groups used by role rules.
+     * Values are normalized (lowercase, letters/digits only),
+     * so "In Progress", "in_progress" and "inprogress" all match.
+     * Adjust these if your frontend uses different status names.
+     */
+    private static final Set<String> DEV_STATUSES =
+            Set.of("inprogress", "fixed", "resolved", "readyforretest", "readyfortesting");
+
+    private static final Set<String> TESTER_STATUSES =
+            Set.of("verified", "reopened", "closed", "retesting", "retest");
+
     private final BugReportRepository bugReportRepository;
     private final ProjectRepository projectRepository;
     private final AccessService accessService;
+
+    // ------------------------------------------------------------------
+    // READ
+    // ------------------------------------------------------------------
 
     /**
      * Get all bugs visible to the current authenticated user.
@@ -94,11 +112,16 @@ public class BugReportService {
         return toResponse(bug);
     }
 
+    // ------------------------------------------------------------------
+    // CREATE
+    // ------------------------------------------------------------------
+
     /**
      * Create a new bug.
      *
+     * Anyone who can view the project can report (Unassigned cannot view anything).
      * reportedBy is ALWAYS taken from the authenticated user.
-     * The frontend cannot choose this value.
+     * Only users allowed to assign can set assignedTo at creation.
      */
     public BugReportResponse createBug(CreateBugRequest request) {
 
@@ -108,10 +131,11 @@ public class BugReportService {
 
         accessService.assertCanView(user, project);
 
-        validateAssignment(
-                request.assignedTo(),
-                project
-        );
+        Long assignedTo = canAssign(user, project)
+                ? request.assignedTo()
+                : null;
+
+        validateAssignment(assignedTo, project);
 
         BugReport bug = new BugReport();
 
@@ -131,17 +155,20 @@ public class BugReportService {
          */
         bug.setReportedBy(user.userId());
 
-        bug.setAssignedTo(request.assignedTo());
+        bug.setAssignedTo(assignedTo);
         bug.setAttachments(request.attachments());
 
-        BugReport saved =
-                bugReportRepository.save(bug);
-
-        return toResponse(saved);
+        return toResponse(bugReportRepository.save(bug));
     }
+
+    // ------------------------------------------------------------------
+    // UPDATE
+    // ------------------------------------------------------------------
 
     /**
      * Update bug information.
+     * Allowed: Admin / PM / Lead of the project, or the person who reported the bug.
+     * Assignment is changed here only by users who are allowed to assign.
      */
     public BugReportResponse updateBug(
             Long id,
@@ -152,21 +179,9 @@ public class BugReportService {
 
         BugReport bug = getBugEntity(id);
 
-        Project project =
-                getProject(bug.getProjectId());
+        Project project = getProject(bug.getProjectId());
 
-        /*
-         * Updating the bug itself is a project-management operation.
-         */
-        accessService.assertCanManage(
-                user,
-                project
-        );
-
-        validateAssignment(
-                request.assignedTo(),
-                project
-        );
+        assertCanEdit(user, project, bug);
 
         bug.setTitle(request.title().trim());
         bug.setDescription(request.description().trim());
@@ -174,16 +189,22 @@ public class BugReportService {
         bug.setEnvironment(request.environment().trim());
         bug.setSeverity(request.severity().trim());
         bug.setPriority(request.priority().trim());
-        bug.setAssignedTo(request.assignedTo());
         bug.setAttachments(request.attachments());
 
-        return toResponse(
-                bugReportRepository.save(bug)
-        );
+        // Assignment is untouched unless the user is allowed to assign.
+        if (canAssign(user, project)) {
+            validateAssignment(request.assignedTo(), project);
+            bug.setAssignedTo(request.assignedTo());
+        }
+
+        return toResponse(bugReportRepository.save(bug));
     }
 
     /**
      * Update bug status.
+     * Managers: any status.
+     * Developer/Team Member: fix statuses, only on bugs assigned to them.
+     * Tester/QA: verify/close statuses, only inside their project.
      */
     public BugReportResponse updateStatus(
             Long id,
@@ -194,29 +215,22 @@ public class BugReportService {
 
         BugReport bug = getBugEntity(id);
 
-        Project project =
-                getProject(bug.getProjectId());
+        Project project = getProject(bug.getProjectId());
 
-        accessService.assertCanManage(
-                user,
-                project
-        );
+        assertCanChangeStatus(user, project, bug, request.status());
 
         bug.setStatus(request.status().trim());
 
         if (request.retestResult() != null) {
-            bug.setRetestResult(
-                    request.retestResult().trim()
-            );
+            bug.setRetestResult(request.retestResult().trim());
         }
 
-        return toResponse(
-                bugReportRepository.save(bug)
-        );
+        return toResponse(bugReportRepository.save(bug));
     }
 
     /**
      * Assign or reassign a bug.
+     * Allowed: Admin / PM / Lead, or the Team Lead of that project.
      */
     public BugReportResponse updateAssignment(
             Long id,
@@ -227,30 +241,23 @@ public class BugReportService {
 
         BugReport bug = getBugEntity(id);
 
-        Project project =
-                getProject(bug.getProjectId());
+        Project project = getProject(bug.getProjectId());
 
-        accessService.assertCanManage(
-                user,
-                project
-        );
+        assertCanAssign(user, project);
 
-        validateAssignment(
-                request.assignedTo(),
-                project
-        );
+        validateAssignment(request.assignedTo(), project);
 
-        bug.setAssignedTo(
-                request.assignedTo()
-        );
+        bug.setAssignedTo(request.assignedTo());
 
-        return toResponse(
-                bugReportRepository.save(bug)
-        );
+        return toResponse(bugReportRepository.save(bug));
     }
 
+    // ------------------------------------------------------------------
+    // DELETE
+    // ------------------------------------------------------------------
+
     /**
-     * Delete a bug.
+     * Delete a bug. Admin / PM / Lead only.
      */
     public void deleteBug(Long id) {
 
@@ -258,15 +265,82 @@ public class BugReportService {
 
         BugReport bug = getBugEntity(id);
 
-        Project project =
-                getProject(bug.getProjectId());
+        Project project = getProject(bug.getProjectId());
 
-        accessService.assertCanManage(
-                user,
-                project
-        );
+        accessService.assertCanManage(user, project);
 
         bugReportRepository.delete(bug);
+    }
+
+    // ------------------------------------------------------------------
+    // PERMISSION HELPERS
+    // ------------------------------------------------------------------
+
+    private void assertCanEdit(AuthUser user, Project project, BugReport bug) {
+
+        if (accessService.canManage(user, project)) {
+            return;
+        }
+
+        if (user.role().isExecutionRole()
+                && accessService.isMember(project, user.userId())
+                && user.userId().equals(bug.getReportedBy())) {
+            return;
+        }
+
+        throw new AccessDeniedException("You can edit only bugs you reported");
+    }
+
+    private boolean canAssign(AuthUser user, Project project) {
+
+        if (accessService.canManage(user, project)) {
+            return true;
+        }
+
+        return user.role() == Role.TEAM_LEAD
+                && accessService.isTeamLead(project, user.userId());
+    }
+
+    private void assertCanAssign(AuthUser user, Project project) {
+
+        if (!canAssign(user, project)) {
+            throw new AccessDeniedException("You cannot assign bugs in this project");
+        }
+    }
+
+    private void assertCanChangeStatus(
+            AuthUser user,
+            Project project,
+            BugReport bug,
+            String newStatus
+    ) {
+
+        if (accessService.canManage(user, project)) {
+            return;
+        }
+
+        String status = normalize(newStatus);
+        Role role = user.role();
+
+        if ((role == Role.DEVELOPER || role == Role.TEAM_MEMBER)
+                && user.userId().equals(bug.getAssignedTo())
+                && DEV_STATUSES.contains(status)) {
+            return;
+        }
+
+        if ((role == Role.TESTER || role == Role.QA)
+                && accessService.isMember(project, user.userId())
+                && TESTER_STATUSES.contains(status)) {
+            return;
+        }
+
+        throw new AccessDeniedException("Your role cannot set this status");
+    }
+
+    private static String normalize(String value) {
+        return value == null
+                ? ""
+                : value.replaceAll("[^A-Za-z0-9]", "").toLowerCase();
     }
 
     /**
@@ -281,39 +355,28 @@ public class BugReportService {
             return;
         }
 
-        if (!accessService.isMember(
-                project,
-                assignedTo
-        )) {
+        if (!accessService.isMember(project, assignedTo)) {
             throw new AccessDeniedException(
                     "The assigned user is not a member of this project"
             );
         }
     }
 
+    // ------------------------------------------------------------------
+    // INTERNAL HELPERS
+    // ------------------------------------------------------------------
+
     /**
-     * Generate a readable bug key.
-     *
-     * Example:
-     * BUG-1
-     * BUG-2
-     * BUG-3
+     * Generate a readable bug key: BUG-1, BUG-2, BUG-3 ...
      */
     private String generateBugKey() {
 
-        long nextId =
-                bugReportRepository.count() + 1;
+        long nextId = bugReportRepository.count() + 1;
 
-        String bugKey =
-                "BUG-" + nextId;
+        String bugKey = "BUG-" + nextId;
 
-        /*
-         * Protect against gaps/collisions after deletions.
-         */
-        while (
-                bugReportRepository
-                        .existsByBugKey(bugKey)
-        ) {
+        // Protect against gaps/collisions after deletions.
+        while (bugReportRepository.existsByBugKey(bugKey)) {
             nextId++;
             bugKey = "BUG-" + nextId;
         }
@@ -343,9 +406,7 @@ public class BugReportService {
                 );
     }
 
-    private BugReportResponse toResponse(
-            BugReport bug
-    ) {
+    private BugReportResponse toResponse(BugReport bug) {
 
         return new BugReportResponse(
                 bug.getId(),
