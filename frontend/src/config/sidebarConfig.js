@@ -6,6 +6,7 @@ import {
   PiFolder,
   PiCalendarBlank,
   PiBriefcase,
+  PiBug,
 } from "react-icons/pi";
 import { ROLES, MEMBER_ROLES, normalizeRole } from "../constants/roles.js";
 
@@ -43,7 +44,6 @@ export const sidebarItems = [
       ROLES.PROJECT_MANAGER,
       ROLES.PROJECT_LEAD,
       ROLES.TEAM_LEAD,
-      // NOTE: Members do NOT have Tasks menu item; they use My Work
     ],
   },
   {
@@ -59,11 +59,22 @@ export const sidebarItems = [
     ],
   },
   {
+    label: "Testing",
+    path: "/testing",
+    icon: PiBug,
+    roles: [
+      ROLES.ADMIN,
+      ROLES.PROJECT_MANAGER,
+      ROLES.PROJECT_LEAD,
+      ROLES.TEAM_LEAD,
+      ...MEMBER_ROLES,
+    ],
+  },
+  {
     label: "My Work",
     path: "/my-tasks",
     icon: PiBriefcase,
     roles: [
-      // NOTE: Admin NEVER has My Work
       ROLES.PROJECT_MANAGER,
       ROLES.PROJECT_LEAD,
       ROLES.TEAM_LEAD,
@@ -93,6 +104,7 @@ export const sidebarItems = [
 
 export const getSidebarItems = (role) => {
   const normalized = normalizeRole(role);
+
   return sidebarItems.filter((item) =>
     item.roles.map(normalizeRole).includes(normalized)
   );
