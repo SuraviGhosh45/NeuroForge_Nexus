@@ -27,7 +27,8 @@ import { useTeams } from "../../context/TeamsContext.jsx";
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
 import axios from "../../services/api.js";
 
-const API = "http://localhost:8080/api/calendar";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API = `${API_BASE}/calendar`;
 const CHATBOT_EVENTS_KEY = "nfn_calendar_events_";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -199,7 +200,7 @@ const GlobalCalendar = () => {
       return () => { active = false; };
     }
     axios
-      .get(`http://localhost:8080/api/sprints/projects/${form.projectId}/sprints`)
+      .get(`${API_BASE}/sprints/projects/${form.projectId}/sprints`)
       .then((response) => {
         if (active) setSprints(Array.isArray(response.data) ? response.data : response.data?.content || []);
       })

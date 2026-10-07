@@ -4,7 +4,7 @@ import "../services/api.js";
 
 const TeamsContext = createContext(null);
 
-const API_BASE = "http://localhost:8080/api/teams";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
 
 export const TeamsProvider = ({ children }) => {
   const [teams, setTeams] = useState([]);
@@ -43,13 +43,13 @@ export const TeamsProvider = ({ children }) => {
     setError("");
 
     try {
-            const response = await axios.get(API_BASE);
+            const response = await axios.get(`${API_BASE}/teams`);
 
       const teamsWithMembers = await Promise.all(
         response.data.map(async (team) => {
           try {
                         const membersResponse = await axios.get(
-              `${API_BASE}/${team.id}/members`
+              `${API_BASE}/teams/${team.id}/members`
             );
 
             return {
@@ -89,7 +89,7 @@ export const TeamsProvider = ({ children }) => {
 
   const createTeam = async (name) => {
     try {
-            await axios.post(API_BASE, {
+            await axios.post(`${API_BASE}/teams`, {
         name,
         description: "",
       });
@@ -111,7 +111,7 @@ export const TeamsProvider = ({ children }) => {
 
   const updateTeam = async (teamId, updates) => {
     try {
-            await axios.put(`${API_BASE}/${teamId}`, {
+            await axios.put(`${API_BASE}/teams/${teamId}`, {
         name: updates.name,
         description: updates.description || "",
       });
@@ -133,7 +133,7 @@ export const TeamsProvider = ({ children }) => {
 
   const deleteTeam = async (teamId) => {
     try {
-            await axios.delete(`${API_BASE}/${teamId}`);
+            await axios.delete(`${API_BASE}/teams/${teamId}`);
 
       setTeams((prev) =>
         prev.filter(
@@ -157,7 +157,7 @@ export const TeamsProvider = ({ children }) => {
   const addMember = async (teamId, member) => {
     try {
       await axios.post(
-        `${API_BASE}/${teamId}/members`,
+        `${API_BASE}/teams/${teamId}/members`,
         {
           userId: member.userId,
           teamRole: member.teamRole,
@@ -186,7 +186,7 @@ export const TeamsProvider = ({ children }) => {
   ) => {
     try {
       await axios.put(
-        `${API_BASE}/${teamId}/members/${userId}`,
+        `${API_BASE}/teams/${teamId}/members/${userId}`,
         {
           teamRole: updates.teamRole,
         }
@@ -213,7 +213,7 @@ export const TeamsProvider = ({ children }) => {
   ) => {
     try {
       await axios.delete(
-        `${API_BASE}/${teamId}/members/${userId}`
+        `${API_BASE}/teams/${teamId}/members/${userId}`
       );
 
       await fetchTeams();

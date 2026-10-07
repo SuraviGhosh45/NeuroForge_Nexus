@@ -11,8 +11,7 @@ import {
 
 export const AuthContext = createContext(null);
 
-const API_BASE = "http://localhost:8080/api/auth";
-const USERS_BASE = "http://localhost:8080/api/users";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
 const AUTH_USER_KEY = "auth_user";
 
 export const normalizeUser = (user) => {
@@ -66,7 +65,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     axios
-      .get(`${API_BASE}/me`)
+      .get(`${API_BASE}/auth/me`)
       .then((response) => {
         const user = normalizeUser(response.data);
 
@@ -99,7 +98,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post(`${API_BASE}/signup`, {
+      const response = await axios.post(`${API_BASE}/auth/signup`, {
         fullName: userData.name || userData.fullName,
         email: userData.email,
         password: userData.password,
@@ -137,7 +136,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, remember = false) => {
     try {
-      const response = await axios.post(`${API_BASE}/login`, {
+      const response = await axios.post(`${API_BASE}/auth/login`, {
         identifier: email,
         email,
         password,
@@ -241,7 +240,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post(`${API_BASE}/logout`);
+      await axios.post(`${API_BASE}/auth/logout`);
     } catch {
       // Logout locally even if the backend request fails.
     }
@@ -254,7 +253,7 @@ export const AuthProvider = ({ children }) => {
 
   const deleteAccount = async () => {
     try {
-      await axios.delete(`${USERS_BASE}/me`);
+      await axios.delete(`${API_BASE}/users/me`);
 
       clearToken();
       sessionStorage.removeItem(AUTH_USER_KEY);
@@ -276,7 +275,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateCurrentUser = async (updates) => {
     try {
-      const response = await axios.put(`${USERS_BASE}/me`, updates);
+      const response = await axios.put(`${API_BASE}/users/me`, updates);
 
       const updated = normalizeUser(response.data);
 

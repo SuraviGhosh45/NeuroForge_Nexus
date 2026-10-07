@@ -16,7 +16,8 @@ import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
 import axios from "../../services/api.js";
 
 const CHATBOT_EVENTS_KEY = "nfn_calendar_events_";
-const CHAT_ENDPOINT = "http://localhost:8080/api/chat";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const CHAT_ENDPOINT = `${API_BASE}/chat`;
 
 const lower = (value) => String(value ?? "").toLowerCase();
 

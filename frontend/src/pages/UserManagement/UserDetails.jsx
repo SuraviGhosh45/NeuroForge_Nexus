@@ -17,6 +17,8 @@ import { useProjects } from "../../context/ProjectContext.jsx";
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+
 const UserDetails = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -37,7 +39,7 @@ const UserDetails = () => {
         setError("");
 
                 const response = await axios.get(
-          `http://localhost:8080/api/users/${userId}/profile`
+          `${API_BASE}/users/${userId}/profile`
         );
 
         setUser(response.data);

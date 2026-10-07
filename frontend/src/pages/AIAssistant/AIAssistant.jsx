@@ -43,7 +43,8 @@ const QUICK_PROMPTS = [
   },
 ];
 
-const CHAT_ENDPOINT = "http://localhost:8080/api/chat";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const CHAT_ENDPOINT = `${API_BASE}/chat`;
 
 const AIAssistant = () => {
   const { currentUser } = useAuth();

@@ -14,8 +14,9 @@ import {
 import { AuthContext } from "../../context/AuthContext.jsx";
 import axios from "../../services/api.js";
 
-const API_BASE = "http://localhost:8080/api/bugs";
-const PROJECTS_API = "http://localhost:8080/api/projects";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const BUGS_API = `${API_BASE}/bugs`;
+const PROJECTS_API = `${API_BASE}/projects`;
 
 const workflow = [
   "New",
@@ -170,7 +171,7 @@ const BugReporting = () => {
     try {
       const [bugResponse, projectResponse] =
         await Promise.all([
-          axios.get(API_BASE),
+          axios.get(BUGS_API),
           axios.get(PROJECTS_API),
         ]);
 
@@ -210,7 +211,7 @@ const BugReporting = () => {
     selectedProject?.members || [];
 
   const refreshBugs = async () => {
-    const response = await axios.get(API_BASE);
+    const response = await axios.get(BUGS_API);
 
     setBugs(
       Array.isArray(response.data)
@@ -342,7 +343,7 @@ const BugReporting = () => {
     setError("");
 
     try {
-      await axios.post(API_BASE, {
+      await axios.post(BUGS_API, {
         title: form.title.trim(),
 
         description:
@@ -390,7 +391,7 @@ const BugReporting = () => {
   ) => {
     try {
       const response = await axios.patch(
-        `${API_BASE}/${bugId}/status`,
+        `${BUGS_API}/${bugId}/status`,
         {
           status,
 
@@ -436,7 +437,7 @@ const BugReporting = () => {
 
     try {
       const response = await axios.patch(
-        `${API_BASE}/${bugId}/status`,
+        `${BUGS_API}/${bugId}/status`,
         {
           status: nextStatus,
           retestResult: result,
@@ -470,7 +471,7 @@ const BugReporting = () => {
   const deleteBug = async (bugId) => {
     try {
       await axios.delete(
-        `${API_BASE}/${bugId}`
+        `${BUGS_API}/${bugId}`
       );
 
       setBugs((current) =>

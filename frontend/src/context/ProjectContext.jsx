@@ -4,7 +4,7 @@ import "../services/api.js";
 
 const ProjectContext = createContext(null);
 
-const API_BASE = "http://localhost:8080/api/projects";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
 const REPOS_STORAGE_KEY = "sdlc_project_repositories";
 
 const getStoredRepos = () => {
@@ -83,7 +83,7 @@ export const ProjectProvider = ({ children }) => {
     setError("");
 
     try {
-            const response = await axios.get(API_BASE);
+            const response = await axios.get(`${API_BASE}/projects`);
 
       const data = Array.isArray(response.data)
         ? response.data
@@ -153,7 +153,7 @@ export const ProjectProvider = ({ children }) => {
   const createProject = async (formData) => {
     try {
             const response = await axios.post(
-        API_BASE,
+        `${API_BASE}/projects`,
         buildPayload(formData)
       );
 
@@ -194,7 +194,7 @@ export const ProjectProvider = ({ children }) => {
     const targetId = formData.id;
     try {
             const response = await axios.put(
-        `${API_BASE}/${targetId}`,
+        `${API_BASE}/projects/${targetId}`,
         buildPayload(formData)
       );
 
@@ -264,7 +264,7 @@ export const ProjectProvider = ({ children }) => {
       let response;
       try {
                 response = await axios.patch(
-          `${API_BASE}/${projectId}/status`,
+          `${API_BASE}/projects/${projectId}/status`,
           { status }
         );
       } catch (patchErr) {
@@ -273,7 +273,7 @@ export const ProjectProvider = ({ children }) => {
             (p) => String(p.id) === String(projectId)
           ) || {};
           response = await axios.put(
-            `${API_BASE}/${projectId}`,
+            `${API_BASE}/projects/${projectId}`,
             buildPayload({ ...currentProject, status })
           );
         } else {
@@ -313,7 +313,7 @@ export const ProjectProvider = ({ children }) => {
   const deleteProject = async (projectId) => {
     try {
             await axios.delete(
-        `${API_BASE}/${projectId}`
+        `${API_BASE}/projects/${projectId}`
       );
 
       setProjects((prev) =>

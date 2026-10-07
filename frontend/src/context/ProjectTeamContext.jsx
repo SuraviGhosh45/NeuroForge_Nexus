@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import axios from "axios";
 import "../services/api.js";
 
-const API_BASE = "http://localhost:8080/api/projects";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
 const ProjectTeamContext = createContext(null);
 export const MEMBER_STATUSES = ["Active", "Inactive", "In Meeting"];
 
@@ -42,7 +42,7 @@ export const ProjectTeamProvider = ({ children }) => {
   const loadProjectMembers = useCallback(async (projectId) => {
     if (!projectId) return [];
     try {
-            const { data } = await axios.get(`${API_BASE}/${projectId}/members`);
+            const { data } = await axios.get(`${API_BASE}/projects/${projectId}/members`);
       const normalized = (Array.isArray(data) ? data : []).map(normalizeMember);
       setProjectTeams((prev) => ({ ...prev, [String(projectId)]: normalized }));
       return normalized;
@@ -56,7 +56,7 @@ export const ProjectTeamProvider = ({ children }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data } = await axios.get(API_BASE);
+        const { data } = await axios.get(`${API_BASE}/projects`);
         const projects = Array.isArray(data) ? data : [];
         if (projects.length > 0) {
           await Promise.all(projects.map((p) => loadProjectMembers(p.id)));
@@ -89,7 +89,7 @@ export const ProjectTeamProvider = ({ children }) => {
 
   const addProjectMember = async (projectId, userId, projectRole) => {
     try {
-            const { data } = await axios.post(`${API_BASE}/${projectId}/members`, { userId: Number(userId), projectRole, status: "Active" });
+            const { data } = await axios.post(`${API_BASE}/projects/${projectId}/members`, { userId: Number(userId), projectRole, status: "Active" });
       await loadProjectMembers(projectId);
       return { success: true, data: normalizeMember(data) };
     } catch (error) {
@@ -113,7 +113,7 @@ export const ProjectTeamProvider = ({ children }) => {
 
   const updateProjectMember = async (projectId, userId, projectRole) => {
     try {
-            const { data } = await axios.put(`${API_BASE}/${projectId}/members/${userId}`, { userId: Number(userId), projectRole });
+            const { data } = await axios.put(`${API_BASE}/projects/${projectId}/members/${userId}`, { userId: Number(userId), projectRole });
       await loadProjectMembers(projectId);
       return { success: true, data: normalizeMember(data) };
     } catch (error) {
@@ -133,7 +133,7 @@ export const ProjectTeamProvider = ({ children }) => {
   const updateProjectMemberStatus = async (projectId, userId, status) => {
     if (!MEMBER_STATUSES.includes(status)) return { success: false, message: "Invalid member status." };
     try {
-            const { data } = await axios.patch(`${API_BASE}/${projectId}/members/${userId}/status`, { status });
+            const { data } = await axios.patch(`${API_BASE}/projects/${projectId}/members/${userId}/status`, { status });
       await loadProjectMembers(projectId);
       return { success: true, data: normalizeMember(data) };
     } catch (error) {
@@ -152,7 +152,7 @@ export const ProjectTeamProvider = ({ children }) => {
 
   const removeProjectMember = async (projectId, userId) => {
     try {
-            await axios.delete(`${API_BASE}/${projectId}/members/${userId}`);
+            await axios.delete(`${API_BASE}/projects/${projectId}/members/${userId}`);
       await loadProjectMembers(projectId);
       return { success: true };
     } catch (error) {

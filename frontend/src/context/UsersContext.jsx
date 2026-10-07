@@ -4,7 +4,7 @@ import "../services/api.js";
 
 const UsersContext = createContext(null);
 
-const API_BASE = "http://localhost:8080/api/users";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
 const USERS_STORAGE_KEY = "sdlc_users";
 
 export const ROLE_DEFAULT_SKILLS = {
@@ -102,9 +102,9 @@ export const UsersProvider = ({ children }) => {
 
     try {
             const response = currentRole === "ADMIN"
-        ? await axios.get(API_BASE)
+        ? await axios.get(`${API_BASE}/users`)
         : ["PROJECT_MANAGER", "PROJECT_LEAD", "TEAM_LEAD"].includes(currentRole)
-          ? await axios.get(`${API_BASE}/options`)
+          ? await axios.get(`${API_BASE}/users/options`)
           : { data: [] };
 
       const normalized = Array.isArray(response.data) ? response.data.map(normalizeUser) : [];
@@ -151,7 +151,7 @@ export const UsersProvider = ({ children }) => {
 
   const createUser = async (newUser) => {
     try {
-            const response = await axios.post(API_BASE, {
+            const response = await axios.post(`${API_BASE}/users`, {
         fullName: newUser.fullName || newUser.name,
         email: newUser.email,
         password: newUser.password || "TempPass@123",
@@ -171,15 +171,15 @@ export const UsersProvider = ({ children }) => {
     if (!existing) return { success: false, message: "User not found." };
 
     try {
-            let response = await axios.put(`${API_BASE}/${updatedUser.id}`, {
+            let response = await axios.put(`${API_BASE}/users/${updatedUser.id}`, {
         fullName: updatedUser.fullName || updatedUser.name,
         email: updatedUser.email,
       });
       if (updatedUser.role && String(updatedUser.role).toLowerCase() !== String(existing.role).toLowerCase()) {
-        response = await axios.patch(`${API_BASE}/${updatedUser.id}/role`, { role: updatedUser.role });
+        response = await axios.patch(`${API_BASE}/users/${updatedUser.id}/role`, { role: updatedUser.role });
       }
       if (updatedUser.status && updatedUser.status !== existing.status) {
-        response = await axios.patch(`${API_BASE}/${updatedUser.id}/status`, { status: updatedUser.status });
+        response = await axios.patch(`${API_BASE}/users/${updatedUser.id}/status`, { status: updatedUser.status });
       }
       const normalized = normalizeUser(response.data || { ...existing, ...updatedUser });
       setUsers((prev) => {
@@ -201,7 +201,7 @@ export const UsersProvider = ({ children }) => {
 
   const updateUserStatus = async (targetUserId, newStatus, currentUserId) => {
     try {
-            const response = await axios.patch(`${API_BASE}/${targetUserId}/status`, { status: newStatus });
+            const response = await axios.patch(`${API_BASE}/users/${targetUserId}/status`, { status: newStatus });
       const normalized = normalizeUser(response.data);
       setUsers((prev) => {
         const next = prev.map((u) => String(u.id) === String(targetUserId) ? normalized : u);
@@ -233,7 +233,7 @@ export const UsersProvider = ({ children }) => {
 
   const deleteUser = async (userId) => {
     try {
-            await axios.delete(`${API_BASE}/${userId}`);
+            await axios.delete(`${API_BASE}/users/${userId}`);
       setUsers((prev) => prev.filter((u) => String(u.id) !== String(userId)));
       return { success: true };
     } catch (error) {
