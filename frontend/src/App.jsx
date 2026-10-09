@@ -1,6 +1,14 @@
 import { useEffect } from "react";
-import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
+import {
+Routes,
+Route,
+Navigate,
+useParams,
+useNavigate,
+} from "react-router-dom";
+
 import BugReporting from "./pages/Testing/BugReporting.jsx";
+
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { UsersProvider } from "./context/UsersContext.jsx";
@@ -34,260 +42,247 @@ import SubtaskCalendar from "./components/Subtask/SubtaskCalendar.jsx";
 import GlobalCalendar from "./pages/Calendar/GlobalCalendar.jsx";
 import MyTask from "./pages/Mytask/MyTask.jsx";
 import KanbanBoard from "./components/KanbanBoard/KanbanBoard.jsx";
+
 import Settings from "./pages/Settings/Settings.jsx";
+import AdminSettings from "./pages/Settings/AdminSettings.jsx";
 
 import { ROLES, MEMBER_ROLES } from "./constants/roles.js";
+
 import "./App.css";
 
 const TaskRedirectHandler = () => {
-  const { taskId } = useParams();
-  const { tasks } = useTasks();
-  const navigate = useNavigate();
+const { taskId } = useParams();
+const { tasks } = useTasks();
+const navigate = useNavigate();
 
-  useEffect(() => {
-    const task = tasks.find((t) => String(t.id) === String(taskId));
-    const projId = task?.projectId || task?.project?.id;
+useEffect(() => {
+const task = tasks.find((t) => String(t.id) === String(taskId));
+const projId = task?.projectId || task?.project?.id;
 
-    if (projId) {
-      navigate(`/projects/${projId}/tasks/${taskId}`, { replace: true });
-    } else {
-      navigate("/tasks", { replace: true });
-    }
-  }, [taskId, tasks, navigate]);
 
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-    </div>
-  );
+if (projId) {
+  navigate(`/projects/${projId}/tasks/${taskId}`, {
+    replace: true,
+  });
+} else {
+  navigate("/tasks", { replace: true });
+}
+
+
+}, [taskId, tasks, navigate]);
+
+return ( <div className="flex min-h-[50vh] items-center justify-center"> <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" /> </div>
+);
 };
 
-const protect = (content) => (
-  <ProtectedRoute>
-    <DashboardLayout>{content}</DashboardLayout>
-  </ProtectedRoute>
+const protect = (content) => ( <ProtectedRoute> <DashboardLayout>{content}</DashboardLayout> </ProtectedRoute>
 );
 
 const AppRoutes = () => {
-  const { currentUser } = useAuth();
+const { currentUser } = useAuth();
 
-  return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          currentUser ? (
-            <Navigate to="/dashboard" replace />
-          ) : (
-            <Landing />
-          )
-        }
+return ( <Routes>
+<Route
+path="/"
+element={
+currentUser ? ( <Navigate to="/dashboard" replace />
+) : ( <Landing />
+)
+}
+/>
+
+
+  <Route path="/login" element={<Login />} />
+
+  <Route path="/register" element={<Register />} />
+
+  <Route
+    path="/unauthorized"
+    element={protect(<Unauthorized />)}
+  />
+
+  <Route
+    path="/dashboard"
+    element={protect(<DashboardRouter />)}
+  />
+
+  <Route
+    path="/user-management"
+    element={protect(
+      <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+        <UserManagement />
+      </RoleRoute>
+    )}
+  />
+
+  <Route
+    path="/user-management/:userId"
+    element={protect(
+      <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+        <UserDetails />
+      </RoleRoute>
+    )}
+  />
+
+  <Route
+    path="/teams"
+    element={<Navigate to="/projects" replace />}
+  />
+
+  <Route
+    path="/projects"
+    element={protect(<ProjectManagement />)}
+  />
+
+  <Route
+    path="/projects/:projectId"
+    element={protect(
+      <ScopeGuard>
+        <ProjectWorkspace />
+      </ScopeGuard>
+    )}
+  />
+
+  <Route
+    path="/tasks"
+    element={protect(<TaskManagement />)}
+  />
+
+  <Route
+    path="/tasks/:taskId"
+    element={protect(<TaskRedirectHandler />)}
+  />
+
+  <Route
+    path="/projects/:projectId/tasks/:taskId"
+    element={protect(
+      <ScopeGuard>
+        <ParentTaskDetailsPage />
+      </ScopeGuard>
+    )}
+  />
+
+  <Route
+    path="/projects/:projectId/tasks/:taskId/subtasks"
+    element={protect(
+      <ScopeGuard>
+        <SubtaskManagement />
+      </ScopeGuard>
+    )}
+  />
+
+  <Route
+    path="/projects/:projectId/tasks/:taskId/:subtaskId"
+    element={protect(
+      <ScopeGuard>
+        <SubtaskDetails />
+      </ScopeGuard>
+    )}
+  />
+
+  <Route
+    path="/projects/:projectId/tasks/:taskId/:subtaskId/kanban"
+    element={protect(
+      <ScopeGuard>
+        <SubtaskKanban />
+      </ScopeGuard>
+    )}
+  />
+
+  <Route
+    path="/projects/:projectId/tasks/:taskId/:subtaskId/calendar"
+    element={protect(
+      <ScopeGuard>
+        <SubtaskCalendar />
+      </ScopeGuard>
+    )}
+  />
+
+  <Route
+    path="/calendar"
+    element={protect(<GlobalCalendar />)}
+  />
+
+  <Route
+    path="/my-tasks"
+    element={protect(
+      <RoleRoute
+        allowedRoles={[
+          ROLES.PROJECT_MANAGER,
+          ROLES.PROJECT_LEAD,
+          ROLES.TEAM_LEAD,
+          ...MEMBER_ROLES,
+        ]}
+      >
+        <MyTask />
+      </RoleRoute>
+    )}
+  />
+
+  <Route
+    path="/testing"
+    element={protect(<BugReporting />)}
+  />
+
+  <Route
+    path="/kanban"
+    element={protect(<KanbanBoard />)}
+  />
+
+  <Route
+    path="/ai-assistant"
+    element={<Navigate to="/dashboard" replace />}
+  />
+
+  <Route
+    path="/settings"
+    element={protect(<Settings />)}
+  />
+
+  <Route
+    path="/admin-settings"
+    element={protect(
+      <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+        <AdminSettings />
+      </RoleRoute>
+    )}
+  />
+
+  <Route
+    path="*"
+    element={
+      <Navigate
+        to={currentUser ? "/dashboard" : "/login"}
+        replace
       />
+    }
+  />
+</Routes>
 
-      <Route path="/login" element={<Login />} />
 
-      <Route path="/register" element={<Register />} />
-
-      <Route
-        path="/unauthorized"
-        element={protect(<Unauthorized />)}
-      />
-
-      <Route
-        path="/dashboard"
-        element={protect(<DashboardRouter />)}
-      />
-
-      <Route
-        path="/user-management"
-        element={protect(
-          <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-            <UserManagement />
-          </RoleRoute>
-        )}
-      />
-
-      <Route
-        path="/user-management/:userId"
-        element={protect(
-          <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-            <UserDetails />
-          </RoleRoute>
-        )}
-      />
-
-      <Route
-        path="/teams"
-        element={<Navigate to="/projects" replace />}
-      />
-
-      <Route
-        path="/projects"
-        element={protect(<ProjectManagement />)}
-      />
-
-      <Route
-        path="/projects/:projectId"
-        element={protect(
-          <ScopeGuard>
-            <ProjectWorkspace />
-          </ScopeGuard>
-        )}
-      />
-
-      <Route
-        path="/tasks"
-        element={protect(<TaskManagement />)}
-      />
-
-      <Route
-        path="/tasks/:taskId"
-        element={protect(<TaskRedirectHandler />)}
-      />
-
-      <Route
-        path="/projects/:projectId/tasks/:taskId"
-        element={protect(
-          <ScopeGuard>
-            <ParentTaskDetailsPage />
-          </ScopeGuard>
-        )}
-      />
-
-      <Route
-        path="/projects/:projectId/tasks/:taskId/subtasks"
-        element={protect(
-          <ScopeGuard>
-            <SubtaskManagement />
-          </ScopeGuard>
-        )}
-      />
-
-      <Route
-        path="/projects/:projectId/tasks/:taskId/:subtaskId"
-        element={protect(
-          <ScopeGuard>
-            <SubtaskDetails />
-          </ScopeGuard>
-        )}
-      />
-
-      <Route
-        path="/projects/:projectId/tasks/:taskId/:subtaskId/kanban"
-        element={protect(
-          <ScopeGuard>
-            <SubtaskKanban />
-          </ScopeGuard>
-        )}
-      />
-
-      <Route
-        path="/projects/:projectId/tasks/:taskId/:subtaskId/calendar"
-        element={protect(
-          <ScopeGuard>
-            <SubtaskCalendar />
-          </ScopeGuard>
-        )}
-      />
-
-      <Route
-        path="/calendar"
-        element={protect(<GlobalCalendar />)}
-      />
-
-      <Route
-        path="/my-tasks"
-        element={protect(
-          <RoleRoute
-            allowedRoles={[
-              ROLES.PROJECT_MANAGER,
-              ROLES.PROJECT_LEAD,
-              ROLES.TEAM_LEAD,
-              ...MEMBER_ROLES,
-            ]}
-          >
-            <MyTask />
-          </RoleRoute>
-        )}
-      />
-
-      <Route
-        path="/testing"
-        element={protect(<BugReporting />)}
-      />
-
-      <Route
-        path="/kanban"
-        element={protect(<KanbanBoard />)}
-      />
-
-      <Route
-        path="/ai-assistant"
-        element={<Navigate to="/dashboard" replace />}
-      />
-
-      <Route
-        path="/settings"
-        element={protect(<Settings />)}
-      />
-
-      <Route
-        path="*"
-        element={
-          <Navigate
-            to={currentUser ? "/dashboard" : "/login"}
-            replace
-          />
-        }
-      />
-    </Routes>
-  );
+);
 };
 
 const App = () => {
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AuthenticatedApp />
-      </AuthProvider>
-    </ThemeProvider>
-  );
+return ( <ThemeProvider> <AuthProvider> <AuthenticatedApp /> </AuthProvider> </ThemeProvider>
+);
 };
 
 const AuthenticatedApp = () => {
-  const { currentUser, authReady } = useAuth();
+const { currentUser, authReady } = useAuth();
 
-  if (!authReady) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f4f6fa] dark:bg-[#0b1120] p-8 text-slate-900 dark:text-slate-100">
-        <div className="flex items-center gap-3">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+if (!authReady) {
+return ( <div className="flex min-h-screen items-center justify-center bg-[#f4f6fa] p-8 text-slate-900 dark:bg-[#0b1120] dark:text-slate-100"> <div className="flex items-center gap-3"> <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" /> <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+Loading SDLC workspace... </span> </div> </div>
+);
+}
 
-          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-            Loading SDLC workspace...
-          </span>
-        </div>
-      </div>
-    );
-  }
+if (!currentUser) {
+return <AppRoutes />;
+}
 
-  if (!currentUser) {
-    return <AppRoutes />;
-  }
-
-  return (
-    <UsersProvider>
-      <TeamsProvider>
-        <ProjectProvider>
-          <ProjectTeamProvider>
-            <TasksProvider>
-              <AppRoutes />
-            </TasksProvider>
-          </ProjectTeamProvider>
-        </ProjectProvider>
-      </TeamsProvider>
-    </UsersProvider>
-  );
+return ( <UsersProvider> <TeamsProvider> <ProjectProvider> <ProjectTeamProvider> <TasksProvider> <AppRoutes /> </TasksProvider> </ProjectTeamProvider> </ProjectProvider> </TeamsProvider> </UsersProvider>
+);
 };
 
 export default App;

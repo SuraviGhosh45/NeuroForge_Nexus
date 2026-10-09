@@ -1,531 +1,1059 @@
-import { useState, useEffect } from "react";
-import {
-  PiUser,
-  PiEnvelopeSimple,
-  PiPhone,
-  PiBriefcase,
-  PiCheckCircle,
-  PiClock,
-  PiShieldCheck,
-  PiFolder,
-  PiX,
-  PiPlus,
-  PiFloppyDisk,
-  PiSparkle,
-  PiUserSwitch,
-  PiInfo,
-} from "react-icons/pi";
-import { useAuth } from "../../context/AuthContext.jsx";
-import { useUsers } from "../../context/UsersContext.jsx";
-import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
-import { useProjects } from "../../context/ProjectContext.jsx";
-import { normalizeRole } from "../../constants/roles.js";
 
-const STATUS_OPTIONS = [
+import React, { useEffect, useState } from "react";
+import {
+  PiUserCircle,
+  PiBell,
+  PiPaintBrush,
+  PiShieldCheck,
+  PiBug,
+  PiUsersThree,
+  PiFloppyDisk,
+  PiArrowCounterClockwise,
+  PiSun,
+  PiMoon,
+  PiCheckCircle,
+  PiInfo,
+  PiEnvelopeSimple,
+  PiLockKey,
+  PiMonitor,
+  PiGearSix,
+  PiSignOut,
+} from "react-icons/pi";
+
+import "./Settings.css";
+
+const STORAGE_KEY = "neuroforge-settings";
+
+const defaultSettings = {
+  profile: {
+    name: "",
+    email: "",
+    role: "Developer",
+    bio: "",
+  },
+
+  notifications: {
+    taskAssignments: true,
+    bugUpdates: true,
+    comments: true,
+    mentions: true,
+    deadlines: true,
+    emailNotifications: false,
+    weeklySummary: true,
+  },
+
+  appearance: {
+    theme: "light",
+    accentColor: "#6c63ff",
+    compactMode: false,
+  },
+
+  testing: {
+    defaultSeverity: "Medium",
+    defaultPriority: "Medium",
+    defaultStatus: "Open",
+    defaultEnvironment: "Development",
+    autoAssign: false,
+  },
+
+  workspace: {
+    workspaceName: "NeuroForge Nexus",
+    timezone: "Asia/Kolkata",
+    language: "English",
+  },
+};
+
+const sections = [
   {
-    id: "Active",
-    label: "Active & Available",
-    badgeLabel: "Active",
-    color: "emerald",
-    dotClass: "bg-emerald-500",
-    bgClass: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300",
-    description: "Available for tasks, sprint deliverables, code reviews, and discussions.",
+    id: "profile",
+    label: "My Profile",
+    description: "Personal information",
+    icon: PiUserCircle,
   },
   {
-    id: "In Meeting",
-    label: "In Meeting / Sync",
-    badgeLabel: "In Meeting",
-    color: "amber",
-    dotClass: "bg-amber-500",
-    bgClass: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300",
-    description: "Currently in a sprint sync, client review, or architectural design session.",
+    id: "notifications",
+    label: "Notifications",
+    description: "Alerts and reminders",
+    icon: PiBell,
   },
   {
-    id: "Inactive",
-    label: "Inactive / Away",
-    badgeLabel: "Inactive",
-    color: "slate",
-    dotClass: "bg-slate-400",
-    bgClass: "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
-    description: "Away from desk, on leave, or focused in offline deep-work mode.",
+    id: "appearance",
+    label: "Appearance",
+    description: "Theme and display",
+    icon: PiPaintBrush,
+  },
+  {
+    id: "security",
+    label: "Security",
+    description: "Password and account",
+    icon: PiShieldCheck,
+  },
+  {
+    id: "testing",
+    label: "Testing Preferences",
+    description: "Default bug settings",
+    icon: PiBug,
+  },
+  {
+    id: "workspace",
+    label: "Workspace & Team",
+    description: "Workspace preferences",
+    icon: PiUsersThree,
   },
 ];
 
-const Settings = () => {
-  const { currentUser, updateCurrentUser } = useAuth();
-  const { users = [], updateUser, updateUserStatus } = useUsers() || {};
-  const { projectTeams = {}, syncUserStatusAcrossTeams } = useProjectTeam() || {};
-  const { projects = [] } = useProjects() || {};
+function loadSettings() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
 
-  // Find authoritative user record if available in users list
-  const existingUserRecord = users.find(
-    (u) => String(u.id) === String(currentUser?.id)
-  ) || currentUser;
+    if (!stored) return defaultSettings;
 
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    department: "",
-    bio: "",
-    status: "Active",
-    skills: [],
+    const parsed = JSON.parse(stored);
+
+    return {
+      ...defaultSettings,
+      ...parsed,
+      profile: {
+        ...defaultSettings.profile,
+        ...parsed.profile,
+      },
+      notifications: {
+        ...defaultSettings.notifications,
+        ...parsed.notifications,
+      },
+      appearance: {
+        ...defaultSettings.appearance,
+        ...parsed.appearance,
+      },
+      testing: {
+        ...defaultSettings.testing,
+        ...parsed.testing,
+      },
+      workspace: {
+        ...defaultSettings.workspace,
+        ...parsed.workspace,
+      },
+    };
+  } catch {
+    return defaultSettings;
+  }
+}
+
+function Settings() {
+  const [activeSection, setActiveSection] = useState("profile");
+  const [settings, setSettings] = useState(loadSettings);
+  const [saved, setSaved] = useState(false);
+  const [message, setMessage] = useState("");
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
-  const [newSkill, setNewSkill] = useState("");
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-
-  // Populate state on mount / currentUser change
   useEffect(() => {
-    if (currentUser) {
-      setFormData({
-        fullName: currentUser.fullName || currentUser.name || "",
-        email: currentUser.email || "",
-        phone: currentUser.phone || "+91 98765 43210",
-        department: currentUser.department || "Software Engineering & Cloud Systems",
-        bio:
-          currentUser.bio ||
-          `Engineer at NeuroForge SDLC platform contributing to modern web engineering and distributed enterprise architectures.`,
-        status: existingUserRecord?.status || currentUser.status || "Active",
-        skills: Array.isArray(existingUserRecord?.skills)
-          ? existingUserRecord.skills
-          : Array.isArray(currentUser.skills)
-          ? currentUser.skills
-          : ["React", "Spring Boot", "REST APIs", "PostgreSQL"],
-      });
-    }
-  }, [currentUser, existingUserRecord?.status]);
+    document.documentElement.style.setProperty(
+      "--settings-accent",
+      settings.appearance.accentColor
+    );
+  }, [settings.appearance.accentColor]);
 
-  // Find projects assigned to this user
-  const userProjects = [];
-  if (Array.isArray(projects) && currentUser?.id) {
-    projects.forEach((p) => {
-      const members = projectTeams?.[String(p.id)] || [];
-      const isMember = members.some((m) => String(m.userId) === String(currentUser.id));
-      const isLead = String(p.projectLeadId) === String(currentUser.id);
-      const isPM = String(p.projectManagerId) === String(currentUser.id);
-
-      if (isMember || isLead || isPM) {
-        userProjects.push({
-          id: p.id,
-          name: p.name,
-          code: p.code,
-          role: isLead ? "Project Lead" : isPM ? "Project Manager" : "Team Member",
-          status: p.status || "In Progress",
-        });
-      }
-    });
-  }
-
-  const handleAddSkill = (e) => {
-    e?.preventDefault();
-    const trimmed = newSkill.trim();
-    if (!trimmed) return;
-    if (!formData.skills.includes(trimmed)) {
-      setFormData((prev) => ({
-        ...prev,
-        skills: [...prev.skills, trimmed],
-      }));
-    }
-    setNewSkill("");
-  };
-
-  const handleRemoveSkill = (skillToRemove) => {
-    setFormData((prev) => ({
-      ...prev,
-      skills: prev.skills.filter((s) => s !== skillToRemove),
+  const updateSection = (section, key, value) => {
+    setSettings((previous) => ({
+      ...previous,
+      [section]: {
+        ...previous[section],
+        [key]: value,
+      },
     }));
+
+    setSaved(false);
+    setMessage("");
   };
 
-  const handleStatusChange = async (newStatus) => {
-    setFormData((prev) => ({ ...prev, status: newStatus }));
-    setErrorMsg("");
-
-        if (currentUser?.id) {
-      if (updateCurrentUser) {
-        await updateCurrentUser({ status: newStatus });
-      }
-      if (updateUserStatus) {
-        await updateUserStatus(currentUser.id, newStatus, currentUser.id);
-      }
-      if (syncUserStatusAcrossTeams) {
-        syncUserStatusAcrossTeams(currentUser.id, newStatus);
-      }
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setErrorMsg("");
-    setSaveSuccess(false);
-
+  const saveSettings = () => {
     try {
-      const updates = {
-        fullName: formData.fullName,
-        name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-        department: formData.department,
-        bio: formData.bio,
-        skills: formData.skills,
-        status: formData.status,
-      };
-
-            if (updateCurrentUser) {
-        await updateCurrentUser(updates);
-      }
-
-      if (updateUser && currentUser?.id) {
-        await updateUser({ id: currentUser.id, ...updates }, currentUser.id);
-      }
-
-      if (syncUserStatusAcrossTeams && currentUser?.id) {
-        syncUserStatusAcrossTeams(currentUser.id, formData.status);
-      }
-
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 4000);
-    } catch (err) {
-      setErrorMsg(err.message || "Failed to save profile changes.");
-    } finally {
-      setIsSaving(false);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      setSaved(true);
+      setMessage("Your preferences have been saved on this device.");
+    } catch {
+      setSaved(false);
+      setMessage("Unable to save settings in this browser.");
     }
   };
 
-  const userRoleFormatted = normalizeRole(currentUser?.role || "developer")
-    .toUpperCase()
-    .replace(/_/g, " ");
+  const resetSettings = () => {
+    const confirmed = window.confirm(
+      "Reset all settings to their default values?"
+    );
+
+    if (!confirmed) return;
+
+    setSettings(defaultSettings);
+    localStorage.removeItem(STORAGE_KEY);
+    setPasswordForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setSaved(false);
+    setMessage("Settings have been reset.");
+  };
+
+  const handlePasswordSubmit = (event) => {
+    event.preventDefault();
+
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
+      setMessage("Please fill in all password fields.");
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      setMessage("Your new password must contain at least 8 characters.");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setMessage("The new passwords do not match.");
+      return;
+    }
+
+    setMessage(
+      "The form is valid, but password changes are not connected to the backend yet."
+    );
+  };
+
+  const activeItem = sections.find(
+    (section) => section.id === activeSection
+  );
+
+  const profileInitials =
+    settings.profile.name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "NF";
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-12">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Account Settings & Profile
-        </h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Manage your personal credentials, working availability status, role competencies, and account preferences
-        </p>
-      </div>
-
-      {/* Success Banner */}
-      {saveSuccess && (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800/80 dark:bg-emerald-950/50 dark:text-emerald-200 animate-in fade-in slide-in-from-top-2 duration-200 shadow-sm">
-          <PiCheckCircle className="text-emerald-600 dark:text-emerald-400 shrink-0" size={22} />
-          <div>
-            <p className="font-semibold">Profile & Status Updated Successfully!</p>
-            <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
-              Your working status and details have been synchronized across User Management, Project Workspaces, and Team Rosters.
-            </p>
+    <div
+      className={`settings-page ${
+        settings.appearance.theme === "dark" ? "settings-dark" : ""
+      } ${settings.appearance.compactMode ? "settings-compact" : ""}`}
+      style={{ "--settings-accent": settings.appearance.accentColor }}
+    >
+      {/* Page header */}
+      <header className="settings-header">
+        <div className="settings-heading">
+          <div className="settings-heading-icon">
+            <PiGearSix />
           </div>
+
+          <div>
+            <div className="settings-eyebrow">PREFERENCES</div>
+            <h1>Settings</h1>
+            <p>Manage your account, workspace and application preferences.</p>
+          </div>
+        </div>
+
+        <div className="settings-header-actions">
+          <button
+            type="button"
+            className="settings-btn settings-btn-secondary"
+            onClick={resetSettings}
+          >
+            <PiArrowCounterClockwise />
+            Reset
+          </button>
+
+          <button
+            type="button"
+            className="settings-btn settings-btn-primary"
+            onClick={saveSettings}
+          >
+            <PiFloppyDisk />
+            Save changes
+          </button>
+        </div>
+      </header>
+
+      {/* Save feedback */}
+      {message && (
+        <div
+          className={`settings-message ${
+            saved ? "settings-message-success" : ""
+          }`}
+          role="status"
+        >
+          {saved ? <PiCheckCircle /> : <PiInfo />}
+          <span>{message}</span>
+          <button
+            type="button"
+            aria-label="Dismiss message"
+            onClick={() => setMessage("")}
+          >
+            ×
+          </button>
         </div>
       )}
 
-      {/* Error Banner */}
-      {errorMsg && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 shadow-sm">
-          <PiInfo className="text-red-600 dark:text-red-400 shrink-0" size={20} />
-          <p>{errorMsg}</p>
-        </div>
-      )}
+      <div className="settings-layout">
+        {/* Settings navigation */}
+        <aside className="settings-sidebar">
+          <div className="settings-sidebar-title">SETTINGS MENU</div>
 
-      {/* Section 1: Real-Time Working Status Selector */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-[#111827]">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5 pb-5 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <div className="flex items-center gap-2">
-              <PiClock className="text-blue-600 dark:text-blue-400" size={20} />
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                Current Working Status
-              </h2>
-            </div>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Your active availability status is visible in real-time to Administrators, Project Managers, Team Leads, and Teammates.
-            </p>
-          </div>
+          <nav className="settings-nav" aria-label="Settings sections">
+            {sections.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
 
-          {/* Current Active Badge Display */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Status:</span>
-            {(() => {
-              const currentOpt = STATUS_OPTIONS.find((s) => s.id === formData.status) || STATUS_OPTIONS[0];
               return (
-                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${currentOpt.bgClass}`}>
-                  <span className={`h-2 w-2 rounded-full ${currentOpt.dotClass} animate-pulse`} />
-                  {currentOpt.badgeLabel}
-                </span>
-              );
-            })()}
-          </div>
-        </div>
+                <button
+                  key={section.id}
+                  type="button"
+                  className={`settings-nav-item ${
+                    isActive ? "active" : ""
+                  }`}
+                  onClick={() => {
+                    setActiveSection(section.id);
+                    setMessage("");
+                  }}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <span className="settings-nav-icon">
+                    <Icon />
+                  </span>
 
-        {/* Status Option Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {STATUS_OPTIONS.map((opt) => {
-            const isSelected = formData.status === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => handleStatusChange(opt.id)}
-                className={`flex flex-col text-left p-4 rounded-xl border transition-all ${
-                  isSelected
-                    ? "border-blue-500 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/30 ring-2 ring-blue-500/20 shadow-xs"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700"
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${opt.dotClass}`} />
-                    <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                      {opt.label}
-                    </span>
-                  </div>
-                  {isSelected && (
-                    <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-950/80 px-2 py-0.5 rounded-md">
-                      Selected
-                    </span>
+                  <span className="settings-nav-copy">
+                    <strong>{section.label}</strong>
+                    <small>{section.description}</small>
+                  </span>
+
+                  {isActive && (
+                    <span className="settings-nav-indicator" />
                   )}
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  {opt.description}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                </button>
+              );
+            })}
+          </nav>
 
-      {/* Section 2: Profile & Account Information */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-[#111827]">
-          <div className="flex items-center justify-between pb-5 mb-5 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-sm">
-                {(formData.fullName || currentUser?.fullName || "U").charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                  Profile Details
-                </h2>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                    {userRoleFormatted}
-                  </span>
-                  <span className="text-slate-300 dark:text-slate-700">•</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    ID #{currentUser?.id || "N/A"}
-                  </span>
-                </div>
-              </div>
+          <div className="settings-sidebar-footer">
+            <div className="settings-help-icon">
+              <PiInfo />
             </div>
+            <div>
+              <strong>Need help?</strong>
+              <p>Manage your preferences from one place.</p>
+            </div>
+          </div>
+        </aside>
 
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              <PiShieldCheck size={16} className="text-emerald-500" />
-              Role Authenticated
+        {/* Settings content */}
+        <main className="settings-content">
+          <div className="settings-content-header">
+            <div>
+              <h2>{activeItem?.label}</h2>
+              <p>{activeItem?.description}</p>
+            </div>
+            <span className="settings-section-badge">
+              <PiCheckCircle />
+              Preferences
             </span>
           </div>
 
-          {/* Form Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Full Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Full Name <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <PiUser className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
-                <input
-                  type="text"
-                  required
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  placeholder="e.g. Marcus Vance"
-                  className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white"
-                />
+          {/* PROFILE */}
+          {activeSection === "profile" && (
+            <div className="settings-panel">
+              <div className="settings-panel-heading">
+                <h3>Profile information</h3>
+                <p>Update the personal details displayed on your account.</p>
               </div>
-            </div>
 
-            {/* Email Address */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <PiEnvelopeSimple className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="e.g. dev@neuroforge.io"
-                  className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white"
-                />
-              </div>
-            </div>
-
-            {/* Phone Number */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Contact Phone
-              </label>
-              <div className="relative">
-                <PiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+91 98765 43210"
-                  className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white"
-                />
-              </div>
-            </div>
-
-            {/* Department / Division */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Department & Division
-              </label>
-              <div className="relative">
-                <PiBriefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
-                <input
-                  type="text"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="Engineering / Cloud Platforms"
-                  className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white"
-                />
-              </div>
-            </div>
-
-            {/* Bio / Summary */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Professional Bio & Responsibilities
-              </label>
-              <textarea
-                rows={3}
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                placeholder="Brief summary of your role, technical strengths, and project contributions..."
-                className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white resize-none"
-              />
-            </div>
-
-            {/* Skills & Competencies */}
-            <div className="md:col-span-2 space-y-3">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Skills & Technical Competencies
-              </label>
-
-              {/* Skills Tag Pills */}
-              <div className="flex flex-wrap gap-2">
-                {formData.skills.map((skill, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300"
-                  >
-                    <span>{skill}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSkill(skill)}
-                      className="text-blue-400 hover:text-blue-700 dark:hover:text-blue-200 transition"
-                      title={`Remove ${skill}`}
-                    >
-                      <PiX size={13} />
-                    </button>
+              <div className="settings-profile-card">
+                <div className="settings-avatar">{profileInitials}</div>
+                <div className="settings-profile-summary">
+                  <strong>
+                    {settings.profile.name || "Your name"}
+                  </strong>
+                  <span>
+                    {settings.profile.email || "your.email@example.com"}
                   </span>
-                ))}
-
-                {formData.skills.length === 0 && (
-                  <span className="text-xs text-slate-400 italic">No skills added yet.</span>
-                )}
+                  <span className="settings-role-badge">
+                    {settings.profile.role}
+                  </span>
+                </div>
               </div>
 
-              {/* Add Skill Input */}
-              <div className="flex items-center gap-2 max-w-md">
-                <input
-                  type="text"
-                  value={newSkill}
-                  onChange={(e) => setNewSkill(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddSkill();
+              <div className="settings-form-grid">
+                <div className="settings-field">
+                  <label htmlFor="profile-name">Full name</label>
+                  <input
+                    id="profile-name"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={settings.profile.name}
+                    onChange={(e) =>
+                      updateSection("profile", "name", e.target.value)
                     }
-                  }}
-                  placeholder="Add skill (e.g. Docker, TypeScript, Jest)"
-                  className="flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddSkill}
-                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition"
-                >
-                  <PiPlus size={14} />
-                  <span>Add</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+                  />
+                </div>
 
-        {/* Section 3: Project Allocations Overview */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-[#111827]">
-          <div className="flex items-center gap-2 mb-4">
-            <PiFolder className="text-blue-600 dark:text-blue-400" size={20} />
-            <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-              Project Allocations
-            </h2>
-          </div>
-
-          {userProjects.length === 0 ? (
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-center dark:border-slate-800 dark:bg-slate-900/50">
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                You are not currently assigned to any active project workspaces. An administrator or project manager can assign you via User Management.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {userProjects.map((p) => (
-                <div
-                  key={p.id}
-                  className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 dark:border-slate-800 dark:bg-slate-900/60"
-                >
-                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                    {p.name}
-                  </p>
-                  <div className="flex items-center justify-between mt-2 text-[11px]">
-                    <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                      {p.role}
-                    </span>
-                    <span className="font-semibold text-blue-600 dark:text-blue-400">
-                      {p.status}
-                    </span>
+                <div className="settings-field">
+                  <label htmlFor="profile-email">Email address</label>
+                  <div className="settings-input-icon">
+                    <PiEnvelopeSimple />
+                    <input
+                      id="profile-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={settings.profile.email}
+                      onChange={(e) =>
+                        updateSection("profile", "email", e.target.value)
+                      }
+                    />
                   </div>
                 </div>
-              ))}
+
+                <div className="settings-field">
+                  <label htmlFor="profile-role">Role</label>
+                  <select
+                    id="profile-role"
+                    value={settings.profile.role}
+                    onChange={(e) =>
+                      updateSection("profile", "role", e.target.value)
+                    }
+                  >
+                    <option>Developer</option>
+                    <option>Tester</option>
+                    <option>Project Manager</option>
+                    <option>Admin</option>
+                  </select>
+                </div>
+
+                <div className="settings-field settings-field-full">
+                  <label htmlFor="profile-bio">Bio</label>
+                  <textarea
+                    id="profile-bio"
+                    rows="4"
+                    maxLength="300"
+                    placeholder="Tell your team a little about yourself..."
+                    value={settings.profile.bio}
+                    onChange={(e) =>
+                      updateSection("profile", "bio", e.target.value)
+                    }
+                  />
+                  <small className="settings-field-hint">
+                    {settings.profile.bio.length}/300 characters
+                  </small>
+                </div>
+              </div>
+
+              <div className="settings-note">
+                <PiInfo />
+                <span>
+                  Profile changes are currently saved locally. Connect this
+                  section to your profile API to update account information
+                  across devices.
+                </span>
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Action Save Bar */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-md shadow-blue-500/25 transition hover:brightness-110 disabled:opacity-50"
-          >
-            <PiFloppyDisk size={18} />
-            <span>{isSaving ? "Saving..." : "Save Profile & Status"}</span>
-          </button>
-        </div>
-      </form>
+          {/* NOTIFICATIONS */}
+          {activeSection === "notifications" && (
+            <div className="settings-panel">
+              <div className="settings-panel-heading">
+                <h3>Notification preferences</h3>
+                <p>Choose which project activities you want to be notified about.</p>
+              </div>
+
+              <div className="settings-option-list">
+                <ToggleOption
+                  title="Task assignments"
+                  description="When a task is assigned or reassigned to you."
+                  checked={settings.notifications.taskAssignments}
+                  onChange={(value) =>
+                    updateSection("notifications", "taskAssignments", value)
+                  }
+                />
+
+                <ToggleOption
+                  title="Bug updates"
+                  description="When a bug's status, severity or priority changes."
+                  checked={settings.notifications.bugUpdates}
+                  onChange={(value) =>
+                    updateSection("notifications", "bugUpdates", value)
+                  }
+                />
+
+                <ToggleOption
+                  title="Comments and replies"
+                  description="When someone comments on your tasks or reported bugs."
+                  checked={settings.notifications.comments}
+                  onChange={(value) =>
+                    updateSection("notifications", "comments", value)
+                  }
+                />
+
+                <ToggleOption
+                  title="@Mentions"
+                  description="When a teammate mentions you in a comment."
+                  checked={settings.notifications.mentions}
+                  onChange={(value) =>
+                    updateSection("notifications", "mentions", value)
+                  }
+                />
+
+                <ToggleOption
+                  title="Deadline reminders"
+                  description="Reminders for tasks that are approaching their due date."
+                  checked={settings.notifications.deadlines}
+                  onChange={(value) =>
+                    updateSection("notifications", "deadlines", value)
+                  }
+                />
+
+                <ToggleOption
+                  title="Email notifications"
+                  description="Receive supported project notifications by email."
+                  checked={settings.notifications.emailNotifications}
+                  onChange={(value) =>
+                    updateSection("notifications", "emailNotifications", value)
+                  }
+                />
+
+                <ToggleOption
+                  title="Weekly summary"
+                  description="A weekly overview of project activity and progress."
+                  checked={settings.notifications.weeklySummary}
+                  onChange={(value) =>
+                    updateSection("notifications", "weeklySummary", value)
+                  }
+                />
+              </div>
+
+              <div className="settings-note">
+                <PiInfo />
+                <span>
+                  These preferences are stored locally for now. Actual in-app
+                  alerts, email delivery and deadline reminders need backend
+                  notification support.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* APPEARANCE */}
+          {activeSection === "appearance" && (
+            <div className="settings-panel">
+              <div className="settings-panel-heading">
+                <h3>Appearance and display</h3>
+                <p>Personalize how your settings page looks.</p>
+              </div>
+
+              <div className="settings-subheading">
+                <h4>Theme</h4>
+                <p>Choose your preferred color scheme.</p>
+              </div>
+
+              <div className="settings-theme-options">
+                <button
+                  type="button"
+                  className={`settings-theme-card ${
+                    settings.appearance.theme === "light" ? "selected" : ""
+                  }`}
+                  onClick={() =>
+                    updateSection("appearance", "theme", "light")
+                  }
+                >
+                  <div className="settings-theme-preview theme-preview-light">
+                    <div className="theme-preview-sidebar" />
+                    <div className="theme-preview-content">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  </div>
+                  <span className="settings-theme-label">
+                    <PiSun /> Light
+                  </span>
+                  {settings.appearance.theme === "light" && (
+                    <PiCheckCircle className="settings-theme-check" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className={`settings-theme-card ${
+                    settings.appearance.theme === "dark" ? "selected" : ""
+                  }`}
+                  onClick={() =>
+                    updateSection("appearance", "theme", "dark")
+                  }
+                >
+                  <div className="settings-theme-preview theme-preview-dark">
+                    <div className="theme-preview-sidebar" />
+                    <div className="theme-preview-content">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  </div>
+                  <span className="settings-theme-label">
+                    <PiMoon /> Dark
+                  </span>
+                  {settings.appearance.theme === "dark" && (
+                    <PiCheckCircle className="settings-theme-check" />
+                  )}
+                </button>
+              </div>
+
+              <div className="settings-divider" />
+
+              <div className="settings-subheading">
+                <h4>Accent color</h4>
+                <p>Choose the highlight color for buttons and active elements.</p>
+              </div>
+
+              <div className="settings-color-options">
+                {[
+                  "#6c63ff",
+                  "#2563eb",
+                  "#0d9488",
+                  "#e11d48",
+                  "#d97706",
+                  "#7c3aed",
+                ].map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`settings-color-swatch ${
+                      settings.appearance.accentColor === color
+                        ? "selected"
+                        : ""
+                    }`}
+                    style={{ backgroundColor: color }}
+                    onClick={() =>
+                      updateSection("appearance", "accentColor", color)
+                    }
+                    aria-label={`Choose accent color ${color}`}
+                    aria-pressed={
+                      settings.appearance.accentColor === color
+                    }
+                  >
+                    {settings.appearance.accentColor === color && (
+                      <PiCheckCircle />
+                    )}
+                  </button>
+                ))}
+
+                <label className="settings-custom-color">
+                  <input
+                    type="color"
+                    value={settings.appearance.accentColor}
+                    onChange={(e) =>
+                      updateSection(
+                        "appearance",
+                        "accentColor",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <span>Custom</span>
+                </label>
+              </div>
+
+              <div className="settings-divider" />
+
+              <ToggleOption
+                title="Compact layout"
+                description="Reduce spacing between settings elements."
+                checked={settings.appearance.compactMode}
+                onChange={(value) =>
+                  updateSection("appearance", "compactMode", value)
+                }
+              />
+
+              <div className="settings-note">
+                <PiInfo />
+                <span>
+                  The theme preview applies to this Settings page. To theme
+                  the entire application, connect these preferences to your
+                  global layout and theme provider.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* SECURITY */}
+          {activeSection === "security" && (
+            <div className="settings-panel">
+              <div className="settings-panel-heading">
+                <h3>Account security</h3>
+                <p>Review your account security and password options.</p>
+              </div>
+
+              <div className="settings-security-card">
+                <div className="settings-security-icon">
+                  <PiLockKey />
+                </div>
+                <div className="settings-security-copy">
+                  <strong>Password protection</strong>
+                  <p>
+                    Keep your account secure by using a strong, unique password.
+                  </p>
+                </div>
+                <span className="settings-security-status">
+                  <PiShieldCheck /> Account
+                </span>
+              </div>
+
+              <form
+                className="settings-password-form"
+                onSubmit={handlePasswordSubmit}
+              >
+                <h4>Change password</h4>
+
+                <div className="settings-field">
+                  <label htmlFor="current-password">Current password</label>
+                  <input
+                    id="current-password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        currentPassword: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter current password"
+                  />
+                </div>
+
+                <div className="settings-field">
+                  <label htmlFor="new-password">New password</label>
+                  <input
+                    id="new-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        newPassword: e.target.value,
+                      }))
+                    }
+                    placeholder="At least 8 characters"
+                  />
+                </div>
+
+                <div className="settings-field">
+                  <label htmlFor="confirm-password">Confirm new password</label>
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        confirmPassword: e.target.value,
+                      }))
+                    }
+                    placeholder="Re-enter new password"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="settings-btn settings-btn-primary"
+                >
+                  <PiLockKey /> Validate password form
+                </button>
+              </form>
+
+              <div className="settings-note">
+                <PiInfo />
+                <span>
+                  This form does not change your real password. Connect it to
+                  a secure Spring Boot endpoint with authentication and
+                  server-side password hashing before enabling password changes.
+                </span>
+              </div>
+
+              <div className="settings-security-card settings-session-card">
+                <div className="settings-security-icon">
+                  <PiMonitor />
+                </div>
+                <div className="settings-security-copy">
+                  <strong>Current session</strong>
+                  <p>
+                    You are using NeuroForge Nexus in this browser.
+                  </p>
+                </div>
+                <span className="settings-session-badge">This device</span>
+              </div>
+            </div>
+          )}
+
+          {/* TESTING PREFERENCES */}
+          {activeSection === "testing" && (
+            <div className="settings-panel">
+              <div className="settings-panel-heading">
+                <h3>Testing preferences</h3>
+                <p>Set default values for new bug reports.</p>
+              </div>
+
+              <div className="settings-form-grid">
+                <div className="settings-field">
+                  <label htmlFor="default-severity">Default severity</label>
+                  <select
+                    id="default-severity"
+                    value={settings.testing.defaultSeverity}
+                    onChange={(e) =>
+                      updateSection("testing", "defaultSeverity", e.target.value)
+                    }
+                  >
+                    <option>Critical</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                  </select>
+                  <small className="settings-field-hint">
+                    How seriously the bug affects the system.
+                  </small>
+                </div>
+
+                <div className="settings-field">
+                  <label htmlFor="default-priority">Default priority</label>
+                  <select
+                    id="default-priority"
+                    value={settings.testing.defaultPriority}
+                    onChange={(e) =>
+                      updateSection("testing", "defaultPriority", e.target.value)
+                    }
+                  >
+                    <option>Urgent</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                  </select>
+                  <small className="settings-field-hint">
+                    How quickly the bug should be addressed.
+                  </small>
+                </div>
+
+                <div className="settings-field">
+                  <label htmlFor="default-status">Default bug status</label>
+                  <select
+                    id="default-status"
+                    value={settings.testing.defaultStatus}
+                    onChange={(e) =>
+                      updateSection("testing", "defaultStatus", e.target.value)
+                    }
+                  >
+                    <option>Open</option>
+                    <option>In Progress</option>
+                    <option>Resolved</option>
+                    <option>Closed</option>
+                  </select>
+                </div>
+
+                <div className="settings-field">
+                  <label htmlFor="default-environment">
+                    Default environment
+                  </label>
+                  <select
+                    id="default-environment"
+                    value={settings.testing.defaultEnvironment}
+                    onChange={(e) =>
+                      updateSection(
+                        "testing",
+                        "defaultEnvironment",
+                        e.target.value
+                      )
+                    }
+                  >
+                    <option>Development</option>
+                    <option>Testing</option>
+                    <option>Staging</option>
+                    <option>Production</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="settings-divider" />
+
+              <ToggleOption
+                title="Suggest automatic assignment"
+                description="Enable a preference for assigning new bugs automatically when supported."
+                checked={settings.testing.autoAssign}
+                onChange={(value) =>
+                  updateSection("testing", "autoAssign", value)
+                }
+              />
+
+              <div className="settings-note">
+                <PiInfo />
+                <span>
+                  These are saved preferences only. Your bug-report form must
+                  read these values to use them as defaults, and automatic
+                  assignment requires backend logic.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* WORKSPACE */}
+          {activeSection === "workspace" && (
+            <div className="settings-panel">
+              <div className="settings-panel-heading">
+                <h3>Workspace preferences</h3>
+                <p>Customize your workspace display and regional settings.</p>
+              </div>
+
+              <div className="settings-workspace-banner">
+                <div className="settings-workspace-logo">NF</div>
+                <div>
+                  <strong>{settings.workspace.workspaceName}</strong>
+                  <p>Project management and software testing workspace</p>
+                </div>
+              </div>
+
+              <div className="settings-form-grid">
+                <div className="settings-field settings-field-full">
+                  <label htmlFor="workspace-name">Workspace name</label>
+                  <input
+                    id="workspace-name"
+                    type="text"
+                    value={settings.workspace.workspaceName}
+                    onChange={(e) =>
+                      updateSection("workspace", "workspaceName", e.target.value)
+                    }
+                    placeholder="Enter workspace name"
+                  />
+                </div>
+
+                <div className="settings-field">
+                  <label htmlFor="workspace-timezone">Time zone</label>
+                  <select
+                    id="workspace-timezone"
+                    value={settings.workspace.timezone}
+                    onChange={(e) =>
+                      updateSection("workspace", "timezone", e.target.value)
+                    }
+                  >
+                    <option value="Asia/Kolkata">
+                      India Standard Time (IST)
+                    </option>
+                    <option value="UTC">Coordinated Universal Time (UTC)</option>
+                    <option value="America/New_York">
+                      Eastern Time
+                    </option>
+                    <option value="Europe/London">United Kingdom</option>
+                  </select>
+                </div>
+
+                <div className="settings-field">
+                  <label htmlFor="workspace-language">Language</label>
+                  <select
+                    id="workspace-language"
+                    value={settings.workspace.language}
+                    onChange={(e) =>
+                      updateSection("workspace", "language", e.target.value)
+                    }
+                  >
+                    <option>English</option>
+                    <option>Hindi</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="settings-divider" />
+
+              <div className="settings-team-info">
+                <div className="settings-team-icon">
+                  <PiUsersThree />
+                </div>
+                <div>
+                  <h4>Team management</h4>
+                  <p>
+                    Manage members, permissions and team roles from your
+                    workspace administration tools.
+                  </p>
+                  <span>
+                    <PiInfo /> Team management API required
+                  </span>
+                </div>
+              </div>
+
+              <div className="settings-note">
+                <PiInfo />
+                <span>
+                  Workspace preferences are saved locally. Team membership,
+                  role permissions and shared workspace changes require
+                  backend integration and appropriate authorization.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Bottom actions */}
+          <div className="settings-bottom-bar">
+            <div className="settings-bottom-copy">
+              <span className="settings-bottom-dot" />
+              <span>
+                {saved
+                  ? "All changes saved"
+                  : "You may have unsaved changes"}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="settings-btn settings-btn-primary"
+              onClick={saveSettings}
+            >
+              <PiFloppyDisk />
+              Save preferences
+            </button>
+          </div>
+
+          <footer className="settings-footer">
+            <span>NeuroForge Nexus</span>
+            <span>Settings & Preferences</span>
+          </footer>
+        </main>
+      </div>
     </div>
   );
-};
+}
+
+function ToggleOption({ title, description, checked, onChange }) {
+  return (
+    <div className="settings-toggle-row">
+      <div className="settings-toggle-copy">
+        <strong>{title}</strong>
+        <p>{description}</p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={title}
+        className={`settings-switch ${checked ? "switch-on" : ""}`}
+        onClick={() => onChange(!checked)}
+      >
+        <span />
+      </button>
+    </div>
+  );
+}
 
 export default Settings;

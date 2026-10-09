@@ -4,7 +4,6 @@ import {
   PiRobot,
   PiX,
   PiTrash,
-  PiCopy,
   PiCheckCircle,
   PiSparkle,
 } from "react-icons/pi";
@@ -36,20 +35,13 @@ const pad2 = (n) => String(n).padStart(2, "0");
 const toISO = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
 
 const DAYS_OF_WEEK = {
-  sunday: 0,
-  sun: 0,
-  monday: 1,
-  mon: 1,
-  tuesday: 2,
-  tue: 2,
-  wednesday: 3,
-  wed: 3,
-  thursday: 4,
-  thu: 4,
-  friday: 5,
-  fri: 5,
-  saturday: 6,
-  sat: 6,
+  sunday: 0, sun: 0,
+  monday: 1, mon: 1,
+  tuesday: 2, tue: 2,
+  wednesday: 3, wed: 3,
+  thursday: 4, thu: 4,
+  friday: 5, fri: 5,
+  saturday: 6, sat: 6,
 };
 
 const MONTH_NAMES = {
@@ -87,15 +79,20 @@ const extractDate = (text) => {
     };
   }
 
-  const dayMatch = q.match(/\b(?:next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b/i);
+  const dayMatch = q.match(
+    /\b(?:next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b/i
+  );
+
   if (dayMatch) {
     const targetDayIndex = DAYS_OF_WEEK[dayMatch[1].toLowerCase()];
     if (targetDayIndex != null) {
       const currentDayIndex = today.getDay();
       let diff = targetDayIndex - currentDayIndex;
       if (diff <= 0) diff += 7;
+
       const t = new Date(today);
       t.setDate(t.getDate() + diff);
+
       return {
         iso: toISO(t.getFullYear(), t.getMonth() + 1, t.getDate()),
         matchText: dayMatch[0],
@@ -121,13 +118,20 @@ const extractDate = (text) => {
     };
   }
 
-  m = q.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?\b/i) ||
-      q.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i);
+  m =
+    q.match(
+      /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?\b/i
+    ) ||
+    q.match(
+      /\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i
+    );
+
   if (m) {
-    const isFirstMonth = isNaN(+m[1]);
+    const isFirstMonth = Number.isNaN(+m[1]);
     const monthKey = (isFirstMonth ? m[1] : m[2]).toLowerCase();
     const dayVal = +(isFirstMonth ? m[2] : m[1]);
     const monthVal = MONTH_NAMES[monthKey];
+
     if (monthVal && dayVal >= 1 && dayVal <= 31) {
       return {
         iso: toISO(today.getFullYear(), monthVal, dayVal),
@@ -141,10 +145,12 @@ const extractDate = (text) => {
 
 const extractTime = (text) => {
   let m = text.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
+
   if (m) {
     const hours = m[1];
     const minutes = m[2] || "00";
     const ampm = m[3].toUpperCase();
+
     return {
       formatted: `${hours}:${minutes} ${ampm}`,
       matchText: m[0],
@@ -156,8 +162,10 @@ const extractTime = (text) => {
     let h = +m[1];
     const mins = m[2];
     const ampm = h >= 12 ? "PM" : "AM";
+
     if (h > 12) h -= 12;
     if (h === 0) h = 12;
+
     return {
       formatted: `${h}:${mins} ${ampm}`,
       matchText: m[0],
@@ -167,16 +175,21 @@ const extractTime = (text) => {
   return null;
 };
 
+const escapeRegExp = (value) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const extractMeetingTitle = (text, dateMatchText, timeMatchText) => {
   let rest = text;
+
   if (dateMatchText) {
-    rest = rest.replace(new RegExp(dateMatchText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), " ");
-  }
-  if (timeMatchText) {
-    rest = rest.replace(new RegExp(timeMatchText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), " ");
+    rest = rest.replace(new RegExp(escapeRegExp(dateMatchText), "gi"), " ");
   }
 
-  let m =
+  if (timeMatchText) {
+    rest = rest.replace(new RegExp(escapeRegExp(timeMatchText), "gi"), " ");
+  }
+
+  const m =
     rest.match(/\b(?:called|named|titled)\s+["']?([^"'\n,.]+)["']?/i) ||
     rest.match(/\bmeeting\s+(?:with|about|for)\s+["']?([^"'\n,.]+)["']?/i) ||
     rest.match(/\bschedule\s+["']?([^"'\n,.]+)["']?\s+(?:meeting|sync|review|demo)\b/i) ||
@@ -187,7 +200,10 @@ const extractMeetingTitle = (text, dateMatchText, timeMatchText) => {
   }
 
   const cleaned = rest
-    .replace(/\b(schedule|reschedule|book|set|add|move|a|an|the|meeting|sync|call|with|on|at|for|please|to|my|calendar)\b/gi, " ")
+    .replace(
+      /\b(schedule|reschedule|book|set|add|move|a|an|the|meeting|sync|call|with|on|at|for|please|to|my|calendar)\b/gi,
+      " "
+    )
     .replace(/\s+/g, " ")
     .trim();
 
@@ -196,9 +212,9 @@ const extractMeetingTitle = (text, dateMatchText, timeMatchText) => {
 
 const extractLabel = (text, dateMatchText) => {
   let rest = text;
+
   if (dateMatchText) {
-    const escaped = dateMatchText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    rest = rest.replace(new RegExp(escaped, "i"), " ");
+    rest = rest.replace(new RegExp(escapeRegExp(dateMatchText), "i"), " ");
   }
 
   const m =
@@ -223,9 +239,7 @@ const extractLabel = (text, dateMatchText) => {
 
 const loadCalendarEvents = (userId) => {
   try {
-    const raw = localStorage.getItem(
-      CHATBOT_EVENTS_KEY + (userId ?? "guest")
-    );
+    const raw = localStorage.getItem(CHATBOT_EVENTS_KEY + (userId ?? "guest"));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -261,7 +275,10 @@ const createMsg = (from, text) => ({
   id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
   from,
   text,
-  time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  time: new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  }),
 });
 
 const ChatBot = () => {
@@ -288,10 +305,13 @@ const ChatBot = () => {
     {
       id: "bot-init",
       from: "bot",
-      text: `Hello ${
-        currentUser?.fullName || "there"
-      }! 👋\n\nI'm your **NeuroForge SDLC AI Assistant**. You can ask me to schedule meetings, check project deadlines, query sprint progress, or pin overdue tasks to your calendar.`,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      text: `Hello ${currentUser?.fullName || "there"}! 👋
+
+I'm your **NeuroForge SDLC AI Assistant**. You can ask me to schedule meetings, check project deadlines, query sprint progress, or pin overdue tasks to your calendar.`,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     },
   ]);
 
@@ -299,25 +319,21 @@ const ChatBot = () => {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending, open]);
 
-  // Focus input when drawer opens
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 150);
+      const timer = setTimeout(() => inputRef.current?.focus(), 150);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 
-  // Close drawer on Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === "Escape" && open) {
-        setOpen(false);
-      }
+      if (e.key === "Escape" && open) setOpen(false);
     };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
@@ -328,7 +344,7 @@ const ChatBot = () => {
       setCopiedIndex(idx);
       setTimeout(() => setCopiedIndex(null), 2000);
     } catch {
-      // ignore
+      // Clipboard access may be unavailable.
     }
   };
 
@@ -341,19 +357,23 @@ const ChatBot = () => {
     ]);
   };
 
-  // Calendar & NLP Query Processor
   const handleCalendarQuery = (query) => {
     const userId = currentUser?.id;
     const q = lower(query).trim();
     const today = new Date();
-    const todayISO = toISO(today.getFullYear(), today.getMonth() + 1, today.getDate());
-
+    const todayISO = toISO(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      today.getDate()
+    );
     const calendarEvents = loadCalendarEvents(userId);
 
-    // 1. "Show dates of tasks" / "What are the task dates / deadlines"
+    // 1. Show task dates and deadlines.
     if (
       /\b(dates of tasks|task dates|task deadlines|due dates of tasks|task due dates|deadlines of tasks|dates for tasks)\b/i.test(q) ||
-      (/\b(show|list|what are|view)\b/i.test(q) && /\b(dates|deadlines)\b/i.test(q) && /\btask/i.test(q))
+      (/\b(show|list|what are|view)\b/i.test(q) &&
+        /\b(dates|deadlines)\b/i.test(q) &&
+        /\btask/i.test(q))
     ) {
       const allTasksWithDates = tasks.filter((t) => t.dueDate);
 
@@ -364,20 +384,29 @@ const ChatBot = () => {
       const overdue = [];
       const dueThisWeek = [];
       const upcoming = [];
-
       const nextWeekDate = new Date(today);
       nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-      const nextWeekISO = toISO(nextWeekDate.getFullYear(), nextWeekDate.getMonth() + 1, nextWeekDate.getDate());
+
+      const nextWeekISO = toISO(
+        nextWeekDate.getFullYear(),
+        nextWeekDate.getMonth() + 1,
+        nextWeekDate.getDate()
+      );
 
       allTasksWithDates.forEach((task) => {
-        const isDone = (task.status || task.boardStatus || "").toUpperCase().replace(/\s+/g, "_") === "DONE";
-        const proj = projects.find((p) => String(p.id) === String(task.projectId));
-        const projName = proj?.name || proj?.title || `Project #${task.projectId || "—"}`;
+        const isDone =
+          (task.status || task.boardStatus || "")
+            .toUpperCase()
+            .replace(/\s+/g, "_") === "DONE";
+
+        const proj = projects.find(
+          (p) => String(p.id) === String(task.projectId)
+        );
 
         const item = {
           title: task.title,
           dueDate: task.dueDate,
-          project: projName,
+          project: proj?.name || proj?.title || `Project #${task.projectId || "—"}`,
           status: task.status || "To Do",
           priority: task.priority || "Medium",
         };
@@ -395,40 +424,55 @@ const ChatBot = () => {
 
       if (overdue.length > 0) {
         responseLines.push(`🔴 **Overdue Tasks (${overdue.length})**:`);
-        overdue.forEach((t) => {
-          responseLines.push(`• **${t.title}** — Due: **${formatDisplayDate(t.dueDate)}** | Priority: ${t.priority} | Project: ${t.project}`);
-        });
+        overdue.forEach((t) =>
+          responseLines.push(
+            `• **${t.title}** — Due: **${formatDisplayDate(t.dueDate)}** | Priority: ${t.priority} | Project: ${t.project}`
+          )
+        );
         responseLines.push("");
       }
 
       if (dueThisWeek.length > 0) {
         responseLines.push(`🟡 **Due This Week (${dueThisWeek.length})**:`);
-        dueThisWeek.forEach((t) => {
-          responseLines.push(`• **${t.title}** — Due: **${formatDisplayDate(t.dueDate)}** | Status: ${t.status} | Project: ${t.project}`);
-        });
+        dueThisWeek.forEach((t) =>
+          responseLines.push(
+            `• **${t.title}** — Due: **${formatDisplayDate(t.dueDate)}** | Status: ${t.status} | Project: ${t.project}`
+          )
+        );
         responseLines.push("");
       }
 
       if (upcoming.length > 0) {
         responseLines.push(`🟢 **Future Deadlines (${upcoming.length})**:`);
-        upcoming.forEach((t) => {
-          responseLines.push(`• **${t.title}** — Due: **${formatDisplayDate(t.dueDate)}** | Project: ${t.project}`);
-        });
+        upcoming.forEach((t) =>
+          responseLines.push(
+            `• **${t.title}** — Due: **${formatDisplayDate(t.dueDate)}** | Project: ${t.project}`
+          )
+        );
       }
 
       return responseLines.join("\n");
     }
 
-    // 2. "Set / Show overdue tasks on calendar" / "Mark overdue tasks on calendar"
+    // 2. Pin overdue tasks to the calendar.
     if (
-      (/\b(set|mark|pin|show|sync|add)\b/i.test(q) && /\boverdue\b/i.test(q) && /\bcalendar\b/i.test(q)) ||
+      (/\b(set|mark|pin|show|sync|add)\b/i.test(q) &&
+        /\boverdue\b/i.test(q) &&
+        /\bcalendar\b/i.test(q)) ||
       /\bcalendar overdue\b/i.test(q) ||
       /\boverdue on calendar\b/i.test(q)
     ) {
       const overdueTasks = tasks.filter((t) => {
         if (!t.dueDate) return false;
-        const status = (t.status || t.boardStatus || "").toUpperCase().replace(/\s+/g, "_");
-        return status !== "DONE" && status !== "COMPLETED" && t.dueDate < todayISO;
+        const status = (t.status || t.boardStatus || "")
+          .toUpperCase()
+          .replace(/\s+/g, "_");
+
+        return (
+          status !== "DONE" &&
+          status !== "COMPLETED" &&
+          t.dueDate < todayISO
+        );
       });
 
       if (overdueTasks.length === 0) {
@@ -440,6 +484,7 @@ const ChatBot = () => {
 
       overdueTasks.forEach((task) => {
         const alertId = `overdue-alert-${task.id}`;
+
         if (!existingEventIds.has(alertId)) {
           newAlertEvents.push({
             id: alertId,
@@ -464,58 +509,77 @@ const ChatBot = () => {
         saveCalendarEvents(userId, [...calendarEvents, ...newAlertEvents]);
       }
 
-      return `⚠️ **Pinned to Calendar!**\n\nI identified **${overdueTasks.length} overdue task(s)** and pinned high-priority alert cards to your **SDLC Master Calendar** for today (${formatDisplayDate(todayISO)}) so you and your team can address them immediately.\n\n` +
+      return (
+        `⚠️ **Pinned to Calendar!**\n\nI identified **${overdueTasks.length} overdue task(s)** and pinned high-priority alert cards to your **SDLC Master Calendar** for today (${formatDisplayDate(todayISO)}) so you and your team can address them immediately.\n\n` +
         overdueTasks
-          .map((t) => `• **${t.title}** (Original deadline was: ${formatDisplayDate(t.dueDate)})`)
-          .join("\n");
+          .map(
+            (t) =>
+              `• **${t.title}** (Original deadline was: ${formatDisplayDate(t.dueDate)})`
+          )
+          .join("\n")
+      );
     }
 
-    // 3. Reschedule Meeting / Dates
+    // 3. Reschedule a meeting.
     if (/\breschedule\b|\bmove meeting\b|\bchange meeting\b|\bpostpone\b/i.test(q)) {
       const dateHit = extractDate(query);
       const timeHit = extractTime(query);
 
       if (!dateHit && !timeHit) {
-        return "I can help reschedule your meeting! Please specify the new date and/or time (e.g. *\"Reschedule meeting to tomorrow at 4 PM\"* or *\"Reschedule meeting to Friday\"*).";
+        return 'I can help reschedule your meeting! Please specify the new date and/or time (e.g. "Reschedule meeting to tomorrow at 4 PM" or "Reschedule meeting to Friday").';
       }
 
-      let meetingIndex = -1;
       const meetingEvents = calendarEvents.filter(
         (e) => e.type === "meeting" || e.isMeeting || e.calendarType === "chatbot"
       );
 
       if (meetingEvents.length === 0) {
-        return "You don't have any scheduled meetings on your calendar yet to reschedule. Would you like me to schedule a new one? (e.g. *\"Schedule meeting tomorrow at 3 PM\"*)";
+        return 'You don\'t have any scheduled meetings on your calendar yet to reschedule. Would you like me to schedule a new one? (e.g. "Schedule meeting tomorrow at 3 PM")';
       }
 
-      const candidateTitle = extractMeetingTitle(query, dateHit?.matchText, timeHit?.matchText);
+      const candidateTitle = extractMeetingTitle(
+        query,
+        dateHit?.matchText,
+        timeHit?.matchText
+      );
+
+      let meetingIndex = -1;
+
       if (candidateTitle && candidateTitle !== "Team Sync") {
         meetingIndex = calendarEvents.findIndex(
-          (e) => lower(e.title).includes(lower(candidateTitle)) || lower(candidateTitle).includes(lower(e.title))
+          (e) =>
+            lower(e.title).includes(lower(candidateTitle)) ||
+            lower(candidateTitle).includes(lower(e.title))
         );
       }
 
       if (meetingIndex === -1) {
         meetingIndex = calendarEvents.findIndex(
-          (e) => (e.type === "meeting" || e.isMeeting) && e.dueDate >= todayISO
+          (e) =>
+            (e.type === "meeting" || e.isMeeting) &&
+            e.dueDate >= todayISO
         );
+
         if (meetingIndex === -1) {
           meetingIndex = calendarEvents.findLastIndex
-            ? calendarEvents.findLastIndex((e) => e.type === "meeting" || e.isMeeting)
+            ? calendarEvents.findLastIndex(
+                (e) => e.type === "meeting" || e.isMeeting
+              )
             : calendarEvents.length - 1;
         }
       }
 
-      if (meetingIndex === -1) {
-        meetingIndex = calendarEvents.length - 1;
-      }
+      if (meetingIndex === -1) meetingIndex = calendarEvents.length - 1;
 
       const targetMeeting = calendarEvents[meetingIndex];
+      if (!targetMeeting) return "I couldn't find a meeting to reschedule.";
+
       const oldDate = targetMeeting.dueDate;
       const oldTime = targetMeeting.time || "10:00 AM";
-
       const newDateISO = dateHit ? dateHit.iso : targetMeeting.dueDate;
-      const newTimeStr = timeHit ? timeHit.formatted : (targetMeeting.time || "10:00 AM");
+      const newTimeStr = timeHit
+        ? timeHit.formatted
+        : targetMeeting.time || "10:00 AM";
 
       const updated = {
         ...targetMeeting,
@@ -526,17 +590,18 @@ const ChatBot = () => {
 
       const updatedList = [...calendarEvents];
       updatedList[meetingIndex] = updated;
-
       saveCalendarEvents(userId, updatedList);
 
-      return `🔄 **Meeting Rescheduled Successfully!**\n\n` +
+      return (
+        `🔄 **Meeting Rescheduled Successfully!**\n\n` +
         `📌 **Meeting:** ${targetMeeting.title || "Team Meeting"}\n` +
-        `📅 **New Date:** ${formatDisplayDate(newDateISO)} *(was ${formatDisplayDate(oldDate)})*\n` +
-        `🕒 **New Time:** ${newTimeStr} *(was ${oldTime})*\n\n` +
-        `Your **SDLC Master Calendar** has been updated in real time.`;
+        `📅 **New Date:** ${formatDisplayDate(newDateISO)} (was ${formatDisplayDate(oldDate)})\n` +
+        `🕒 **New Time:** ${newTimeStr} (was ${oldTime})\n\n` +
+        `Your **SDLC Master Calendar** has been updated in real time.`
+      );
     }
 
-    // 4. Schedule Meeting
+    // 4. Schedule a meeting.
     if (/\b(schedule|book|set up|create)\b.*\bmeeting\b/i.test(q) || /\bmeeting at\b/i.test(q)) {
       const dateHit = extractDate(query);
       const timeHit = extractTime(query);
@@ -544,8 +609,13 @@ const ChatBot = () => {
       const targetDateISO = dateHit
         ? dateHit.iso
         : toISO(today.getFullYear(), today.getMonth() + 1, today.getDate() + 1);
+
       const targetTime = timeHit ? timeHit.formatted : "10:00 AM";
-      const meetingTitle = extractMeetingTitle(query, dateHit?.matchText, timeHit?.matchText);
+      const meetingTitle = extractMeetingTitle(
+        query,
+        dateHit?.matchText,
+        timeHit?.matchText
+      );
 
       const newMeeting = {
         id: `meeting-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -563,27 +633,27 @@ const ChatBot = () => {
 
       saveCalendarEvents(userId, [...calendarEvents, newMeeting]);
 
-      return `✅ **Meeting Scheduled!**\n\n` +
+      return (
+        `✅ **Meeting Scheduled!**\n\n` +
         `📌 **Title:** ${meetingTitle}\n` +
         `📅 **Date:** ${formatDisplayDate(targetDateISO)}\n` +
         `🕒 **Time:** ${targetTime}\n\n` +
-        `This meeting has been pinned to your **SDLC Master Calendar** and will notify participants.`;
+        `This meeting has been pinned to your **SDLC Master Calendar** and will notify participants.`
+      );
     }
 
-    // 5. Specific date queries & generic marks
+    // 5. Specific date queries and calendar reminders.
     const dateHit = extractDate(query);
+
     if (dateHit) {
-      const isMarkIntent = /\b(mark|set|save|add|remind|note|reminder)\b/i.test(q);
+      const isMarkIntent =
+        /\b(mark|set|save|add|remind|note|reminder)\b/i.test(q);
 
       if (isMarkIntent) {
         const label = extractLabel(query, dateHit.matchText);
 
         if (!label) {
-          return `Got the date (${formatDisplayDate(
-            dateHit.iso
-          )}), but couldn't detect the event title. Try: "Mark ${formatDisplayDate(
-            dateHit.iso
-          )} as Sprint Review".`;
+          return `Got the date (${formatDisplayDate(dateHit.iso)}), but couldn't detect the event title. Try: "Mark ${formatDisplayDate(dateHit.iso)} as Sprint Review".`;
         }
 
         const newEvent = {
@@ -604,12 +674,12 @@ const ChatBot = () => {
           return "I couldn't save that calendar event in this browser.";
         }
 
-        return `✅ Event saved! **${formatDisplayDate(
-          dateHit.iso
-        )}** is now marked as **"${label}"**.`;
+        return `✅ Event saved! **${formatDisplayDate(dateHit.iso)}** is now marked as **"${label}"**.`;
       }
 
-      const dayEvents = calendarEvents.filter((event) => event?.dueDate === dateHit.iso);
+      const dayEvents = calendarEvents.filter(
+        (event) => event?.dueDate === dateHit.iso
+      );
       const dueTasks = tasks.filter((task) => task?.dueDate === dateHit.iso);
 
       if (dayEvents.length === 0 && dueTasks.length === 0) {
@@ -634,10 +704,8 @@ const ChatBot = () => {
       return lines.join("\n");
     }
 
-    // 6. List all saved events / meetings
-    if (
-      /\b(saved events|all events|list events|my events|meetings|saved meetings)\b/i.test(q)
-    ) {
+    // 6. List saved calendar events and meetings.
+    if (/\b(saved events|all events|list events|my events|meetings|saved meetings)\b/i.test(q)) {
       if (calendarEvents.length === 0) {
         return "You don't have any custom calendar events or meetings saved yet.";
       }
@@ -647,9 +715,7 @@ const ChatBot = () => {
         calendarEvents
           .map((event) => {
             const timeStr = event.time ? ` at ${event.time}` : "";
-            return `• **${formatDisplayDate(event.dueDate)}${timeStr}**: ${
-              event.title || event.label
-            }`;
+            return `• **${formatDisplayDate(event.dueDate)}${timeStr}**: ${event.title || event.label}`;
           })
           .join("\n")
       );
@@ -658,17 +724,17 @@ const ChatBot = () => {
     return null;
   };
 
-  // Local Workspace Metrics Fallback
+  // Local workspace metrics fallback.
   const handleWorkspaceFallbackQuery = (query) => {
     const q = lower(query).trim();
     const todayStr = new Date().toISOString().slice(0, 10);
     const userId = String(currentUser?.id ?? "");
 
-    // Projects queries
     if (/\b(how many projects|number of projects|count of projects|project count)\b/i.test(q)) {
       if (!projects.length) {
         return "📁 You currently do not have access to any active projects.";
       }
+
       return (
         `📊 **You have ${projects.length} accessible project(s):**\n\n` +
         projects
@@ -684,9 +750,11 @@ const ChatBot = () => {
       const inProgress = projects.filter(
         (p) => (p.status || "").toLowerCase().replace(/[\s_]+/g, "") === "inprogress"
       );
+
       if (inProgress.length === 0) {
         return "📁 No projects are currently marked as 'In Progress'.";
       }
+
       return (
         `🚀 **Projects Currently In Progress (${inProgress.length}):**\n\n` +
         inProgress
@@ -703,9 +771,11 @@ const ChatBot = () => {
         const pri = (p.priority || "").toLowerCase();
         return pri === "high" || pri === "critical";
       });
+
       if (highPri.length === 0) {
         return "✅ There are no High or Critical priority projects currently.";
       }
+
       return (
         `🔥 **High / Critical Priority Projects (${highPri.length}):**\n\n` +
         highPri
@@ -719,9 +789,11 @@ const ChatBot = () => {
 
     if (/\b(project deadlines|upcoming project deadlines|when do projects end)\b/i.test(q)) {
       const withEnd = projects.filter((p) => p.endDate);
+
       if (withEnd.length === 0) {
         return "📅 None of your active projects have set end dates.";
       }
+
       return (
         `📅 **Project Delivery Deadlines:**\n\n` +
         withEnd
@@ -733,21 +805,24 @@ const ChatBot = () => {
       );
     }
 
-    // Tasks queries
     if (/\b(assigned to me|my tasks|what are my tasks|tasks for me)\b/i.test(q)) {
       const myTasks = tasks.filter(
         (t) => String(t.assigneeId ?? t.assignee?.id) === userId
       );
+
       if (myTasks.length === 0) {
         return `🙌 You currently have no tasks assigned directly to your account (${currentUser?.fullName || "User"}).`;
       }
+
       return (
         `👤 **Tasks Assigned to You (${myTasks.length}):**\n\n` +
         myTasks
           .map((t) => {
-            const isDone = (t.status || t.boardStatus || "").toLowerCase() === "done";
+            const isDone =
+              (t.status || t.boardStatus || "").toLowerCase() === "done";
             const isOverdue = !isDone && t.dueDate && t.dueDate < todayStr;
             const overdueTag = isOverdue ? " 🔴 **[OVERDUE]**" : "";
+
             return `• **${t.title}**${overdueTag} — Status: \`${t.status || "To Do"}\` | Due: ${t.dueDate ? formatDisplayDate(t.dueDate) : "None"}`;
           })
           .join("\n")
@@ -758,9 +833,11 @@ const ChatBot = () => {
       const openTasks = tasks.filter(
         (t) => (t.status || t.boardStatus || "").toLowerCase() !== "done"
       );
+
       if (!openTasks.length) {
         return "🎉 There are no open parent tasks at this moment. Everything is caught up!";
       }
+
       return (
         `📋 **Open Parent Tasks (${openTasks.length}):**\n\n` +
         openTasks
@@ -770,18 +847,23 @@ const ChatBot = () => {
               `• **${t.title}** — Status: \`${t.status || "To Do"}\` | Priority: \`${t.priority || "Medium"}\``
           )
           .join("\n") +
-        (openTasks.length > 10 ? `\n\n*...and ${openTasks.length - 10} more in your project workspace.*` : "")
+        (openTasks.length > 10
+          ? `\n\n*...and ${openTasks.length - 10} more in your project workspace.*`
+          : "")
       );
     }
 
     if (/\b(which tasks are overdue|overdue tasks|overdue)\b/i.test(q)) {
       const overdue = tasks.filter((t) => {
-        const isDone = (t.status || t.boardStatus || "").toLowerCase() === "done";
+        const isDone =
+          (t.status || t.boardStatus || "").toLowerCase() === "done";
         return !isDone && t.dueDate && t.dueDate < todayStr;
       });
+
       if (overdue.length === 0) {
         return "🎉 **Great job!** None of your tasks are currently overdue.";
       }
+
       return (
         `⚠️ **Overdue Tasks Requiring Attention (${overdue.length}):**\n\n` +
         overdue
@@ -803,7 +885,8 @@ const ChatBot = () => {
         (t) => (t.status || t.boardStatus || "").toLowerCase() === "in progress"
       ).length;
       const todo = total - completed - inProgress;
-      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const percentage =
+        total > 0 ? Math.round((completed / total) * 100) : 0;
 
       return (
         `📈 **Sprint Delivery Summary:**\n\n` +
@@ -841,14 +924,15 @@ const ChatBot = () => {
     setSending(true);
 
     try {
-      // 1. Calendar NLP Command handling
+      // 1. Handle calendar commands locally.
       const calendarReply = handleCalendarQuery(question);
+
       if (calendarReply) {
         setMessages((prev) => [...prev, createMsg("bot", calendarReply)]);
         return;
       }
 
-      // 2. Call Backend AI /chat endpoint
+      // 2. Call backend chat endpoint.
       const history = previousMessages
         .filter((m) => m.id !== "bot-init")
         .slice(-8)
@@ -867,12 +951,8 @@ const ChatBot = () => {
       }
 
       const reply = data?.reply;
+      if (!reply) throw new Error("Empty reply received from backend.");
 
-      if (!reply) {
-        throw new Error("Empty reply received from backend.");
-      }
-
-      // Check if backend returned Groq unavailable notice
       const isGroqUnavailable =
         reply.includes("Groq API configuration") ||
         reply.includes("AI Assistant is currently unavailable");
@@ -885,8 +965,7 @@ const ChatBot = () => {
             ...prev,
             createMsg(
               "bot",
-              fallbackAnswer +
-                `\n\n---\n*💡 Note: Answered via Local Workspace Intelligence because Groq API Key is not configured in \`application.properties\`.*`
+              `${fallbackAnswer}\n\n---\n*💡 Note: Answered via Local Workspace Intelligence because Groq API Key is not configured in \`application.properties\`. *`
             ),
           ]);
           return;
@@ -897,13 +976,13 @@ const ChatBot = () => {
           createMsg(
             "bot",
             `⚠️ **Groq API Key Not Configured in Backend**\n\n` +
-            `The backend connects to Groq Cloud LLM, but no valid API key was found in \`application.properties\` (default is \`mock-key\`).\n\n` +
-            `**How to fix in 1 minute:**\n` +
-            `1. Get a free API key at **[console.groq.com/keys](https://console.groq.com/keys)** (100% free, takes 30s).\n` +
-            `2. Open \`backend/src/main/resources/application.properties\`.\n` +
-            `3. Set: \`neuroforge.chat.api-key=gsk_your_groq_api_key_here\`\n` +
-            `4. Restart your Spring Boot backend (\`mvnw.cmd spring-boot:run\`).\n\n` +
-            `💡 *You can still ask me local workspace and calendar commands anytime!*`
+              `The backend connects to Groq Cloud LLM, but no valid API key was found in \`application.properties\` (default is \`mock-key\`).\n\n` +
+              `**How to fix in 1 minute:**\n` +
+              `1. Get a free API key at https://console.groq.com/keys\n` +
+              `2. Open \`backend/src/main/resources/application.properties\`.\n` +
+              `3. Set: \`neuroforge.chat.api-key=gsk_your_groq_api_key_here\`\n` +
+              `4. Restart your Spring Boot backend (\`mvnw.cmd spring-boot:run\`).\n\n` +
+              `💡 *You can still ask me local workspace and calendar commands anytime!*`
           ),
         ]);
         return;
@@ -912,7 +991,6 @@ const ChatBot = () => {
       setMessages((prev) => [...prev, createMsg("bot", reply)]);
     } catch (error) {
       console.error("Chatbot request failed:", error);
-
       const fallbackAnswer = handleWorkspaceFallbackQuery(question);
 
       if (fallbackAnswer) {
@@ -920,8 +998,7 @@ const ChatBot = () => {
           ...prev,
           createMsg(
             "bot",
-            fallbackAnswer +
-              `\n\n---\n*💡 Note: Answered via Local Workspace Intelligence while the AI backend is offline.*`
+            `${fallbackAnswer}\n\n---\n*💡 Note: Answered via Local Workspace Intelligence while the AI backend is offline.*`
           ),
         ]);
       } else {
@@ -930,8 +1007,8 @@ const ChatBot = () => {
           createMsg(
             "bot",
             `⚠️ **AI Backend Service Offline**\n\n` +
-            `The AI backend could not be reached. Make sure your Spring Boot backend is running on port 8080.\n\n` +
-            `*Calendar scheduling, meeting booking, and task deadline commands remain active directly in your browser!*`
+              `The AI backend could not be reached. Make sure your Spring Boot backend is running on port 8080.\n\n` +
+              `*Calendar scheduling, meeting booking, and task deadline commands remain active directly in your browser!*`
           ),
         ]);
       }
@@ -945,22 +1022,22 @@ const ChatBot = () => {
     send(input);
   };
 
-  if (!currentUser) {
-    return null;
-  }
+  if (!currentUser) return null;
 
   return (
     <>
-      {/* Semi-transparent backdrop overlay when drawer is open */}
+      {/* Backdrop overlay: darkens the page but does NOT blur it. */}
       <div
         onClick={() => setOpen(false)}
-        className={`fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-xs transition-opacity duration-300 ${
-          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        className={`fixed inset-0 z-40 bg-slate-950/40 transition-opacity duration-300 ${
+          open
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
         aria-hidden="true"
       />
 
-      {/* Slide-in Right Chatbot Drawer */}
+      {/* Slide-in right chatbot drawer */}
       <div
         className={`fixed inset-y-0 right-0 z-50 flex h-full w-full sm:w-[420px] md:w-[460px] max-w-full flex-col bg-white dark:bg-[#0f172a] shadow-2xl border-l border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ease-in-out ${
           open ? "translate-x-0" : "translate-x-full"
@@ -969,12 +1046,13 @@ const ChatBot = () => {
         aria-modal="true"
         aria-label="AI Assistant Drawer"
       >
-        {/* Drawer Header */}
+        {/* Drawer header */}
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] px-4 py-3.5 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white shadow-md shadow-blue-500/25">
               <PiRobot size={20} />
             </div>
+
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-slate-900 dark:text-white leading-tight">
@@ -1013,14 +1091,17 @@ const ChatBot = () => {
           </div>
         </div>
 
-        {/* Messages Scroll Area */}
+        {/* Messages scroll area */}
         <div className="flex-1 space-y-3.5 overflow-y-auto bg-slate-50 dark:bg-[#090d16] p-4 transition-colors">
           {messages.map((message, index) => {
             const isUser = message.from === "user";
+
             return (
               <div
                 key={message.id || index}
-                className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}
+                className={`flex flex-col ${
+                  isUser ? "items-end" : "items-start"
+                }`}
               >
                 <div
                   className={`group relative max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed whitespace-pre-line shadow-xs transition-colors ${
@@ -1031,7 +1112,6 @@ const ChatBot = () => {
                 >
                   {message.text}
 
-                  {/* Copy button for bot replies */}
                   {!isUser && (
                     <button
                       type="button"
@@ -1041,7 +1121,10 @@ const ChatBot = () => {
                     >
                       {copiedIndex === index ? (
                         <>
-                          <PiCheckCircle size={11} className="text-emerald-500" />
+                          <PiCheckCircle
+                            size={11}
+                            className="text-emerald-500"
+                          />
                           <span>Copied</span>
                         </>
                       ) : (
@@ -1066,6 +1149,7 @@ const ChatBot = () => {
               <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <PiRobot size={14} />
               </div>
+
               <div className="flex items-center gap-1 rounded-xl rounded-bl-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#172033] px-3 py-2 shadow-xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce" />
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.15s]" />
@@ -1074,13 +1158,14 @@ const ChatBot = () => {
             </div>
           )}
 
-          {/* Prompt Suggestion Pills */}
+          {/* Prompt suggestion pills */}
           {messages.length <= 2 && (
             <div className="pt-2">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1">
                 <PiSparkle size={13} className="text-amber-500" />
                 Suggested Actions
               </p>
+
               <div className="flex flex-wrap gap-1.5">
                 {QUICK_SUGGESTIONS.map((sug) => (
                   <button
@@ -1099,7 +1184,7 @@ const ChatBot = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Drawer Footer Input Bar */}
+        {/* Drawer footer input bar */}
         <form
           onSubmit={handleSubmit}
           className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] p-3 transition-colors"
@@ -1132,14 +1217,16 @@ const ChatBot = () => {
         </form>
       </div>
 
-      {/* Floating Small AI Chatbot Button (below-right corner) */}
+      {/* Floating chatbot button */}
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-label={open ? "Close AI drawer" : "Open AI assistant drawer"}
         title="Open AI Assistant"
         className={`fixed bottom-6 right-6 z-40 flex h-13 w-13 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white shadow-2xl shadow-blue-600/40 ring-4 ring-white/20 dark:ring-slate-900/40 transition-all duration-300 hover:scale-110 active:scale-95 ${
-          open ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100"
+          open
+            ? "scale-0 opacity-0 pointer-events-none"
+            : "scale-100 opacity-100"
         }`}
       >
         <div className="relative flex items-center justify-center">
