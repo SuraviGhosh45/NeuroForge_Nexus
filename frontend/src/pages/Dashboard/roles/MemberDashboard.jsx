@@ -13,7 +13,7 @@ import {
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { useTasks } from "../../../context/TasksContext.jsx";
 import { formatRole } from "../../../constants/roles.js";
-import "../../../services/api.js";
+import { getApiBase } from "../../../services/api.js";
 
 const MemberDashboard = () => {
   const { currentUser } = useAuth();
@@ -23,8 +23,7 @@ const MemberDashboard = () => {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState("");
 
-  const DASHBOARD_API =
-    `${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/dashboard`;
+  const DASHBOARD_API = `${getApiBase()}/dashboard`;
 
   useEffect(() => {
     const loadDashboard = async () => {

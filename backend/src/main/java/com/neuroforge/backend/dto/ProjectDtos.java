@@ -15,7 +15,7 @@ public final class ProjectDtos {
             Long id, String name, String code, String projectKey,
             LocalDate startDate, LocalDate endDate, String status, String priority,
             PersonInfo projectManager, PersonInfo projectLead, Long teamId, String teamName,
-            List<PersonInfo> members) {
+            List<PersonInfo> members, String repository) {
         public static Summary from(Project project) {
             List<PersonInfo> members = project.getMembers().stream().map(PersonInfo::from).toList();
             return new Summary(project.getId(), project.getName(), project.getCode(), project.getProjectKey(),
@@ -23,7 +23,7 @@ public final class ProjectDtos {
                     PersonInfo.from(project.getProjectManager()), PersonInfo.from(project.getProjectLead()),
                     project.getTeam() == null ? null : project.getTeam().getId(),
                     project.getTeam() == null ? null : project.getTeam().getName(),
-                    members);
+                    members, repositoryUrl(project));
         }
     }
 
@@ -51,7 +51,14 @@ public final class ProjectDtos {
             PersonInfo projectManager, PersonInfo projectLead,
             Long teamId, String teamName,
             List<PersonInfo> members, int totalTasks, int completedTasks, int progressPercent,
-            List<TaskDtos.TaskResponse> tasks, LocalDateTime createdAt) {}
+            List<TaskDtos.TaskResponse> tasks, LocalDateTime createdAt, String repository) {}
+
+    public static String repositoryUrl(Project project) {
+        if (project.getGithubOwner() == null || project.getGithubRepository() == null) {
+            return "";
+        }
+        return "https://github.com/" + project.getGithubOwner() + "/" + project.getGithubRepository();
+    }
 
     public record PrioritySuggestion(String priority, long durationDays) {}
 }

@@ -1,6 +1,7 @@
 package com.neuroforge.backend.service;
 
 import java.time.temporal.ChronoUnit;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -96,6 +97,7 @@ public class ProjectService {
         project.setCode(code);
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
+        setRepository(project, request.getRepository());
 
         // Status: client can set initial status (defaults to NOT_STARTED)
         if (request.getStatus() != null && !request.getStatus().isBlank()) {
@@ -157,6 +159,9 @@ public class ProjectService {
         project.setCode(code);
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
+        if (request.getRepository() != null) {
+            setRepository(project, request.getRepository());
+        }
 
         // Priority stays editable; if not supplied the current value is kept.
         if (request.getPriority() != null && !request.getPriority().isBlank()) {
@@ -658,7 +663,49 @@ public class ProjectService {
                 completed,
                 percent,
                 tasks.stream().map(TaskDtos.TaskResponse::from).toList(),
-                project.getCreatedAt());
+                project.getCreatedAt(),
+                ProjectDtos.repositoryUrl(project));
+    }
+
+    private void setRepository(Project project, String repositoryUrl) {
+        String value = clean(repositoryUrl);
+        if (value == null) {
+            project.setGithubOwner(null);
+            project.setGithubRepository(null);
+            return;
+        }
+
+        String normalized = value.contains("://") ? value : "https://" + value;
+        try {
+            URI uri = URI.create(normalized);
+            String host = uri.getHost();
+            String path = uri.getPath();
+            if (!"https".equalsIgnoreCase(uri.getScheme())
+                    || !"github.com".equalsIgnoreCase(host)
+                    || uri.getPort() != -1
+                    || uri.getUserInfo() != null
+                    || uri.getQuery() != null
+                    || uri.getFragment() != null
+                    || path == null) {
+                throw new IllegalArgumentException();
+            }
+
+            String[] parts = path.replaceAll("^/+|/+$", "").split("/");
+            if (parts.length != 2) {
+                throw new IllegalArgumentException();
+            }
+            String owner = parts[0];
+            String repository = parts[1].replaceFirst("\\.git$", "");
+            if (!owner.matches("[A-Za-z0-9-]{1,50}")
+                    || !repository.matches("[A-Za-z0-9._-]{1,100}")) {
+                throw new IllegalArgumentException();
+            }
+
+            project.setGithubOwner(owner);
+            project.setGithubRepository(repository);
+        } catch (IllegalArgumentException exception) {
+            throw new BusinessRuleException("Repository must be a GitHub URL in the form https://github.com/owner/repository");
+        }
     }
 
     private String nextProjectKey(String code, String name) {

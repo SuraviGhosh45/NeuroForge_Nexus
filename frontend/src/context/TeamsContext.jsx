@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import "../services/api.js";
+import { getApiBase } from "../services/api.js";
 
 const TeamsContext = createContext(null);
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 
 export const TeamsProvider = ({ children }) => {
   const [teams, setTeams] = useState([]);

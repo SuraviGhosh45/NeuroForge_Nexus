@@ -15,6 +15,7 @@ public class ProjectRequest {
     private LocalDate endDate;
     private String priority;
     private String status;
+    private String repository;
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -38,4 +39,6 @@ public class ProjectRequest {
     public void setPriority(String priority) { this.priority = priority; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getRepository() { return repository; }
+    public void setRepository(String repository) { this.repository = repository; }
 }

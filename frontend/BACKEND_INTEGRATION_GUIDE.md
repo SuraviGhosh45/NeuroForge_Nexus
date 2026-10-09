@@ -87,8 +87,8 @@ All endpoints connect under `http://localhost:8080/api`.
 | Method | Endpoint | Description | Status |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/` | List all accessible projects | ✅ Implemented |
-| `POST` | `/` | Create a new project | ✅ Implemented |
-| `PUT` | `/{id}` | Full update of project | ✅ Implemented |
+| `POST` | `/` | Create a project, including an optional GitHub repository URL | ✅ Implemented |
+| `PUT` | `/{id}` | Update project fields and its optional GitHub repository URL | ✅ Implemented |
 | `PATCH` | `/{id}/status` | Update project status only | ✅ Implemented |
 | `DELETE` | `/{id}` | Delete project & cascade | ✅ Implemented |
 | `GET` | `/{projectId}/members` | List project team members | ✅ Implemented |
@@ -120,6 +120,7 @@ All endpoints connect under `http://localhost:8080/api`.
 | `PUT` | `/{id}` | Update user details | ✅ Implemented |
 | `PATCH` | `/{id}/role` | Update user role | ✅ Implemented |
 | `PATCH` | `/{id}/status` | Update active status | ✅ Implemented |
+| `PUT` | `/me` | Update the authenticated user's profile fields (not role/password) | ✅ Implemented |
 | `GET` | `/{id}/profile` | Comprehensive profile | ✅ Implemented |
 | `DELETE` | `/{id}` | Delete user (Admin only) | ✅ Implemented |
 
@@ -137,7 +138,21 @@ All endpoints connect under `http://localhost:8080/api`.
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/chat` | AI assistant query for projects, tasks & calendar | ✅ Implemented |
 
-#### 7. Calendar & Scheduling Events (`/api/calendar`)
+#### 7. Bug Reports (`/api/bugs`)
+| Method | Endpoint | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/bugs` | List bugs in accessible projects | ✅ Implemented |
+| `POST` | `/api/bugs` | Create a persistent bug report | ✅ Implemented |
+| `PUT` | `/api/bugs/{id}` | Update bug details | ✅ Implemented |
+| `PATCH` | `/api/bugs/{id}/status` | Update status and retest result | ✅ Implemented |
+| `PATCH` | `/api/bugs/{id}/assignment` | Assign a bug within the project | ✅ Implemented |
+| `GET` | `/api/bugs/{id}/comments` | Read persisted bug comments | ✅ Implemented |
+| `POST` | `/api/bugs/{id}/comments` | Add a persisted comment | ✅ Implemented |
+| `GET` | `/api/bugs/{id}/activity` | Read persisted activity history | ✅ Implemented |
+| `POST` | `/api/bugs/{id}/summary` | Generate an AI summary for an accessible bug | ✅ Implemented |
+| `DELETE` | `/api/bugs/{id}` | Delete a bug report | ✅ Implemented |
+
+#### 8. Calendar & Scheduling Events (`/api/calendar`)
 | Method | Endpoint | Description | Status |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/calendar` | List user visible calendar events | ✅ Implemented |
@@ -151,38 +166,12 @@ All endpoints connect under `http://localhost:8080/api`.
 
 ---
 
-## 3. Remaining Optional Backend Enhancements
+## 3. Database migration
 
-### A. Project Custom Repository URL Field
-Currently, the backend models GitHub integration through `github_owner` and `github_repository` in `Project.java` and `/api/github/repository`.
-
-If the team wishes to store generic external git repository URLs (e.g. GitLab, Bitbucket) directly on the Project entity:
-
-#### 1. SQL Migration:
-```sql
-ALTER TABLE projects 
-ADD COLUMN IF NOT EXISTS repository VARCHAR(500) DEFAULT NULL;
-```
-
-#### 2. Entity: `Project.java`
-```java
-@Column(name = "repository", length = 500)
-private String repository;
-
-public String getRepository() { return repository; }
-public void setRepository(String repository) { this.repository = repository; }
-```
-
-#### 3. Controller: `ProjectController.java`
-```java
-@PatchMapping("/{id}/repository")
-public ResponseEntity<ProjectDtos.Detail> updateProjectRepository(
-        @PathVariable Long id,
-        @RequestBody Map<String, String> payload) {
-    String repositoryUrl = payload.get("repository");
-    return ResponseEntity.ok(projectService.updateRepository(id, repositoryUrl));
-}
-```
+The setup script creates the current schema without dropping existing data. For an
+existing installation, run `backend/src/main/resources/db/V2__calendar_bug_repository_persistence.sql`
+against the `neuroforge` database before deploying a backend build that uses the
+calendar, bug-report comments/activity, or project repository persistence.
 
 ---
 

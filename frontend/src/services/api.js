@@ -2,6 +2,27 @@ import axios from "axios";
 
 const TOKEN_KEY = "auth_token";
 
+export const getApiBase = () => {
+  const configuredBase = import.meta.env.VITE_API_BASE?.trim();
+
+  if (configuredBase) {
+    return configuredBase.replace(/\/+$/, "");
+  }
+
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname.replace(/^\[|\]$/g, "");
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "::1"
+    ) {
+      return "http://localhost:8080/api";
+    }
+  }
+
+  return "/api";
+};
+
 export const setToken = (token) => {
   if (token) sessionStorage.setItem(TOKEN_KEY, token);
 };

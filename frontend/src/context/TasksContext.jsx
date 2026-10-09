@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import "../services/api.js";
+import { getApiBase } from "../services/api.js";
 import { canAccessTask, canAccessSubtask } from "../utils/access.js";
 
 const TasksContext = createContext(null);
 
-const API_BASE = `${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/tasks`;
+const API_BASE = `${getApiBase()}/tasks`;
 
 export const SEED_TASKS = [
   {
@@ -447,7 +447,7 @@ export const TasksProvider = ({ children }) => {
   const updateSubtaskStatus = async (subtaskId, newStatus) => {
     try {
             const response = await axios.patch(
-        `${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${subtaskId}/status`,
+        `${getApiBase()}/subtasks/${subtaskId}/status`,
         {
           status: newStatus || "To Do",
         }
@@ -505,7 +505,7 @@ export const TasksProvider = ({ children }) => {
     }
 
     try {
-            const response = await axios.put(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${updatedSubtask.id}`, {
+            const response = await axios.put(`${getApiBase()}/subtasks/${updatedSubtask.id}`, {
         title: updatedSubtask.title,
         description: updatedSubtask.description || "",
         assigneeId: updatedSubtask.assigneeId ? Number(updatedSubtask.assigneeId) : null,
@@ -538,7 +538,7 @@ export const TasksProvider = ({ children }) => {
   const deleteSubtask = async (taskId, subtaskId) => {
     if (!subtaskId) return { success: false, message: "Subtask ID is required." };
     try {
-            await axios.delete(`${import.meta.env.VITE_API_BASE || "http://localhost:8080/api"}/subtasks/${subtaskId}`);
+            await axios.delete(`${getApiBase()}/subtasks/${subtaskId}`);
     } catch (error) {
       console.warn("Backend delete subtask failed, removing locally:", error.message);
     }

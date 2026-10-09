@@ -3,6 +3,7 @@ package com.neuroforge.backend.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDateTime;
 
@@ -88,6 +89,32 @@ public final class BugReportDtos {
 
     public record UpdateAssignmentRequest(
             Long assignedTo
+    ) {
+    }
+
+    public record CreateCommentRequest(
+            @NotBlank(message = "Comment cannot be blank")
+            @Size(max = 2000, message = "Comment cannot exceed 2000 characters")
+            String text
+    ) {
+    }
+
+    public record CommentResponse(
+            Long id,
+            Long authorId,
+            String author,
+            String text,
+            LocalDateTime at
+    ) {
+    }
+
+    public record ActivityResponse(
+            Long id,
+            String type,
+            String actor,
+            String text,
+            String result,
+            LocalDateTime at
     ) {
     }
 

@@ -6,10 +6,10 @@ import {
   PiWarning,
   PiWrench,
 } from "react-icons/pi";
-import axios from "../../../services/api.js";
+import axios, { getApiBase } from "../../../services/api.js";
 import { avatarColor, getInitials } from "../utils/BugHelpers.js";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 const TASKS_API = `${API_BASE}/tasks`;
 
 const periods = [

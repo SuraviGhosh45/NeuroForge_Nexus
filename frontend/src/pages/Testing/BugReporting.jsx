@@ -14,25 +14,21 @@ import {
   PiXCircle,
 } from "react-icons/pi";
 import { AuthContext } from "../../context/AuthContext.jsx";
-import axios from "../../services/api.js";
+import axios, { getApiBase } from "../../services/api.js";
 import BugActivityTimeline from "./components/BugActivityTimeline.jsx";
 import BugAISummary from "./components/BugAISummary.jsx";
 import BugComments from "./components/BugComments.jsx";
 import DeveloperPerformance from "./components/DeveloperPerformance.jsx";
 import {
-  appendActivity,
-  appendComment,
   avatarColor,
   getInitials,
   getLinkedTaskId,
   isDeveloper,
-  loadActivity,
-  loadComments,
   mergeActivity,
   mergeComments,
 } from "./utils/bugHelpers.js";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 const BUGS_API = `${API_BASE}/bugs`;
 const PROJECTS_API = `${API_BASE}/projects`;
 
@@ -261,24 +257,41 @@ const BugReporting = () => {
   const openDetails = (bug) => {
     setModalNotice("");
     setDetailTab("overview");
-    setActivity(loadActivity(bug.id));
-    setComments(loadComments(bug.id));
+    setActivity([]);
+    setComments([]);
     setSelectedBug(normalizeBug(bug));
   };
 
-  const logActivity = (bugId, event) => {
-    setActivity(appendActivity(bugId, { actor: currentUserName, ...event }));
+  const logActivity = async (bugId) => {
+    try {
+      const response = await axios.get(`${BUGS_API}/${bugId}/activity`);
+      if (String(selectedBug?.id) === String(bugId)) {
+        setActivity(Array.isArray(response.data) ? response.data : []);
+      }
+    } catch (requestError) {
+      setModalNotice(
+        requestError.response?.data?.message ||
+          "Bug activity could not be refreshed."
+      );
+    }
   };
 
-  const addComment = (text) => {
-    if (!selectedBug) return;
-    setComments(
-      appendComment(selectedBug.id, { author: currentUserName, text })
-    );
-    logActivity(selectedBug.id, {
-      type: "comment",
-      text: "commented on this bug",
-    });
+  const addComment = async (text) => {
+    if (!selectedBug) return false;
+    try {
+      const response = await axios.post(
+        `${BUGS_API}/${selectedBug.id}/comments`,
+        { text }
+      );
+      setComments((current) => [...current, response.data]);
+      await logActivity(selectedBug.id);
+      return true;
+    } catch (requestError) {
+      setModalNotice(
+        requestError.response?.data?.message || "Failed to post the comment."
+      );
+      return false;
+    }
   };
 
   const openProject = () => {
@@ -373,6 +386,33 @@ const BugReporting = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const selectedBugId = selectedBug?.id;
+  useEffect(() => {
+    if (!selectedBugId) return undefined;
+
+    let active = true;
+    Promise.all([
+      axios.get(`${BUGS_API}/${selectedBugId}/comments`),
+      axios.get(`${BUGS_API}/${selectedBugId}/activity`),
+    ])
+      .then(([commentResponse, activityResponse]) => {
+        if (!active) return;
+        setComments(Array.isArray(commentResponse.data) ? commentResponse.data : []);
+        setActivity(Array.isArray(activityResponse.data) ? activityResponse.data : []);
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setModalNotice(
+          requestError.response?.data?.message ||
+            "Bug discussion and activity could not be loaded."
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedBugId]);
 
   const selectedProject = getProject(form.projectId);
   const availableMembers = selectedProject?.members || [];
@@ -543,10 +583,7 @@ const BugReporting = () => {
       applyBugUpdate(bugId, response.data);
 
       if (previous && previous !== status) {
-        logActivity(bugId, {
-          type: "status",
-          text: `moved this bug from ${previous} to ${status}`,
-        });
+        await logActivity(bugId);
       }
     } catch (requestError) {
       console.error("Failed to update bug status:", requestError);
@@ -567,11 +604,7 @@ const BugReporting = () => {
 
       applyBugUpdate(bugId, response.data);
 
-      logActivity(bugId, {
-        type: "retest",
-        result,
-        text: `marked the retest as ${result}. The bug is now ${nextStatusValue}`,
-      });
+      await logActivity(bugId);
     } catch (requestError) {
       console.error("Failed to save retest result:", requestError);
       setModalNotice(
@@ -1218,15 +1251,6 @@ const BugReporting = () => {
                     bug={selectedBug}
                     comments={mergedComments}
                     activity={mergedActivity}
-                    onGenerated={(source) =>
-                      logActivity(selectedBug.id, {
-                        type: "ai",
-                        text:
-                          source === "ai"
-                            ? "generated an AI summary"
-                            : "generated a summary",
-                      })
-                    }
                   />
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

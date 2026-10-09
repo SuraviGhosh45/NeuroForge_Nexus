@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import "../services/api.js";
+import { getApiBase } from "../services/api.js";
 
 const UsersContext = createContext(null);
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 const USERS_STORAGE_KEY = "sdlc_users";
 
 export const ROLE_DEFAULT_SKILLS = {

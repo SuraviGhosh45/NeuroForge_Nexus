@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import "../services/api.js";
+import { getApiBase } from "../services/api.js";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 const ProjectTeamContext = createContext(null);
 export const MEMBER_STATUSES = ["Active", "Inactive", "In Meeting"];
 

@@ -11,13 +11,13 @@ import {
   PiUsersThree,
   PiWarningCircle,
 } from "react-icons/pi";
-import axios from "../../services/api.js";
+import axios, { getApiBase } from "../../services/api.js";
 import { useUsers } from "../../context/UsersContext.jsx";
 import { useProjects } from "../../context/ProjectContext.jsx";
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 
 const UserDetails = () => {
   const { userId } = useParams();

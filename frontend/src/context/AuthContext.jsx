@@ -7,11 +7,12 @@ import {
   clearToken,
   getToken,
   setTokenPersistent,
+  getApiBase,
 } from "../services/api.js";
 
 export const AuthContext = createContext(null);
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 const AUTH_USER_KEY = "auth_user";
 
 export const normalizeUser = (user) => {

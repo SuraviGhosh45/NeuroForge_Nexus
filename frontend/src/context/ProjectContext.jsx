@@ -1,31 +1,10 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import "../services/api.js";
+import { getApiBase } from "../services/api.js";
 
 const ProjectContext = createContext(null);
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
-const REPOS_STORAGE_KEY = "sdlc_project_repositories";
-
-const getStoredRepos = () => {
-  try {
-    return JSON.parse(localStorage.getItem(REPOS_STORAGE_KEY) || "{}");
-  } catch {
-    return {};
-  }
-};
-
-const saveStoredRepo = (projectId, repoUrl) => {
-  try {
-    const repos = getStoredRepos();
-    if (projectId != null) {
-      repos[String(projectId)] = (repoUrl || "").trim();
-      localStorage.setItem(REPOS_STORAGE_KEY, JSON.stringify(repos));
-    }
-  } catch (e) {
-    console.warn("Failed to save project repository:", e);
-  }
-};
+const API_BASE = getApiBase();
 
 export const SEED_PROJECTS = [
   {
@@ -89,22 +68,14 @@ export const ProjectProvider = ({ children }) => {
         ? response.data
         : [];
 
-      const repos = getStoredRepos();
-
       if (data.length === 0) {
-        const enrichedSeed = SEED_PROJECTS.map((item) => ({
-          ...item,
-          repository: item.repository || repos[String(item.id)] || "",
-        }));
+        const enrichedSeed = SEED_PROJECTS;
         setProjects(enrichedSeed);
         if (enrichedSeed.length > 0 && !selectedProjectId) {
           setSelectedProjectId(enrichedSeed[0].id);
         }
       } else {
-        const enriched = data.map((item) => ({
-          ...item,
-          repository: item.repository || repos[String(item.id)] || "",
-        }));
+        const enriched = data;
 
         setProjects(enriched);
 
@@ -114,11 +85,7 @@ export const ProjectProvider = ({ children }) => {
         }
       }
     } catch (err) {
-            const repos = getStoredRepos();
-      const enrichedSeed = SEED_PROJECTS.map((item) => ({
-        ...item,
-        repository: item.repository || repos[String(item.id)] || "",
-      }));
+            const enrichedSeed = SEED_PROJECTS;
       setProjects(enrichedSeed);
       if (enrichedSeed.length > 0 && !selectedProjectId) {
         setSelectedProjectId(enrichedSeed[0].id);
@@ -148,6 +115,7 @@ export const ProjectProvider = ({ children }) => {
     status: formData.status,
     startDate: formData.startDate || null,
     endDate: formData.endDate || null,
+    repository: formData.repository || "",
   });
 
   const createProject = async (formData) => {
@@ -157,13 +125,9 @@ export const ProjectProvider = ({ children }) => {
         buildPayload(formData)
       );
 
-      const createdRepo = formData.repository || "";
-      if (response.data?.id) {
-        saveStoredRepo(response.data.id, createdRepo);
-      }
       const projectWithRepo = {
         ...response.data,
-        repository: createdRepo,
+        repository: response.data?.repository || "",
       };
 
       setProjects((prev) => [
@@ -198,13 +162,9 @@ export const ProjectProvider = ({ children }) => {
         buildPayload(formData)
       );
 
-      const updatedRepo = formData.repository != null ? formData.repository : "";
-      if (targetId) {
-        saveStoredRepo(targetId, updatedRepo);
-      }
       const projectWithRepo = {
         ...response.data,
-        repository: updatedRepo,
+        repository: response.data?.repository || "",
       };
 
       setProjects((prev) =>
@@ -220,41 +180,11 @@ export const ProjectProvider = ({ children }) => {
         data: projectWithRepo,
       };
     } catch (err) {
-      console.warn(
-        "Backend update project failed, falling back to local state:",
-        err
-      );
-      const existingProject =
-        projects.find(
-          (p) => String(p.id) === String(targetId)
-        ) || {};
-
-      const updatedRepo =
-        formData.repository != null
-          ? formData.repository
-          : existingProject.repository || "";
-
-      if (targetId) {
-        saveStoredRepo(targetId, updatedRepo);
-      }
-
-      const projectWithRepo = {
-        ...existingProject,
-        ...formData,
-        repository: updatedRepo,
-      };
-
-      setProjects((prev) =>
-        prev.map((project) =>
-          String(project.id) === String(targetId)
-            ? projectWithRepo
-            : project
-        )
-      );
-
       return {
-        success: true,
-        data: projectWithRepo,
+        success: false,
+        message:
+          err.response?.data?.message ||
+          "Failed to update project.",
       };
     }
   };
@@ -282,10 +212,9 @@ export const ProjectProvider = ({ children }) => {
       }
 
       const updated = response.data;
-      const repos = getStoredRepos();
       const projectWithRepo = {
         ...updated,
-        repository: updated.repository || repos[String(updated.id)] || "",
+        repository: updated.repository || "",
       };
 
       setProjects((prev) =>

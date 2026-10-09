@@ -11,7 +11,7 @@ import {
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useProjects } from "../../context/ProjectContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
-import axios from "../../services/api.js";
+import axios, { getApiBase } from "../../services/api.js";
 
 const QUICK_PROMPTS = [
   {
@@ -43,7 +43,7 @@ const QUICK_PROMPTS = [
   },
 ];
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 const CHAT_ENDPOINT = `${API_BASE}/chat`;
 
 const AIAssistant = () => {
@@ -130,7 +130,7 @@ const AIAssistant = () => {
         history,
       });
 
-      if (/\b(schedule|add|create|remind|reminder|mark|deadline|release)\b/i.test(query)) {
+      if (/\b(calendar|schedule|meeting|event|deadline|due date|remind(?:er)?|mark|today|tomorrow|overdue|reschedule|postpone|move|change)\b/i.test(query)) {
         window.dispatchEvent(new Event("nfn-calendar-events-updated"));
       }
 

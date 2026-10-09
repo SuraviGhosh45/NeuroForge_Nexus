@@ -29,6 +29,7 @@ const BugComments = ({
   onAdd,
 }) => {
   const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
 
   const comments = mergeComments(bug, localComments);
   const myTag = `@${String(currentUserName).split(" ")[0]}`.toLowerCase();
@@ -47,11 +48,17 @@ const BugComments = ({
     setText((current) => current.replace(/@(\w*)$/, `@${first} `));
   };
 
-  const submit = () => {
+  const submit = async () => {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    onAdd(trimmed);
-    setText("");
+    if (!trimmed || sending) return;
+    setSending(true);
+    try {
+      if (await onAdd(trimmed)) {
+        setText("");
+      }
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -140,7 +147,7 @@ const BugComments = ({
           <button
             type="button"
             onClick={submit}
-            disabled={!text.trim()}
+            disabled={!text.trim() || sending}
             className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
           >
             <PiPaperPlaneTilt size={16} />

@@ -9,50 +9,7 @@ const roleOf = (user) => {
 // Hides "Report Bug" for developers. Adjust if your role field differs.
 export const isDeveloper = (user) => roleOf(user).includes("developer");
 
-const read = (key, fallback) => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const write = (key, value) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage full or blocked: ignore */
-  }
-};
-
-const makeId = () =>
-  `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
-export const loadActivity = (bugId) => read(`bug-activity:${bugId}`, []);
-
-export const appendActivity = (bugId, event) => {
-  const list = [
-    ...loadActivity(bugId),
-    { id: makeId(), at: new Date().toISOString(), ...event },
-  ];
-  write(`bug-activity:${bugId}`, list);
-  return list;
-};
-
-export const loadComments = (bugId) => read(`bug-comments:${bugId}`, []);
-
-export const appendComment = (bugId, comment) => {
-  const list = [
-    ...loadComments(bugId),
-    { id: makeId(), at: new Date().toISOString(), ...comment },
-  ];
-  write(`bug-comments:${bugId}`, list);
-  return list;
-};
-
-// Merges anything the backend returns with what is stored locally.
-export const mergeActivity = (bug, local = []) => {
+export const mergeActivity = (bug, activity = []) => {
   const server = [bug?.activity, bug?.history, bug?.activities].find(
     Array.isArray
   );
@@ -68,6 +25,7 @@ export const mergeActivity = (bug, local = []) => {
     .filter((event) => event.at && event.text);
 
   const created = bug?.createdAt
+    && ![...mapped, ...activity].some((event) => event.type === "created")
     ? [
         {
           id: "created",
@@ -79,12 +37,12 @@ export const mergeActivity = (bug, local = []) => {
       ]
     : [];
 
-  return [...created, ...mapped, ...local].sort(
+  return [...created, ...mapped, ...activity].sort(
     (a, b) => new Date(b.at) - new Date(a.at)
   );
 };
 
-export const mergeComments = (bug, local = []) => {
+export const mergeComments = (bug, comments = []) => {
   const server = Array.isArray(bug?.comments) ? bug.comments : [];
 
   const mapped = server
@@ -100,7 +58,7 @@ export const mergeComments = (bug, local = []) => {
     }))
     .filter((comment) => comment.at && comment.text);
 
-  return [...mapped, ...local].sort(
+  return [...mapped, ...comments].sort(
     (a, b) => new Date(a.at) - new Date(b.at)
   );
 };

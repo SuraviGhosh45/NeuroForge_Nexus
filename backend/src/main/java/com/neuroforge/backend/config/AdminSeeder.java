@@ -65,7 +65,6 @@ public class AdminSeeder implements CommandLineRunner {
 
         userRepository.save(admin);
 
-        log.info("Bootstrap Admin created — email: {}, password: {} (change this after first login).",
-                email, bootstrapPassword);
+        log.info("Bootstrap Admin created for email '{}'. Change its password after first login.", email);
     }
 }

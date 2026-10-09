@@ -12,13 +12,17 @@ import { useProjects } from "../../context/ProjectContext.jsx";
 import { useTasks } from "../../context/TasksContext.jsx";
 import { useTeams } from "../../context/TeamsContext.jsx";
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
-import axios from "../../services/api.js";
+import axios, { getApiBase } from "../../services/api.js";
 
 const CHATBOT_EVENTS_KEY = "nfn_calendar_events_";
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 const CHAT_ENDPOINT = `${API_BASE}/chat`;
 
 const lower = (value) => String(value ?? "").toLowerCase();
+const isCalendarIntent = (value) =>
+  /\b(calendar|schedule|meeting|event|deadline|due dates?|task dates?|task deadlines?|overdue|today|tomorrow|next week|this week|reschedule|postpone|move|change|remind(?:er)?|saved events|my events|all events|list events)\b/i.test(value) ||
+  /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i.test(value) ||
+  /\b\d{4}-\d{1,2}-\d{1,2}\b|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/.test(value);
 
 const formatDisplayDate = (iso) => {
   if (!iso) return "";
@@ -924,8 +928,10 @@ I'm your **NeuroForge SDLC AI Assistant**. You can ask me to schedule meetings, 
     setSending(true);
 
     try {
-      // 1. Handle calendar commands locally.
-      const calendarReply = handleCalendarQuery(question);
+      // Calendar questions and mutations must use the persisted backend API.
+      const calendarReply = isCalendarIntent(question)
+        ? null
+        : handleCalendarQuery(question);
 
       if (calendarReply) {
         setMessages((prev) => [...prev, createMsg("bot", calendarReply)]);
@@ -946,7 +952,7 @@ I'm your **NeuroForge SDLC AI Assistant**. You can ask me to schedule meetings, 
         history,
       });
 
-      if (/\b(schedule|add|create|remind|reminder|mark|deadline|release)\b/i.test(question)) {
+      if (isCalendarIntent(question)) {
         window.dispatchEvent(new Event("nfn-calendar-events-updated"));
       }
 
@@ -958,7 +964,9 @@ I'm your **NeuroForge SDLC AI Assistant**. You can ask me to schedule meetings, 
         reply.includes("AI Assistant is currently unavailable");
 
       if (isGroqUnavailable) {
-        const fallbackAnswer = handleWorkspaceFallbackQuery(question);
+        const fallbackAnswer = isCalendarIntent(question)
+          ? null
+          : handleWorkspaceFallbackQuery(question);
 
         if (fallbackAnswer) {
           setMessages((prev) => [
@@ -982,7 +990,7 @@ I'm your **NeuroForge SDLC AI Assistant**. You can ask me to schedule meetings, 
               `2. Open \`backend/src/main/resources/application.properties\`.\n` +
               `3. Set: \`neuroforge.chat.api-key=gsk_your_groq_api_key_here\`\n` +
               `4. Restart your Spring Boot backend (\`mvnw.cmd spring-boot:run\`).\n\n` +
-              `💡 *You can still ask me local workspace and calendar commands anytime!*`
+              `💡 *Calendar requests require the backend so changes are saved consistently.*`
           ),
         ]);
         return;
@@ -991,7 +999,9 @@ I'm your **NeuroForge SDLC AI Assistant**. You can ask me to schedule meetings, 
       setMessages((prev) => [...prev, createMsg("bot", reply)]);
     } catch (error) {
       console.error("Chatbot request failed:", error);
-      const fallbackAnswer = handleWorkspaceFallbackQuery(question);
+      const fallbackAnswer = isCalendarIntent(question)
+        ? null
+        : handleWorkspaceFallbackQuery(question);
 
       if (fallbackAnswer) {
         setMessages((prev) => [
@@ -1008,7 +1018,7 @@ I'm your **NeuroForge SDLC AI Assistant**. You can ask me to schedule meetings, 
             "bot",
             `⚠️ **AI Backend Service Offline**\n\n` +
               `The AI backend could not be reached. Make sure your Spring Boot backend is running on port 8080.\n\n` +
-              `*Calendar scheduling, meeting booking, and task deadline commands remain active directly in your browser!*`
+              `*Calendar scheduling, meeting booking, and task deadline commands require the backend to be available.*`
           ),
         ]);
       }

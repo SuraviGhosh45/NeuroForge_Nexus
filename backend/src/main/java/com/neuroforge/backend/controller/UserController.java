@@ -24,6 +24,7 @@ import com.neuroforge.backend.dto.UserDtos.StatusUpdateRequest;
 import com.neuroforge.backend.dto.UserDtos.UserOption;
 import com.neuroforge.backend.dto.UserDtos.UserResponse;
 import com.neuroforge.backend.entity.Role;
+import com.neuroforge.backend.security.CurrentUser;
 import com.neuroforge.backend.service.UserService;
 
 import jakarta.validation.Valid;
@@ -70,6 +71,12 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse update(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         return userService.update(id, request);
+    }
+
+    /** Self-service profile update. Role, active status, and password are not editable here. */
+    @PutMapping("/me")
+    public UserResponse updateSelf(@Valid @RequestBody UpdateUserRequest request) {
+        return userService.update(CurrentUser.get().userId(), request);
     }
 
     /** Role dropdown on the Users page (Team Member -> Project Manager, ...). Admin only. */

@@ -25,11 +25,10 @@ import { useTasks } from "../../context/TasksContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
 import { useTeams } from "../../context/TeamsContext.jsx";
 import { useProjectTeam } from "../../context/ProjectTeamContext.jsx";
-import axios from "../../services/api.js";
+import axios, { getApiBase } from "../../services/api.js";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api";
+const API_BASE = getApiBase();
 const API = `${API_BASE}/calendar`;
-const CHATBOT_EVENTS_KEY = "nfn_calendar_events_";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -41,6 +40,8 @@ const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const STATUSES = ["PENDING", "COMPLETED", "CANCELLED"];
 
 const pad2 = (value) => String(value).padStart(2, "0");
+const toEventDateTime = (value) =>
+  value && value.length === 10 ? `${value}T00:00:00` : value;
 const toISO = (date) =>
   `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
@@ -89,32 +90,6 @@ const normalizeBackendEvent = (event) => ({
   editable: event.editable ?? (event.source !== "SYSTEM"),
 });
 
-const getChatbotEvents = (userId) => {
-  try {
-    const raw = localStorage.getItem(
-      CHATBOT_EVENTS_KEY + (userId ?? "guest")
-    );
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveChatbotEvents = (userId, events) => {
-  try {
-    localStorage.setItem(
-      CHATBOT_EVENTS_KEY + (userId ?? "guest"),
-      JSON.stringify(events)
-    );
-    window.dispatchEvent(new Event("nfn-calendar-events-updated"));
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const isItemOverdue = (dueDate, status, boardStatus, todayISO = toISO(new Date())) => {
   if (!dueDate) return false;
   const cleanStatus = (status || boardStatus || "").toUpperCase().replace(/\s+/g, "_");
@@ -160,11 +135,6 @@ const GlobalCalendar = () => {
     assignedTo: "",
   });
 
-  // Local storage chatbot events
-  const [chatbotEvents, setChatbotEvents] = useState(() =>
-    getChatbotEvents(currentUser?.id)
-  );
-
   // Toast notification for drag-and-drop feedback
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -181,7 +151,9 @@ const GlobalCalendar = () => {
         setBackendEvents(response.data.map(normalizeBackendEvent));
       }
     } catch (err) {
-      console.warn("Calendar backend unavailable, using local workspace events:", err.message);
+      setError(
+        err.response?.data?.message || "Calendar events could not be loaded."
+      );
     } finally {
       setLoading(false);
     }
@@ -208,12 +180,9 @@ const GlobalCalendar = () => {
     return () => { active = false; };
   }, [form.projectId]);
 
-  // Sync chatbot events & backend events when notified
+  // Refresh after an assistant action persisted through the calendar API.
   useEffect(() => {
-    const handleEventsUpdated = () => {
-      setChatbotEvents(getChatbotEvents(currentUser?.id));
-      loadBackendEvents();
-    };
+    const handleEventsUpdated = () => loadBackendEvents();
 
     window.addEventListener("nfn-calendar-events-updated", handleEventsUpdated);
     return () => {
@@ -303,30 +272,10 @@ const GlobalCalendar = () => {
         editable: true,
       }));
 
-    const normalizedChatbot = (chatbotEvents || []).map((event) => ({
-      ...event,
-      id: event.id || `chatbot-${Math.random().toString(36).slice(2, 7)}`,
-      calendarTitle: event.title || event.label || "Meeting",
-      title: event.title || event.label || "Meeting",
-      label: event.title || event.label || "Meeting",
-      dueDate: event.dueDate,
-      eventDate: event.dueDate,
-      calendarType: event.type === "meeting" || event.isMeeting ? "meeting" : "chatbot",
-      type: event.type || "meeting",
-      priority: event.priority || "Medium",
-      isOverdue: event.isOverdueAlert || (event.dueDate && isItemOverdue(event.dueDate, event.status, null, todayISO)),
-      editable: true,
-    }));
-
-    // Merge backend events, avoiding duplicate IDs
-    const backendIds = new Set(backendEvents.map((e) => String(e.id)));
-    const filteredLocal = normalizedChatbot.filter((e) => !backendIds.has(String(e.id)));
-
-    return [...taskEvents, ...subtaskEvents, ...filteredLocal, ...backendEvents];
+    return [...taskEvents, ...subtaskEvents, ...backendEvents];
   }, [
     visibleTasks,
     visibleSubtasks,
-    chatbotEvents,
     backendEvents,
     todayISO,
   ]);
@@ -520,20 +469,13 @@ const GlobalCalendar = () => {
           setToastMessage(`📅 Rescheduled subtask "${title}" to ${formatDisplayDate(targetDateString)}`);
         }
       } else if (draggedItem.isBackendEvent) {
-        await axios.patch(`${API}/${rawId}/date`, { eventDate: targetDateString });
+        await axios.patch(`${API}/${rawId}/date`, {
+          eventDate: toEventDateTime(targetDateString),
+        });
         await loadBackendEvents();
         setToastMessage(`📅 Rescheduled event "${title}" to ${formatDisplayDate(targetDateString)}`);
       } else {
-        // Chatbot / Local event rescheduling
-        const eventsList = getChatbotEvents(currentUser?.id);
-        const idx = eventsList.findIndex((e) => String(e.id) === String(id));
-        if (idx !== -1) {
-          eventsList[idx].dueDate = targetDateString;
-          eventsList[idx].updatedAt = new Date().toISOString();
-          saveChatbotEvents(currentUser?.id, eventsList);
-          setChatbotEvents(eventsList);
-          setToastMessage(`📅 Rescheduled "${title}" to ${formatDisplayDate(targetDateString)}`);
-        }
+        throw new Error("This calendar item cannot be rescheduled.");
       }
     } catch (err) {
       console.error("Reschedule failed:", err);
@@ -602,7 +544,9 @@ const GlobalCalendar = () => {
     try {
       const eventId = selectedEvent.rawId || selectedEvent.id;
       if (selectedEvent.isBackendEvent) {
-        await axios.patch(`${API}/${eventId}/date`, { eventDate: newEventDate });
+        await axios.patch(`${API}/${eventId}/date`, {
+          eventDate: toEventDateTime(newEventDate),
+        });
         await loadBackendEvents();
       } else if (selectedEvent.calendarType === "task" && updateTask) {
         const t = tasks.find((item) => String(item.id) === String(eventId));
@@ -645,9 +589,7 @@ const GlobalCalendar = () => {
         await axios.delete(`${API}/${eventId}`);
         await loadBackendEvents();
       } else {
-        const eventsList = getChatbotEvents(currentUser?.id).filter((e) => String(e.id) !== String(selectedEvent.id));
-        saveChatbotEvents(currentUser?.id, eventsList);
-        setChatbotEvents(eventsList);
+        throw new Error("This calendar item is not a saved event.");
       }
       setSelectedEvent(null);
       setToastMessage("🗑️ Event removed.");
@@ -691,24 +633,9 @@ const GlobalCalendar = () => {
       await loadBackendEvents();
       setToastMessage("✅ Calendar event created successfully!");
     } catch (err) {
-      // Local fallback if backend is offline
-      const newEv = {
-        id: `meeting-${Date.now()}`,
-        title: form.title,
-        label: form.title,
-        dueDate: form.eventDate.slice(0, 10),
-        eventDate: form.eventDate,
-        type: form.type.toLowerCase(),
-        priority: form.priority,
-        isMeeting: true,
-        calendarType: "meeting",
-        createdBy: currentUser?.id ?? "guest",
-      };
-      const updated = [...getChatbotEvents(currentUser?.id), newEv];
-      saveChatbotEvents(currentUser?.id, updated);
-      setChatbotEvents(updated);
-      setShowCreate(false);
-      setToastMessage("✅ Event saved to calendar!");
+      setError(
+        err.response?.data?.message || "Unable to save the calendar event."
+      );
     } finally {
       setSaving(false);
     }
@@ -932,6 +859,22 @@ const GlobalCalendar = () => {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={loadBackendEvents}
+            className="shrink-0 font-semibold underline underline-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Main Calendar Card */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#172033]">

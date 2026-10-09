@@ -231,6 +231,14 @@ public class CalendarService {
         if (assignedTo != null && !userRepository.existsById(assignedTo)) {
             throw new EntityNotFoundException("Assigned user not found: " + assignedTo);
         }
+        if (assignedTo != null) {
+            if (projectId == null && !assignedTo.equals(CurrentUser.get().userId())) {
+                throw new AccessDeniedException("Personal events can only be assigned to yourself");
+            }
+            if (projectId != null && !accessService.isMember(getProject(projectId), assignedTo)) {
+                throw new AccessDeniedException("The assigned user is not a member of this project");
+            }
+        }
         return projectId;
     }
 

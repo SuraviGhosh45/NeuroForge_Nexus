@@ -1,15 +1,24 @@
 package com.neuroforge.backend.service;
 
 import com.neuroforge.backend.dto.BugReportDtos.BugReportResponse;
+import com.neuroforge.backend.dto.BugReportDtos.ActivityResponse;
+import com.neuroforge.backend.dto.BugReportDtos.CommentResponse;
+import com.neuroforge.backend.dto.BugReportDtos.CreateCommentRequest;
 import com.neuroforge.backend.dto.BugReportDtos.CreateBugRequest;
 import com.neuroforge.backend.dto.BugReportDtos.UpdateAssignmentRequest;
 import com.neuroforge.backend.dto.BugReportDtos.UpdateBugRequest;
 import com.neuroforge.backend.dto.BugReportDtos.UpdateStatusRequest;
 import com.neuroforge.backend.entity.BugReport;
+import com.neuroforge.backend.entity.BugReportActivity;
+import com.neuroforge.backend.entity.BugReportComment;
 import com.neuroforge.backend.entity.Project;
 import com.neuroforge.backend.entity.Role;
+import com.neuroforge.backend.entity.User;
+import com.neuroforge.backend.repository.BugReportActivityRepository;
+import com.neuroforge.backend.repository.BugReportCommentRepository;
 import com.neuroforge.backend.repository.BugReportRepository;
 import com.neuroforge.backend.repository.ProjectRepository;
+import com.neuroforge.backend.repository.UserRepository;
 import com.neuroforge.backend.security.AuthUser;
 import com.neuroforge.backend.security.CurrentUser;
 
@@ -42,7 +51,10 @@ public class BugReportService {
             Set.of("verified", "reopened", "closed", "retesting", "retest");
 
     private final BugReportRepository bugReportRepository;
+    private final BugReportActivityRepository activityRepository;
+    private final BugReportCommentRepository commentRepository;
     private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
     private final AccessService accessService;
 
     // ------------------------------------------------------------------
@@ -112,6 +124,40 @@ public class BugReportService {
         return toResponse(bug);
     }
 
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getComments(Long id) {
+        getBug(id);
+        return commentRepository.findByBugIdOrderByCreatedAtAscIdAsc(id).stream()
+                .map(this::toCommentResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActivityResponse> getActivity(Long id) {
+        getBug(id);
+        return activityRepository.findByBugIdOrderByCreatedAtAscIdAsc(id).stream()
+                .map(this::toActivityResponse)
+                .toList();
+    }
+
+    public CommentResponse addComment(Long id, CreateCommentRequest request) {
+        BugReport bug = getBugEntity(id);
+        Project project = getProject(bug.getProjectId());
+        AuthUser caller = CurrentUser.get();
+        accessService.assertCanView(caller, project);
+
+        User author = userRepository.findById(caller.userId())
+                .orElseThrow(() -> new EntityNotFoundException("Current user no longer exists"));
+        BugReportComment comment = new BugReportComment();
+        comment.setBugId(id);
+        comment.setAuthorId(author.getId());
+        comment.setAuthorName(author.getFullName());
+        comment.setText(request.text().trim());
+        BugReportComment saved = commentRepository.save(comment);
+        logActivity(bug, "comment", "commented on this bug", null);
+        return toCommentResponse(saved);
+    }
+
     // ------------------------------------------------------------------
     // CREATE
     // ------------------------------------------------------------------
@@ -158,7 +204,9 @@ public class BugReportService {
         bug.setAssignedTo(assignedTo);
         bug.setAttachments(request.attachments());
 
-        return toResponse(bugReportRepository.save(bug));
+        BugReport saved = bugReportRepository.save(bug);
+        logActivity(saved, "created", "reported this bug", null);
+        return toResponse(saved);
     }
 
     // ------------------------------------------------------------------
@@ -197,7 +245,9 @@ public class BugReportService {
             bug.setAssignedTo(request.assignedTo());
         }
 
-        return toResponse(bugReportRepository.save(bug));
+        BugReport saved = bugReportRepository.save(bug);
+        logActivity(saved, "status", "updated the bug details", null);
+        return toResponse(saved);
     }
 
     /**
@@ -219,13 +269,18 @@ public class BugReportService {
 
         assertCanChangeStatus(user, project, bug, request.status());
 
+        String previousStatus = bug.getStatus();
         bug.setStatus(request.status().trim());
 
         if (request.retestResult() != null) {
             bug.setRetestResult(request.retestResult().trim());
         }
 
-        return toResponse(bugReportRepository.save(bug));
+        BugReport saved = bugReportRepository.save(bug);
+        String activityText = "moved this bug from " + previousStatus + " to " + saved.getStatus();
+        String type = request.retestResult() == null ? "status" : "retest";
+        logActivity(saved, type, activityText, request.retestResult());
+        return toResponse(saved);
     }
 
     /**
@@ -248,8 +303,14 @@ public class BugReportService {
         validateAssignment(request.assignedTo(), project);
 
         bug.setAssignedTo(request.assignedTo());
-
-        return toResponse(bugReportRepository.save(bug));
+        BugReport saved = bugReportRepository.save(bug);
+        String assignee = request.assignedTo() == null
+                ? "Unassigned"
+                : userRepository.findById(request.assignedTo())
+                        .map(User::getFullName)
+                        .orElse("a project member");
+        logActivity(saved, "status", "assigned this bug to " + assignee, null);
+        return toResponse(saved);
     }
 
     // ------------------------------------------------------------------
@@ -426,5 +487,38 @@ public class BugReportService {
                 bug.getAttachments(),
                 bug.getRetestResult()
         );
+    }
+
+    private void logActivity(BugReport bug, String type, String text, String result) {
+        AuthUser caller = CurrentUser.get();
+        User actor = userRepository.findById(caller.userId())
+                .orElseThrow(() -> new EntityNotFoundException("Current user no longer exists"));
+        BugReportActivity activity = new BugReportActivity();
+        activity.setBugId(bug.getId());
+        activity.setActorId(actor.getId());
+        activity.setActorName(actor.getFullName());
+        activity.setType(type);
+        activity.setText(text);
+        activity.setResult(result);
+        activityRepository.save(activity);
+    }
+
+    private CommentResponse toCommentResponse(BugReportComment comment) {
+        return new CommentResponse(
+                comment.getId(),
+                comment.getAuthorId(),
+                comment.getAuthorName(),
+                comment.getText(),
+                comment.getCreatedAt());
+    }
+
+    private ActivityResponse toActivityResponse(BugReportActivity activity) {
+        return new ActivityResponse(
+                activity.getId(),
+                activity.getType(),
+                activity.getActorName(),
+                activity.getText(),
+                activity.getResult(),
+                activity.getCreatedAt());
     }
 }

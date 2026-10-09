@@ -4,6 +4,7 @@ import com.neuroforge.backend.entity.BugReport;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 
 public interface BugReportRepository extends JpaRepository<BugReport, Long> {
@@ -13,6 +14,8 @@ public interface BugReportRepository extends JpaRepository<BugReport, Long> {
     boolean existsByBugKey(String bugKey);
 
     List<BugReport> findByProjectIdOrderByCreatedAtDesc(Long projectId);
+
+    List<BugReport> findByProjectIdInOrderByCreatedAtDesc(Collection<Long> projectIds);
 
     List<BugReport> findByReportedByOrderByCreatedAtDesc(Long reportedBy);
 
