@@ -1,0 +1,75 @@
+
+
+name: NeuroForge Nexus CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neuroforge-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend Build and Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Build and test backend
+        run: mvn -B -f backend/pom.xml verify
+
+      - name: Upload backend JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: neuroforge-backend
+          path: backend/target/*.jar
+          if-no-files-found: error
+          retention-days: 7
+
+  frontend:
+    name: Frontend Lint and Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Run ESLint
+        run: npm run lint --prefix frontend
+
+      - name: Build frontend
+        run: npm run build --prefix frontend
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: neuroforge-frontend
+          path: frontend/dist/
+          if-no-files-found: error
+          retention-days: 7
