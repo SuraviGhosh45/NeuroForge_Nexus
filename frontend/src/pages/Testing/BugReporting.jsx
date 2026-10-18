@@ -633,23 +633,25 @@ const BugReporting = () => {
     };
   }, [loadData]);
 
-  // Report a bug directly from a task page:
-  // navigate("/bugs", { state: { reportBugForTask: { taskId, projectId, title } } })
   const prefill = location.state?.reportBugForTask;
-  useEffect(() => {
-    if (!prefill || loading || projects.length === 0) return;
 
+useEffect(() => {
+  if (!prefill || loading || projects.length === 0) return;
+
+  const timer = setTimeout(() => {
     setForm({
       ...initialForm,
       projectId: prefill.projectId != null ? String(prefill.projectId) : "",
       taskId: prefill.taskId != null ? String(prefill.taskId) : "",
       title: prefill.title ? `Bug in task: ${prefill.title}` : "",
     });
-    setShowReportModal(true);
 
-    // Clear the router state so the modal doesn't reopen on refresh
+    setShowReportModal(true);
     navigate(location.pathname, { replace: true, state: null });
-  }, [prefill, loading, projects.length, navigate, location.pathname]);
+  }, 0);
+
+  return () => clearTimeout(timer);
+}, [prefill, loading, projects.length, navigate, location.pathname]);
 
   const selectedBugId = selectedBug?.id;
   useEffect(() => {
