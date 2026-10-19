@@ -3,3 +3,9 @@ node_modules/
 application-local.properties
 backend/data/
 *.mv.db
+
+# Local Docker environment and secrets
+.env.docker
+.env
+.env.*
+!.env.example
