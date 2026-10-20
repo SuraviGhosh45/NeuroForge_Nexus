@@ -35,7 +35,7 @@ jobs:
         run: mvn -B -f backend/pom.xml verify
 
       - name: Upload backend JAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: neuroforge-backend
           path: backend/target/*.jar
@@ -67,7 +67,7 @@ jobs:
         run: npm run build --prefix frontend
 
       - name: Upload frontend build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: neuroforge-frontend
           path: frontend/dist/
