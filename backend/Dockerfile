@@ -19,7 +19,7 @@ RUN for attempt in 1 2 3; do \
     echo "Maven build failed after 3 attempts"; \
     exit 1
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre-noble
 
 WORKDIR /app
 
