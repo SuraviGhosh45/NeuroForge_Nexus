@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Report a Security Vulnerability
+    url: https://github.com/SuraviGhosh45/NeuroForge_Nexus/security/advisories/new
+    about: Report security vulnerabilities privately instead of creating a public issue. 
