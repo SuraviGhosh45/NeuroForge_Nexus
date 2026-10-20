@@ -1,4 +1,3 @@
-
 name: NeuroForge Nexus CI
 
 'on':
@@ -118,7 +117,7 @@ jobs:
         run: mvn -B -f backend/pom.xml verify
 
   docker-build:
-    name: Docker Build and Publish
+    name: Docker Security Scan and Publish
     runs-on: ubuntu-latest
     needs: [backend, frontend, backend-mysql-integration]
 
@@ -139,6 +138,34 @@ jobs:
           IMAGE_OWNER="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
           echo "IMAGE_OWNER=$IMAGE_OWNER" >> "$GITHUB_ENV"
 
+      - name: Build backend image for security scan
+        run: docker build -t neuroforge-backend:scan ./backend
+
+      - name: Scan backend image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: neuroforge-backend:scan
+          format: table
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+
+      - name: Build frontend image for security scan
+        run: docker build -t neuroforge-frontend:scan ./frontend
+
+      - name: Scan frontend image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: neuroforge-frontend:scan
+          format: table
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+
       - name: Log in to GitHub Container Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
@@ -147,7 +174,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build backend Docker image
+      - name: Build and publish backend image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -158,7 +185,7 @@ jobs:
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
-      - name: Build frontend Docker image
+      - name: Build and publish frontend image
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
