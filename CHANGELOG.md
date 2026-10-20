@@ -12,33 +12,71 @@ All notable changes to NeuroForge Nexus will be documented here.
 
 \### Added
 
-\- Add new features and functionality here.
+\- Automated backend build and test validation with GitHub Actions.
 
-\- Add CI/CD pipeline improvements here.
+\- Frontend linting and production build checks.
 
-\- Add documentation and repository configuration here.
+\- MySQL integration testing using an isolated CI database.
 
+\- Docker image build and runtime smoke tests.
 
+\- Docker vulnerability scanning with Trivy.
 
-\### Changed
+\- Docker image publishing to GitHub Container Registry.
 
-\- Document changes to existing functionality here.
+\- CodeQL source-code security analysis.
 
+\- Gitleaks secret scanning.
 
+\- Dependency review and Dependabot configuration.
 
-\### Fixed
+\- Repository contribution and development documentation.
 
-\- Document bug fixes here.
+\- GitHub issue and pull request templates.
+
+\- Automated release workflow configuration.
 
 
 
 \### Security
 
-\- Document security improvements and dependency updates here.
+\- Updated backend Tomcat and Jackson dependencies.
+
+\- Added frontend Alpine package upgrades during Docker builds.
+
+\- Added automated security checks to CI/CD.
 
 
 
-\### Removed
+\### Changed
 
-\- Document removed features or functionality here.	
+\- Standardized repository formatting and Git line endings.
+
+\- Documented development, testing, release, and branching processes.
+
+
+
+\## \[1.0.0] - TBD
+
+
+
+> Draft release notes. Finalize the release date and included changes before publishing.
+
+
+
+\### Added
+
+\- List the verified features included in the release.
+
+
+
+\### Fixed
+
+\- List the verified bug fixes included in the release.
+
+
+
+\### Security
+
+\- Record the security fixes verified for this release.
 
