@@ -35,9 +35,23 @@ pipeline {
     }
 
     post {
+        always {
+            junit(
+                testResults: 'backend/target/surefire-reports/TEST-*.xml',
+                allowEmptyResults: true
+            )
+
+            archiveArtifacts(
+                artifacts: 'backend/target/*.jar,frontend/dist/**',
+                allowEmptyArchive: true,
+                fingerprint: true
+            )
+        }
+
         success {
             echo 'NeuroForge Nexus Jenkins CI passed.'
         }
+
         failure {
             echo 'Jenkins CI failed. Check the Console Output.'
         }
