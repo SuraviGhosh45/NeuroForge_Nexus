@@ -5,6 +5,7 @@ pipeline {
         timestamps()
         disableConcurrentBuilds()
         skipDefaultCheckout(true)
+        timeout(time: 30, unit: 'MINUTES')
     }
 
     stages {
