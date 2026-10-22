@@ -96,9 +96,10 @@ public class AdminSeeder implements CommandLineRunner {
         }
 
         if (bootstrapPassword == null || bootstrapPassword.isBlank()) {
-            throw new IllegalStateException(
-                "ADMIN_PASSWORD must be configured to create the first admin."
+            log.warn(
+                "ADMIN_PASSWORD is not configured. Skipping bootstrap admin creation."
             );
+            return;
         }
 
         // Create the first admin only when no admin exists.
