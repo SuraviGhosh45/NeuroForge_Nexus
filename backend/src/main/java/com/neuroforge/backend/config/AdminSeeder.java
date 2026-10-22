@@ -12,14 +12,6 @@ import com.neuroforge.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Runs once on every startup. If no Admin exists in the system yet, creates one
- * from application.properties values. This solves the bootstrap problem: every
- * normal signup lands as UNASSIGNED, so without this, there would be no way to
- * create the very first Admin without manual SQL.
- *
- * Safe to run every time the app starts - it only acts when zero Admins exist.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -34,25 +26,82 @@ public class AdminSeeder implements CommandLineRunner {
     @Value("${app.bootstrap-admin.email:admin@example.com}")
     private String bootstrapEmail;
 
-    @Value("${app.bootstrap-admin.password:Admin@12345}")
+    @Value("${app.bootstrap-admin.password:}")
     private String bootstrapPassword;
+
+    @Value("${ADMIN_RESET_PASSWORD:false}")
+    private boolean resetExistingAdminPassword;
 
     @Override
     public void run(String... args) {
-        long adminCount = userRepository.countByRole(Role.ADMIN);
-
-        if (adminCount > 0) {
-            return; // an Admin already exists, nothing to do
-        }
-
         String email = bootstrapEmail.trim().toLowerCase();
 
-        if (userRepository.existsByEmailIgnoreCase(email)) {
-            log.warn("Bootstrap admin email '{}' is already taken by a non-admin account. "
-                    + "Promote that account manually, or change app.bootstrap-admin.email.", email);
+        User existingUser = userRepository.findAll()
+                .stream()
+                .filter(user -> user.getEmail() != null
+                        && user.getEmail().equalsIgnoreCase(email))
+                .findFirst()
+                .orElse(null);
+
+        long adminCount = userRepository.countByRole(Role.ADMIN);
+
+        // If this email already belongs to an account, handle it safely.
+        if (existingUser != null) {
+            if (existingUser.getRole() != Role.ADMIN) {
+                log.warn(
+                    "Bootstrap email '{}' belongs to a non-admin account. "
+                    + "No changes were made.", email
+                );
+                return;
+            }
+
+            // Password reset happens only when explicitly enabled.
+            if (resetExistingAdminPassword) {
+                if (bootstrapPassword == null
+                        || bootstrapPassword.isBlank()) {
+                    throw new IllegalStateException(
+                        "ADMIN_PASSWORD must be set to reset the admin password."
+                    );
+                }
+
+                existingUser.setPassword(
+                    passwordEncoder.encode(bootstrapPassword)
+                );
+                existingUser.setActive(true);
+                userRepository.save(existingUser);
+
+                log.warn(
+                    "Password reset for existing admin '{}'. "
+                    + "Set ADMIN_RESET_PASSWORD=false after this reset.",
+                    email
+                );
+            } else {
+                log.info(
+                    "Bootstrap admin '{}' already exists. No changes made.",
+                    email
+                );
+            }
+
             return;
         }
 
+        // Do not create an additional admin if another admin already exists.
+        if (adminCount > 0) {
+            log.warn(
+                "An admin already exists, but '{}' was not found. "
+                + "No additional admin was created.",
+                email
+            );
+            return;
+        }
+
+        if (bootstrapPassword == null || bootstrapPassword.isBlank()) {
+            throw new IllegalStateException(
+                "ADMIN_PASSWORD must be configured to create the first admin."
+            );
+        }
+
+        // Create the first admin only when no admin exists.
         User admin = new User();
         admin.setFullName(bootstrapName);
         admin.setLegacyName(bootstrapName);
@@ -65,6 +114,6 @@ public class AdminSeeder implements CommandLineRunner {
 
         userRepository.save(admin);
 
-        log.info("Bootstrap Admin created for email '{}'. Change its password after first login.", email);
+        log.info("Bootstrap admin created for email '{}'.", email);
     }
 }
